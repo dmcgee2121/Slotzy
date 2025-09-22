@@ -1,121 +1,165 @@
 <!DOCTYPE html>
+<!-- Declares the document type as HTML5 -->
+
 <html lang="en">
+<!-- Opens the HTML document and sets the language to English -->
+
 <head>
   <meta charset="UTF-8">
+  <!-- Sets character encoding to UTF-8 for proper text rendering -->
+
   <title>Book Appointment</title>
+  <!-- Sets the title of the page (shown in browser tab) -->
+
   <link rel="stylesheet" href="styles.css">
+  <!-- Links your custom CSS file for styling -->
+
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <!-- Imports Flatpickr's CSS for the date picker widget -->
 </head>
 
-<!-- Flatpickr CSS -->
-<link rel="stylesheet" href="styles.css">
+<!-- ❌ This line is redundant and should be removed -->
+<!-- <link rel="stylesheet" href="styles.css"> -->
 
 <body>
-    <img src="images/Slotzy Logo.PNG" alt="Barber shop logo featuring two crossed straight razors, a shaving brush, and a jar. The logo includes the text BARBER, EST 1981, shop, and HAIRCUT AND SHAVE. The design has a classic, vintage style and conveys a welcoming, professional atmosphere" style="width:150px; display:block; margin:0 auto;">
+  <!-- Main content of the booking page -->
+
+  <img src="images/Slotzy Logo.PNG"
+       alt="Barber shop logo featuring two crossed straight razors, a shaving brush, and a jar..."
+       style="width:150px; display:block; margin:0 auto;">
+  <!-- Displays your logo image centered at the top with a fixed width -->
+
   <h1>Book Your Appointment</h1>
+  <!-- Main heading for the booking page -->
+
+  <!-- ✅ This is your actual working form -->
   <form action="confirmation.html" method="GET">
+    <!-- Sends form data to confirmation.html using GET method -->
+
     <label for="name">Your Name:</label><br>
+    <!-- Label for the name input field -->
+
     <input type="text" id="name" name="name" required><br><br>
+    <!-- Text input for user's name, required for submission -->
 
     <label for="barber">Choose Barber:</label><br>
+    <!-- Label for barber selection -->
+
     <select id="barber" name="barber" required>
+      <!-- Dropdown to choose a barber -->
       <option value="">--Select--</option>
       <option value="Mike">Mike</option>
       <option value="Jamal">Jamal</option>
       <option value="Trey">Trey</option>
     </select><br><br>
 
-<!-- ✅ Move this OUTSIDE the select tag -->
-<div id="service-section" style="display:none;">
-  <label for="service">Choose Service:</label><br>
-  <select id="service" name="service" required>
-    <option value="">--Select Service--</option>
-    <option value="Haircut">$30 - Haircut</option>
-    <option value="Line Up">$20 - Line Up</option>
-    <option value="Taper">$15 - Taper</option>
-  </select><br><br>
-</div>
+    <div id="service-section" style="display:none;">
+      <!-- Hidden section that appears after barber is selected -->
+
+      <label for="service">Choose Service:</label><br>
+      <!-- Label for service selection -->
+
+      <select id="service" name="service" required>
+        <!-- Dropdown for service options -->
+        <option value="">--Select Service--</option>
+        <option value="Haircut">$45 - Haircut w/Beard Trim & Line Up</option>
+        <option value="Haircut">$40 - Haircut w/Beard Trim</option>
+        <option value="Haircut">$30 - Haircut</option>
+        <option value="Line Up">$20 - Line Up</option>
+        <option value="Taper">$15 - Taper</option>
+      </select><br><br>
+    </div>
 
     <label for="date">Date:</label><br>
-    <input type="text" id="date" name="date" required readonly>
-    <br><br>
+    <!-- Label for date selection -->
 
-<label for="time">Time:</label><br>
-<select id="time" name="time" required>
-  <option value="">--Select Time--</option>
-  <option value="09:00">9:00 AM</option>
-  <option value="09:30">9:30 AM</option>
-  <option value="10:00">10:00 AM</option>
-  <option value="10:30">10:30 AM</option>
-  <option value="11:00">11:00 AM</option>
-  <option value="11:30">11:30 AM</option>
+    <input type="text" id="date" name="date" required readonly><br><br>
+    <!-- Text input for date, made readonly to force Flatpickr usage -->
 
-  <option value="13:00">1:00 PM</option>
-  <option value="13:30">1:30 PM</option>
-  <option value="14:00">2:00 PM</option>
-  <option value="14:30">2:30 PM</option>
-  <option value="15:00">3:00 PM</option>
-  <option value="15:30">3:30 PM</option>
-  <option value="16:00">4:00 PM</option>
-  <option value="16:30">4:30 PM</option>
-</select><br><br>
+    <label for="time">Time:</label><br>
+    <!-- Label for time selection -->
 
-    <button type="submit" aria-label="Confirm your appointment booking">Confirm Booking</button>
+    <select id="time" name="time" required>
+      <!-- Dropdown for time slots -->
+      <option value="">--Select Time--</option>
+      <option value="09:00">9:00 AM</option>
+      <option value="09:30">9:30 AM</option>
+      <option value="10:00">10:00 AM</option>
+      <option value="10:30">10:30 AM</option>
+      <option value="11:00">11:00 AM</option>
+      <option value="11:30">11:30 AM</option>
+      <option value="13:00">1:00 PM</option>
+      <option value="13:30">1:30 PM</option>
+      <option value="14:00">2:00 PM</option>
+      <option value="14:30">2:30 PM</option>
+      <option value="15:00">3:00 PM</option>
+      <option value="15:30">3:30 PM</option>
+      <option value="16:00">4:00 PM</option>
+      <option value="16:30">4:30 PM</option>
+    </select><br><br>
+
+    <button type="submit" class="submit-button" aria-label="Confirm your appointment booking">Confirm Booking</button>
+    <!-- Submit button styled with "submit-button" class -->
   </form>
-<script>
-  const form = document.querySelector("form");
-  const dateInput = document.getElementById("date");
 
-  form.addEventListener("submit", function (event) {
-    const dateValue = dateInput.value;
+  <!-- ✅ JavaScript to validate date before submission -->
+  <script>
+    const form = document.querySelector("form");
+    const dateInput = document.getElementById("date");
 
-    // Prevent submission if no date is selected
-    if (!dateValue) {
-      alert("Please select a date.");
-      event.preventDefault();
-      return;
-    }
+    form.addEventListener("submit", function (event) {
+      const dateValue = dateInput.value;
 
-    const selectedDate = new Date(dateValue);
-    const day = selectedDate.getDay(); // 0 = Sunday, 1 = Monday
-
-    if (day === 0 || day === 1) {
-      alert("Sorry, we are closed on Sundays and Mondays. Please choose another day.");
-      event.preventDefault(); // Stop form from submitting
-    }
-  });
-</script>
-<!-- Flatpickr JS -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-<!-- Your custom Flatpickr initialization -->
-<script>
-  flatpickr("#date", {
-    dateFormat: "m-d-Y",
-    disable: [
-      function(date) {
-        return (date.getDay() === 0 || date.getDay() === 1);
+      // Prevent submission if no date is selected
+      if (!dateValue) {
+        alert("Please select a date.");
+        event.preventDefault();
+        return;
       }
-    ]
-  });
-</script>
 
-<script>
-  const barberSelect = document.getElementById("barber");
-  const serviceSection = document.getElementById("service-section");
-  const serviceSelect = document.getElementById("service");
+      const selectedDate = new Date(dateValue);
+      const day = selectedDate.getDay(); // 0 = Sunday, 1 = Monday
 
-  barberSelect.addEventListener("change", function () {
-    if (barberSelect.value !== "") {
-      serviceSection.style.display = "block";
-      serviceSelect.setAttribute("required", "required");
-    } else {
-      serviceSection.style.display = "none";
-      serviceSelect.removeAttribute("required");
-      serviceSelect.value = "";
-    }
-  });
-</script>
+      // Prevent booking on Sunday or Monday
+      if (day === 0 || day === 1) {
+        alert("Sorry, we are closed on Sundays and Mondays. Please choose another day.");
+        event.preventDefault(); // Stop form from submitting
+      }
+    });
+  </script>
+
+  <!-- ✅ Flatpickr date picker library -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <!-- ✅ Flatpickr initialization with Sunday/Monday disabled -->
+  <script>
+    flatpickr("#date", {
+      dateFormat: "m-d-Y",
+      disable: [
+        function(date) {
+          return (date.getDay() === 0 || date.getDay() === 1);
+        }
+      ]
+    });
+  </script>
+
+  <!-- ✅ Show service options only after barber is selected -->
+  <script>
+    const barberSelect = document.getElementById("barber");
+    const serviceSection = document.getElementById("service-section");
+    const serviceSelect = document.getElementById("service");
+
+    barberSelect.addEventListener("change", function () {
+      if (barberSelect.value !== "") {
+        serviceSection.style.display = "block";
+        serviceSelect.setAttribute("required", "required");
+      } else {
+        serviceSection.style.display = "none";
+        serviceSelect.removeAttribute("required");
+        serviceSelect.value = "";
+      }
+    });
+  </script>
 
 </body>
 </html>
