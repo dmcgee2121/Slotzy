@@ -1,80 +1,120 @@
-/* style.css */
 /* === Base Styles === */
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(to bottom right, #f0f4f8, #d9e2ec);
-  margin: 0;
-  padding: 20px;
-  color: #333;
-  text-align: center;
+  font-family: 'Segoe UI', sans-serif; /* Sets the default font for the entire page */
+  background: linear-gradient(to bottom right, #f0f4f8, #d9e2ec); /* Soft gradient background */
+  margin: 0; /* Removes default browser margin */
+  padding: 20px; /* Adds space around the content */
+  color: #333; /* Sets default text color to dark gray */
+  text-align: center; /* Centers all text by default */
 }
 
-img {
-  margin-bottom: 20px;
+img.logo {
+  display: block; /* Makes the image a block element */
+  margin: 0 auto 20px; /* Centers the image horizontally and adds bottom spacing */
 }
 
+/* === Typography === */
 h1 {
-  font-size: 24px;
-  margin-bottom: 10px;
+  font-size: 24px; /* Sets heading size */
+  margin-bottom: 10px; /* Adds space below each h1 */
 }
 
 p {
-  font-size: 16px;
-  margin-bottom: 20px;
+  font-size: 16px; /* Sets paragraph text size */
+  margin-bottom: 20px; /* Adds space below each paragraph */
 }
 
+/* === Buttons and Links === */
 a, button {
-  background-color: #0052cc;
-  color: white;
-  padding: 12px 20px;
-  text-decoration: none;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+  background-color: #0052cc; /* Sets background to dark blue */
+  color: white; /* White text */
+  padding: 12px 20px; /* Adds space inside the button */
+  text-decoration: none; /* Removes underline from links */
+  border: none; /* Removes default button border */
+  border-radius: 6px; /* Rounds the corners */
+  font-size: 16px; /* Sets text size */
+  cursor: pointer; /* Changes cursor to pointer on hover */
+  transition: background-color 0.3s ease; /* Smooth hover effect */
 }
 
 a:hover, button:hover {
-  background-color: #003d99;
+  background-color: #003d99; /* Darker blue on hover */
 }
+
 /* === Form Styles === */
 form {
-  max-width: 400px;
-  margin: 0 auto;
-  background-color: white;
-  padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-width: 400px; /* Limits form width */
+  margin: 0 auto; /* Centers the form horizontally */
+  background-color: white; /* White background for contrast */
+  padding: 25px; /* Adds space inside the form */
+  border-radius: 10px; /* Rounds the corners */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Adds soft shadow for depth */
 }
 
 label {
-  display: block;
-  margin-top: 15px;
-  font-weight: bold;
-  text-align: left;
+  display: block; /* Makes label take full width */
+  margin-top: 15px; /* Adds space above each label */
+  font-weight: bold; /* Makes label text bold */
+  text-align: left; /* Aligns label text to the left */
 }
 
 input, select {
-  width: 100%;
-  padding: 10px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-  box-sizing: border-box;
+  width: 100%; /* Makes inputs and selects full width */
+  padding: 10px; /* Adds space inside fields */
+  margin-top: 5px; /* Adds space above each field */
+  border: 1px solid #ccc; /* Light gray border */
+  border-radius: 4px; /* Slightly rounded corners */
+  font-size: 14px; /* Sets text size */
+  box-sizing: border-box; /* Includes padding in width calculation */
 }
 
+/* === Responsive Design === */
 @media screen and (max-width: 600px) {
   body {
-    padding: 10px;
+    padding: 10px; /* Reduces padding on small screens */
   }
 
   h1 {
-    font-size: 20px;
+    font-size: 20px; /* Shrinks heading size for mobile */
   }
 
   form {
-    padding: 15px;
+    padding: 15px; /* Reduces form padding for mobile */
   }
 }
+
+/* === Homepage Hero Section === */
+.hero {
+  padding: 60px 20px; /* Adds generous space around hero content */
+  background-color: #ffffff; /* White background for contrast */
+}
+
+.logo {
+  width: 150px; /* Sets fixed logo width */
+  margin-bottom: 20px; /* Adds space below logo */
+}
+
+/* === CTA Button (Overrides default <a>) === */
+.cta-button {
+  display: inline-block; /* Allows padding and margin control */
+  padding: 12px 24px; /* Larger button size */
+  background-color: #0052cc; /* Dark blue background */
+  color: white; /* White text */
+  text-decoration: none; /* Removes underline */
+  border-radius: 6px; /* Rounded corners */
+  font-weight: bold; /* Bold text */
+  font-size: 16px; /* Text size */
+  transition: background-color 0.3s ease; /* Smooth hover effect */
+}
+
+.cta-button:hover {
+  background-color: #003d99; /* Darker blue on hover */
+}
+
+/* === Footer === */
+footer {
+  margin-top: 40px; /* Adds space above footer */
+  padding: 20px; /* Adds space inside footer */
+  background-color: #e0e0e0; /* Light gray background */
+    font-size: 0.9em; /* Slightly smaller text */
+  }
