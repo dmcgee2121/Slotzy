@@ -1,60 +1,80 @@
 /* style.css */
+/* === Base Styles === */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #f0f4f8, #d9e2ec);
   margin: 0;
   padding: 20px;
   color: #333;
-}
-
-h1 {
-  color: #2c3e50;
   text-align: center;
 }
 
-p, label {
-  font-size: 1rem;
+img {
+  margin-bottom: 20px;
 }
 
-a {
-  display: inline-block;
-  margin-top: 20px;
-  text-decoration: none;
-  background-color: #3498db;
+h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+a, button {
+  background-color: #0052cc;
   color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
+  padding: 12px 20px;
+  text-decoration: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-a:hover {
-  background-color: #2980b9;
+a:hover, button:hover {
+  background-color: #003d99;
 }
-
+/* === Form Styles === */
 form {
   max-width: 400px;
   margin: 0 auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  background-color: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-input, select, button {
+label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+  text-align: left;
+}
+
+input, select {
   width: 100%;
   padding: 10px;
-  margin-top: 10px;
-  margin-bottom: 20px;
+  margin-top: 5px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
-button {
-  background-color: #27ae60;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
+@media screen and (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
 
-button:hover {
-  background-color: #219150;
+  h1 {
+    font-size: 20px;
+  }
+
+  form {
+    padding: 15px;
+  }
 }
