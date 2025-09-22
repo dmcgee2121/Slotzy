@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Book Appointment</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
+
 <!-- Flatpickr CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="styles.css">
 
 <body>
-    <img src="images/Barber3.png" alt="Barber shop logo featuring two crossed straight razors, a shaving brush, and a jar. The logo includes the text BARBER, EST 1981, shop, and HAIRCUT AND SHAVE. The design has a classic, vintage style and conveys a welcoming, professional atmosphere" style="width:150px; display:block; margin:0 auto;">
+    <img src="images/Slotzy Logo.png" alt="Barber shop logo featuring two crossed straight razors, a shaving brush, and a jar. The logo includes the text BARBER, EST 1981, shop, and HAIRCUT AND SHAVE. The design has a classic, vintage style and conveys a welcoming, professional atmosphere" style="width:150px; display:block; margin:0 auto;">
   <h1>Book Your Appointment</h1>
   <form action="confirmation.html" method="GET">
     <label for="name">Your Name:</label><br>
@@ -22,8 +25,19 @@
       <option value="Trey">Trey</option>
     </select><br><br>
 
+<!-- ✅ Move this OUTSIDE the select tag -->
+<div id="service-section" style="display:none;">
+  <label for="service">Choose Service:</label><br>
+  <select id="service" name="service" required>
+    <option value="">--Select Service--</option>
+    <option value="Haircut">$30 - Haircut</option>
+    <option value="Line Up">$20 - Line Up</option>
+    <option value="Taper">$15 - Taper</option>
+  </select><br><br>
+</div>
+
     <label for="date">Date:</label><br>
-    <input type="text" id="date" name="date" required> 
+    <input type="text" id="date" name="date" required readonly>
     <br><br>
 
 <label for="time">Time:</label><br>
@@ -73,18 +87,35 @@
 </script>
 <!-- Flatpickr JS -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<!-- Your custom Flatpickr initialization -->
 <script>
   flatpickr("#date", {
     dateFormat: "m-d-Y",
     disable: [
       function(date) {
-        // Disable Sundays (0) and Mondays (1)
         return (date.getDay() === 0 || date.getDay() === 1);
       }
     ]
   });
 </script>
 
-</body>
+<script>
+  const barberSelect = document.getElementById("barber");
+  const serviceSection = document.getElementById("service-section");
+  const serviceSelect = document.getElementById("service");
 
+  barberSelect.addEventListener("change", function () {
+    if (barberSelect.value !== "") {
+      serviceSection.style.display = "block";
+      serviceSelect.setAttribute("required", "required");
+    } else {
+      serviceSection.style.display = "none";
+      serviceSelect.removeAttribute("required");
+      serviceSelect.value = "";
+    }
+  });
+</script>
+
+</body>
 </html>
