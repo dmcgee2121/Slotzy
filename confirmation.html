@@ -5,206 +5,51 @@
 <!-- Opens the HTML document and sets the language to English -->
 
 <head>
+  <!-- Contains metadata and links for the document -->
+
+  <link rel="stylesheet" href="styles.css">
+  <!-- Links your external CSS file for styling -->
+
   <meta charset="UTF-8">
   <!-- Sets character encoding to UTF-8 for proper text rendering -->
 
-  <title>Book Appointment</title>
+  <title>Appointment Confirmed</title>
   <!-- Sets the title of the page (shown in browser tab) -->
-
-  <link rel="stylesheet" href="styles.css">
-  <!-- Links your custom CSS file for styling -->
-
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <!-- Imports Flatpickr's CSS for the date picker widget -->
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
 <body>
-  <!-- Main content of the booking page -->
+  <!-- Main content of the confirmation page -->
 
   <img src="images/Slotzy Logo.PNG"
-       alt="Barber shop logo featuring two crossed straight razors, a shaving brush, and a jar..."
+       alt="Slotzy logo showing a stylized calendar with a clock inside next to the word Slotzy in bold letters. The design uses dark blue tones and has a modern, friendly, and professional feel. The background is clear and uncluttered, focusing attention on the logo and text."
        style="width:150px; display:block; margin:0 auto;">
-  <!-- Displays your logo image centered at the top with a fixed width -->
+  <!-- Displays your logo image centered at the top of the page with a fixed width -->
 
   <h1>Book Your Appointment</h1>
-  <!-- Main heading for the booking page -->
+  <!-- Heading to reinforce the booking theme -->
 
-  <!-- ✅ This is your actual working form -->
-  <form action="confirmation.html" method="GET">
-    <!-- Sends form data to confirmation.html using GET method -->
-    <fieldset>
-      <legend>Appointment Details</legend>
-      <!-- Groups related form elements with a legend for clarity -->
-    <label for="name">Your Name:</label><br>
-    <!-- Label for the name input field -->
+  <h1>Appointment Confirmed!</h1>
+<p id="confirmation-message">Loading your appointment details...</p>
+<a href="index.html">Back to Home</a>
 
-    <input type="text" id="name" name="name" required><br><br>
-    <!-- Text input for user's name, required for submission -->
+  <!-- Link that takes the user back to the homepage -->
+   <script>
+  const params = new URLSearchParams(window.location.search);
 
-    <label for="barber">Choose Barber:</label><br>
-    <!-- Label for barber selection -->
+  const name = params.get("name");
+  const barber = params.get("barber");
+  const service = params.get("service");
+  const date = params.get("date");
+  const time = params.get("time");
 
-    <select id="barber" name="barber" required>
-      <!-- Dropdown to choose a barber -->
-      <option value="">--Select--</option>
-      <option value="Mike">Mike</option>
-      <option value="Jamal">Jamal</option>
-      <option value="Trey">Trey</option>
-    </select><br><br>
+  const message = `
+    <strong>${name}</strong>, your appointment with <strong>${barber}</strong> 
+    for <strong>${service}</strong> is confirmed on <strong>${date}</strong> at <strong>${time}</strong>.
+  `;
 
-    <div id="service-section" style="display:none;">
-  <label>Choose Service:</label><br>
-
-  <div class="service-options">
-  <div class="service-card">
-    <label>
-      <input type="radio" name="service" value="Haircut w/Beard Trim & Line Up" required>
-      <div class="card-content">
-        <i class="fas fa-scissors"></i>
-        <span>$45 - Haircut w/Beard Trim & Line Up</span>
-        <i class="fas fa-check-circle checkmark"></i>
-      </div>
-    </label>
-  </div>
-
-  <div class="service-card">
-    <label>
-      <input type="radio" name="service" value="Haircut w/Beard Trim" required>
-      <div class="card-content">
-        <i class="fas fa-scissors"></i>
-        <span>$40 - Haircut w/Beard Trim</span>
-        <i class="fas fa-check-circle checkmark"></i>
-      </div>
-    </label>
-  </div>
-
-  <div class="service-card">
-    <label>
-      <input type="radio" name="service" value="Haircut" required>
-      <div class="card-content">
-        <i class="fas fa-scissors"></i>
-        <span>$30 - Haircut</span>
-        <i class="fas fa-check-circle checkmark"></i>
-      </div>
-    </label>
-  </div>
-
-  <div class="service-card">
-    <label>
-      <input type="radio" name="service" value="Line Up" required>
-      <div class="card-content">
-        <i class="fas fa-border-style"></i>
-        <span>$20 - Line Up</span>
-        <i class="fas fa-check-circle checkmark"></i>
-      </div>
-    </label>
-  </div>
-
-  <div class="service-card">
-    <label>
-      <input type="radio" name="service" value="Taper" required>
-      <div class="card-content">
-  <i class="fas fa-water"></i>
-  <span>$15 - Taper</span>
-  <i class="fas fa-check-circle checkmark"></i>
-</div>
-    </label>
-  </div>
-</div>
-
-    <label for="date">Date:</label><br>
-    <!-- Label for date selection -->
-
-    <input type="text" id="date" name="date" required readonly><br><br>
-    <!-- Text input for date, made readonly to force Flatpickr usage -->
-
-    <label for="time">Time:</label><br>
-    <!-- Label for time selection -->
-
-    <select id="time" name="time" required>
-      <!-- Dropdown for time slots -->
-      <option value="">--Select Time--</option>
-      <option value="09:00">9:00 AM</option>
-      <option value="09:30">9:30 AM</option>
-      <option value="10:00">10:00 AM</option>
-      <option value="10:30">10:30 AM</option>
-      <option value="11:00">11:00 AM</option>
-      <option value="11:30">11:30 AM</option>
-      <option value="13:00">1:00 PM</option>
-      <option value="13:30">1:30 PM</option>
-      <option value="14:00">2:00 PM</option>
-      <option value="14:30">2:30 PM</option>
-      <option value="15:00">3:00 PM</option>
-      <option value="15:30">3:30 PM</option>
-      <option value="16:00">4:00 PM</option>
-      <option value="16:30">4:30 PM</option>
-    </select><br><br>
-
-    </fieldset><br>
-
-    <button type="submit" class="submit-button" aria-label="Confirm your appointment booking">Confirm Booking</button>
-    <!-- Submit button styled with "submit-button" class -->
-  </form>
-
-  <!-- ✅ JavaScript to validate date before submission -->
-  <script>
-    const form = document.querySelector("form");
-    const dateInput = document.getElementById("date");
-
-    form.addEventListener("submit", function (event) {
-      const dateValue = dateInput.value;
-
-      // Prevent submission if no date is selected
-      if (!dateValue) {
-        alert("Please select a date.");
-        event.preventDefault();
-        return;
-      }
-
-      const selectedDate = new Date(dateValue);
-      const day = selectedDate.getDay(); // 0 = Sunday, 1 = Monday
-
-      // Prevent booking on Sunday or Monday
-      if (day === 0 || day === 1) {
-        alert("Sorry, we are closed on Sundays and Mondays. Please choose another day.");
-        event.preventDefault(); // Stop form from submitting
-      }
-    });
-  </script>
-
-  <!-- ✅ Flatpickr date picker library -->
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-  <!-- ✅ Flatpickr initialization with Sunday/Monday disabled -->
-  <script>
-    flatpickr("#date", {
-      dateFormat: "m-d-Y",
-      disable: [
-        function(date) {
-          return (date.getDay() === 0 || date.getDay() === 1);
-        }
-      ]
-    });
-  </script>
-
-  <!-- ✅ Show service options only after barber is selected -->
-  <script>
-    const barberSelect = document.getElementById("barber");
-    const serviceSection = document.getElementById("service-section");
-    const serviceSelect = document.getElementById("service");
-
-    barberSelect.addEventListener("change", function () {
-      if (barberSelect.value !== "") {
-        serviceSection.style.display = "block";
-        serviceSelect.setAttribute("required", "required");
-      } else {
-        serviceSection.style.display = "none";
-        serviceSelect.removeAttribute("required");
-        serviceSelect.value = "";
-      }
-    });
-  </script>
-
+  document.getElementById("confirmation-message").innerHTML = message;
+</script>
 </body>
+
 </html>
+<!-- Closes the HTML document -->
