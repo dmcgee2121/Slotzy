@@ -29,13 +29,26 @@
   <!-- Heading to reinforce the booking theme -->
 
   <h1>Appointment Confirmed!</h1>
-  <!-- Main confirmation message to reassure the user -->
+<p id="confirmation-message">Loading your appointment details...</p>
+<a href="index.html">Back to Home</a>
 
-  <p>Thank you for booking. Your appointment has been scheduled.</p><br>
-  <!-- Friendly message confirming the booking -->
-
-  <a href="index.html">Back to Home</a>
   <!-- Link that takes the user back to the homepage -->
+   <script>
+  const params = new URLSearchParams(window.location.search);
+
+  const name = params.get("name");
+  const barber = params.get("barber");
+  const service = params.get("service");
+  const date = params.get("date");
+  const time = params.get("time");
+
+  const message = `
+    <strong>${name}</strong>, your appointment with <strong>${barber}</strong> 
+    for <strong>${service}</strong> is confirmed on <strong>${date}</strong> at <strong>${time}</strong>.
+  `;
+
+  document.getElementById("confirmation-message").innerHTML = message;
+</script>
 </body>
 
 </html>
