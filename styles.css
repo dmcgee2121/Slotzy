@@ -111,10 +111,255 @@ input, select {
   background-color: #003d99; /* Darker blue on hover */
 }
 
-/* === Footer === */
-footer {
-  margin-top: 40px; /* Adds space above footer */
-  padding: 20px; /* Adds space inside footer */
-  background-color: #e0e0e0; /* Light gray background */
-    font-size: 0.9em; /* Slightly smaller text */
+.navbar {
+  background-color: #0052cc;
+  padding: 10px 0;
+  margin-bottom: 30px;
+}
+
+.navbar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.navbar li a {
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.navbar li a:hover {
+  color: #ffcc00;
+}
+
+/* === Form Section Styling === */
+fieldset {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  background-color: #f9f9f9;
+}
+
+legend {
+  font-weight: bold;
+  font-size: 18px;
+  padding: 0 10px;
+  color: #0052cc;
+}
+.confirmation-message {
+  animation: fadeIn 1s ease-in-out;
+  margin-top: 30px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* === Service Section Animation (Commented Out) need to add javascript for animation=== */
+/*#service-section {
+  transition: opacity 0.5s ease;
+  opacity: 0;
+}
+
+#service-section.show {
+  opacity: 1;
+}/*
+
+/* === Accessibility Enhancements === */
+input:focus, select:focus, button:focus {
+  outline: 2px solid #0052cc;
+  outline-offset: 2px;
+}
+#confirmation-message {
+  font-size: 18px;
+  margin-top: 20px;
+  color: #333;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.service-options label {
+  display: block;
+  margin: 10px 0;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.service-options i {
+  margin-right: 8px;
+  color: #0052cc;
+}
+.service-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.service-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f9f9f9;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.service-row:hover {
+  background-color: #e6f0ff;
+}
+
+.service-row input[type="radio"] {
+  margin: 0;
+  accent-color: #0052cc;
+}
+
+.service-row i {
+  font-size: 18px;
+  color: #0052cc;
+}
+
+.service-row span {
+  font-size: 16px;
+  color: #333;
+}
+.service-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.service-card {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: border-color 0.3s ease;
+}
+
+.service-card label {
+  display: block;
+  padding: 15px;
+  cursor: pointer;
+}
+
+.card-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 18px;
+}
+
+.card-content i {
+  font-size: 22px;
+  color: #0052cc;
+}
+
+.service-card input[type="radio"] {
+  display: none;
+}
+
+.service-card input[type="radio"]:checked + .card-content {
+  font-weight: bold;
+  color: #0052cc;
+}
+
+.service-card input[type="radio"]:checked + .card-content i {
+  color: #003d99;
+}
+.checkmark {
+  margin-left: auto;
+  font-size: 20px;
+  color: #28a745; /* green */
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.service-card input[type="radio"]:checked + .card-content .checkmark {
+  opacity: 1;
+  transform: scale(1);
+}
+.service-card input[type="radio"]:checked + .card-content {
+  animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+.card-content {
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+}
+
+.card-content span {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+.service-card input[type="radio"]:checked + .card-content .checkmark {
+  opacity: 1;
+  transform: scale(1);
+  animation: glowBounce 0.4s ease;
+}
+
+@keyframes glowBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: drop-shadow(0 0 0px #28a745);
   }
+  50% {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 6px #28a745);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px #28a745);
+  }
+}
+select#time {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 16px;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+select#time:focus {
+  border-color: #0052cc;
+  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2);
+  outline: none;
+}
+label[for="time"] {
+  font-weight: bold;
+  font-size: 16px;
+  text-align: left;
+  display: block;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
