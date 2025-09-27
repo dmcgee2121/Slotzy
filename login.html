@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Log In | Barber Booking</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <section class="hero">
+    <img src="images/Slotzy Logo.PNG" alt="Slotzy logo" class="logo">
+    <!-- Displays your logo image and applies the "logo" class for styling -->
+    <!-- The alt text describes the image for accessibility and SEO -->
+    <h1>Welcome Back</h1>
+    <p>Log in to manage your appointments and stay fresh.</p>
+
+    <form action="/login" method="POST" class="fade-in">
+      <label for="username">Username</label>
+      <input type="text" name="username" id="username" required placeholder="Enter your username" title="Username">
+
+      <label for="password">Password</label>
+      <input type="password" name="password" id="password" required placeholder="Enter your password" title="Password">
+
+      <button type="submit">Log In</button>
+    </form>
+
+    <p style="margin-top: 20px;">
+      Don’t have an account?
+      <a href="signup.html" class="cta-button">Sign Up</a>
+    </p>
+  </section>
+
+</body>
+</html>
