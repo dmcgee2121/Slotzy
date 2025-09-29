@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barber Dashboard</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/dashboard.css"> <!-- new file -->
+</head>
+<body>
+
+  <nav class="navbar">
+    <ul>
+      <li><a href="barber-dashboard.html">Dashboard</a></li>
+      <li><a href="login.html">Log Out</a></li>
+    </ul>
+  </nav>
+
+  <section class="dashboard">
+  <h1>Welcome, Mike</h1>
+
+  <nav class="dashboard-tabs">
+    <button type="button" class="tab-button active" data-tab="appointments">
+  <i class="fas fa-calendar-check"></i> Appointments
+</button>
+<button type="button" class="tab-button" data-tab="availability">
+  <i class="fas fa-clock"></i> Manage Availability
+</button>
+<button type="button" class="tab-button" data-tab="services">
+  <i class="fas fa-cut"></i> Manage Services
+</button>
+<button type="button" class="tab-button" data-tab="profile">
+  <i class="fas fa-user-cog"></i> Profile Settings
+</button>
+<button type="button" class="tab-button" data-tab="notifications">
+  <i class="fas fa-bell"></i> Notifications
+</button>
+
+  </nav>
+
+  <div class="tab-content" id="appointments">
+    <h2>Upcoming Appointments</h2>
+    <div class="appointment-card">Donavan — Haircut w/Beard Trim<br><span>Oct 1 @ 2:00 PM</span></div>
+    <div class="appointment-card">Jamal — Line Up<br><span>Oct 2 @ 11:30 AM</span></div>
+  </div>
+
+ <div class="tab-content" id="availability">
+  <h2>Manage Availability</h2>
+  <p>Click time slots to mark when you're available.</p>
+
+  <div class="calendar-grid"></div>
+
+  <button id="save-availability" class="cta-button">Save Availability</button>
+</div>
+
+  <div class="tab-content" id="services">
+  <h2>Manage Services</h2>
+
+  <form class="service-form">
+  <label for="service-name">Service Name:</label>
+  <input type="text" id="service-name" placeholder="e.g. Haircut w/Beard Trim">
+
+  <label for="service-description">Description:</label>
+  <textarea id="service-description" rows="3" placeholder="Briefly describe the service..."></textarea>
+
+  <label for="service-price">Price ($):</label>
+  <input type="number" id="service-price" placeholder="e.g. 45">
+
+  <label for="service-duration">Duration (mins):</label>
+  <input type="number" id="service-duration" placeholder="e.g. 30">
+
+  <button type="button" class="cta-button">Add Service</button>
+</form>
+
+
+  <h3>Current Services</h3>
+  <ul class="service-list">
+    <li>
+      <strong>Haircut w/Beard Trim</strong> — $45 / 30 mins
+      <button type="button" class="edit-btn">Edit</button>
+      <button type="button" class="delete-btn">Delete</button>
+    </li>
+    <li>
+      <strong>Line Up</strong> — $20 / 15 mins
+      <button class="edit-btn">Edit</button>
+      <button class="delete-btn">Delete</button>
+    </li>
+  </ul>
+</div>
+
+
+  <div class="tab-content" id="profile">
+  <h2>Profile Settings</h2>
+  <p>Update your personal info and customize your barber profile.</p>
+
+  <form class="profile-form">
+    <label for="barber-name">Full Name:</label>
+    <input type="text" id="barber-name" placeholder="e.g. Mike Johnson">
+
+    <label for="barber-bio">Bio:</label>
+    <textarea id="barber-bio" rows="4" placeholder="Tell clients about your style, experience, or specialties..."></textarea>
+
+    <label for="barber-photo">Profile Photo:</label>
+    <input type="file" id="barber-photo" accept="image/*">
+
+    <label for="barber-phone">Phone Number:</label>
+    <input type="tel" id="barber-phone" placeholder="e.g. (555) 123-4567">
+
+    <label for="barber-email">Email Address:</label>
+    <input type="email" id="barber-email" placeholder="e.g. mike@slotzycuts.com">
+
+    <button type="button" class="cta-button">Save Profile</button>
+  </form>
+</div>
+
+  <div class="tab-content" id="notifications">
+    <h2>Notifications</h2>
+    <p>No new alerts.</p>
+    <!-- Placeholder for future messages -->
+  </div>
+</section>
+<script>
+  const tabButtons = document.querySelectorAll(".tab-button");
+  const tabContents = document.querySelectorAll(".tab-content");
+
+  tabButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      // Remove active class from all buttons
+      tabButtons.forEach(btn => btn.classList.remove("active"));
+      button.classList.add("active");
+
+      // Hide all tab contents
+      tabContents.forEach(content => content.style.display = "none");
+
+      // Show selected tab
+      const target = button.getAttribute("data-tab");
+      document.getElementById(target).style.display = "block";
+    });
+  });
+</script>
+<script src="js/barber-dashboard.js"></script>
+
+</body>
+</html>
