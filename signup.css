@@ -1,0 +1,33 @@
+/* === Signup Page === */
+.hero {
+  padding: 60px 20px;
+  background-color: #ffffff;
+}
+
+form {
+  max-width: 400px;
+  margin: 0 auto;
+  background-color: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+form button {
+  margin-top: 10px;
+}
+
+.fade-in {
+  animation: fadeInUp 0.8s ease-in-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

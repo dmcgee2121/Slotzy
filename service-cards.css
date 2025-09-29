@@ -1,0 +1,89 @@
+/* === Service Cards === */
+.service-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.service-card {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: border-color 0.3s ease;
+}
+
+.service-card label {
+  display: block;
+  padding: 15px;
+  cursor: pointer;
+}
+
+.card-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 18px;
+}
+
+.card-content i {
+  font-size: 22px;
+  color: #0052cc;
+}
+
+.card-content span {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+
+.checkmark {
+  margin-left: auto;
+  font-size: 20px;
+  color: #28a745;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.service-card input[type="radio"] {
+  display: none;
+}
+
+.service-card input[type="radio"]:checked + .card-content {
+  font-weight: bold;
+  color: #0052cc;
+  animation: pulse 0.3s ease;
+}
+
+.service-card input[type="radio"]:checked + .card-content i {
+  color: #003d99;
+}
+
+.service-card input[type="radio"]:checked + .card-content .checkmark {
+  opacity: 1;
+  transform: scale(1);
+  animation: glowBounce 0.4s ease;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes glowBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: drop-shadow(0 0 0px #28a745);
+  }
+  50% {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 6px #28a745);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px #28a745);
+  }
+}

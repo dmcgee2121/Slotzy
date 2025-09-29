@@ -1,0 +1,78 @@
+/* === Base Styles === */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #f0f4f8, #d9e2ec);
+  margin: 0;
+  padding: 20px;
+  color: #333;
+  text-align: center;
+}
+
+img.logo,
+.logo-img {
+  display: block;
+  margin: 0 auto 20px;
+  width: 150px;
+}
+
+/* === Typography === */
+h1 {
+  font-size: 28px;
+  color: #0052cc;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 30px;
+}
+
+/* === Buttons and Links === */
+a,
+button,
+.cta-button {
+  background-color: #0052cc;
+  color: white;
+  padding: 12px 20px;
+  text-decoration: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+a:hover,
+button:hover,
+.cta-button:hover {
+  background-color: #003d99;
+}
+
+/* === Form Elements === */
+input,
+select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+input:focus::placeholder {
+  color: transparent;
+}
+
+input:focus,
+select:focus,
+button:focus {
+  outline: 2px solid #0052cc;
+  outline-offset: 2px;
+}
