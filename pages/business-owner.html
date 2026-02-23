@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Slotzy Owner Dashboard</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Owner Dashboard</h2>
+          <p>Business Control Center</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions">
+        <a href="settings.html" class="link">Settings</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+        <button id="logoutBtn" class="link logout-btn">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-dashboard owner-page-layout owner-layout">
+    <section class="dashboard-header owner-hero card">
+      <div class="owner-hero-copy">
+        <h1 id="ownerHeroTitle">Welcome, Your Shop</h1>
+        <p>Manage your services, bookings, and earnings all in one place.</p>
+      </div>
+      <div class="owner-hero-meta">
+        <span class="owner-pill">Today</span>
+        <span class="owner-pill">Open</span>
+        <button id="quickAddServiceBtn" class="btn btn-primary" type="button">+ Add Service</button>
+      </div>
+    </section>
+
+    <section class="owner-section card">
+      <div class="owner-section-head">
+        <h2>Insights</h2>
+        <p>Quick snapshot of bookings and revenue.</p>
+      </div>
+      <div class="owner-section-grid">
+        <article class="card owner-action-card">
+          <h3>Today's Bookings</h3>
+          <p id="insightTodayCount" class="owner-insight-value">0 booked today</p>
+          <div id="insightTodayList"></div>
+        </article>
+        <article class="card owner-action-card">
+          <h3>Today's Schedule</h3>
+          <div id="insightTodaySchedule"></div>
+          <a href="manage-appointments.html" class="link owner-action-inline-link">View All Appointments</a>
+        </article>
+        <article class="card owner-action-card">
+          <h3>This Week Revenue</h3>
+          <p id="insightWeekRevenue" class="owner-insight-value">$0.00</p>
+          <p id="insightWeekMeta" class="small"></p>
+          <p id="insightWeekNote" class="small owner-insight-note hidden"></p>
+        </article>
+        <article class="card owner-action-card">
+          <h3>Most Popular Service</h3>
+          <p id="insightPopularName" class="owner-insight-value">No data yet</p>
+          <p id="insightPopularCount" class="small"></p>
+          <p id="insightPopularBreakdown" class="small owner-insight-breakdown"></p>
+          <div id="insightPopularEmpty" class="hidden"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="owner-section card">
+      <div class="owner-section-head">
+        <h2>Services</h2>
+        <p>Update offers, pricing, and client-facing details.</p>
+      </div>
+      <div class="owner-section-grid">
+        <article class="card owner-action-card">
+          <h3>Services</h3>
+          <p>Edit your offerings and pricing.</p>
+          <a href="manage-services.html" class="btn btn-primary owner-action-btn">Manage Services</a>
+        </article>
+        <article class="card owner-action-card">
+          <h3>Barbers</h3>
+          <p>Add or update active barbers for customer booking.</p>
+          <a href="manage-barbers.html" class="btn btn-primary owner-action-btn">Manage Barbers</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="owner-section card">
+      <div class="owner-section-head">
+        <h2>Bookings</h2>
+        <p>Manage your daily schedule and customer activity.</p>
+      </div>
+      <div class="owner-section-grid">
+        <article class="card owner-action-card">
+          <h3>Appointments</h3>
+          <p>View and manage your upcoming bookings.</p>
+          <a href="manage-appointments.html" class="btn btn-primary owner-action-btn">Manage Appointments</a>
+        </article>
+        <article class="card owner-action-card">
+          <h3>Clients</h3>
+          <p>Access client history and notes.</p>
+          <a href="client-history-overview.html" class="btn btn-primary owner-action-btn">View Clients</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="owner-section card">
+      <div class="owner-section-head">
+        <h2>Reports</h2>
+        <p>Review analytics and performance trends for your business.</p>
+      </div>
+      <div class="owner-section-grid">
+        <article class="card owner-action-card">
+          <h3>Earnings</h3>
+          <p>Track your revenue and performance.</p>
+          <a href="owner-earnings.html" class="btn btn-primary owner-action-btn">View Earnings</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="owner-services" class="owner-services hidden">
+      <!-- This will be populated dynamically by owner-dashboard.js -->
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <div id="quickServiceModal" class="modal hidden" role="dialog" aria-hidden="true" aria-labelledby="quickServiceModalTitle">
+    <div class="modal-panel">
+      <h2 id="quickServiceModalTitle">Add Service</h2>
+      <label for="serviceNameQuick">Service Name</label>
+      <input id="serviceNameQuick" type="text" />
+
+      <label for="servicePriceQuick">Price</label>
+      <input id="servicePriceQuick" type="number" min="0" step="0.01" />
+
+      <label for="serviceDurationQuick">Duration (minutes)</label>
+      <input id="serviceDurationQuick" type="number" min="5" step="5" />
+
+      <p id="quickServiceStatus" class="small booking-status" aria-live="polite"></p>
+      <div class="session-modal-actions">
+        <button id="cancelQuickServiceBtn" class="btn btn-ghost" type="button">Cancel</button>
+        <button id="createQuickServiceBtn" class="btn btn-primary" type="button">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/owner-insights.js"></script>
+  <script type="module" src="../js/owner-quick-add.js"></script>
+  <script type="module" src="../js/app.js"></script>
+</body>
+</html>

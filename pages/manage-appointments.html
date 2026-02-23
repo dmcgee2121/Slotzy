@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Manage Appointments</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Manage Appointments</h2>
+          <p>Business Control Center</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions">
+        <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-dashboard owner-layout">
+    <section class="card dashboard-header">
+      <h1>Appointment Manager</h1>
+      <p>View, filter, and manage your upcoming bookings.</p>
+      <div class="calendar-header">
+        <h2 id="calendar-month">November 2025</h2>
+        <p id="calendar-summary">3 appointments this month</p>
+      </div>
+    </section>
+
+    <div class="owner-two-col">
+      <section class="card owner-panel">
+        <h2>Filters</h2>
+        <section id="appointment-controls">
+          <label for="date-filter">Filter by Date:</label>
+          <input type="date" id="date-filter" />
+
+          <label for="status-filter">Status:</label>
+          <select id="status-filter">
+            <option value="all">All</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </section>
+      </section>
+
+      <section class="card owner-panel">
+        <h2>Calendar</h2>
+        <section id="calendar-section">
+          <div id="calendar"></div>
+        </section>
+      </section>
+    </div>
+
+    <section class="card owner-panel">
+      <h2>Appointments</h2>
+      <section id="appointment-list" class="grid"></section>
+    </section>
+
+    <div id="summary-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Appointments on <span id="summary-date"></span></h2>
+        <ul id="summary-list"></ul>
+        <button id="close-summary" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/owner-appointments.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/app.js"></script>
+</body>
+</html>

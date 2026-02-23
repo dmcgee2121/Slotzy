@@ -1,0 +1,766 @@
+/* ---------- COLOR VARIABLES ---------- */
+:root {
+  --bg: #f7f8fb;          /* Page background */
+  --card: #fff;            /* Card or panel background */
+  --accent: #334155;       /* Main text color */
+  --muted: #6b7280;        /* Secondary text color */
+  --primary: #2563eb;      /* Main blue accent */
+  --secondary: #f3f4f6;    /* Light gray for subtle backgrounds */
+  --danger: #ef4444;       /* Red for warning or delete buttons */
+}
+
+/* ---------- GLOBAL RESET ---------- */
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
+body {
+  font-family: 'Inter', system-ui, Segoe UI, Roboto, Helvetica, Arial;
+  background: var(--bg);
+  color: var(--accent);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- CONTAINER ---------- */
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ---------- TOPBAR / HEADER ---------- */
+.topbar {
+  background: var(--card);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+}
+
+/* ---------- BRAND / LOGO ---------- */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* spacing between logo and text */
+}
+.logo {
+  height: 60px;
+  width: auto;
+}
+
+/* ---------- NAVIGATION BUTTONS ---------- */
+nav .link {
+  background: none;
+  align-items: center;
+  border: none;
+  color: var(--primary);
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 15px;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+nav .link:hover { color: #1e40af; }
+.hidden { display: none !important; }
+
+.user-badge {
+  display: inline-block;
+  margin-left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 500;
+  max-width: min(92vw, 360px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+  font-size: 0.92rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.toast-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.toast-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.toast-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 200;
+}
+
+#modalPanel.modal-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 440px);
+  z-index: 201;
+  opacity: 1;
+}
+
+.session-modal-copy {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.session-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- HOME PAGE ---------- */
+.page {
+  display: none;
+  text-align: center;
+  padding: 50px 20px;
+}
+.page.active { display: block; }
+
+/* Homepage title and description */
+section h1 {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+  color: var(--accent);
+}
+section p {
+  font-size: 1rem;
+  margin-bottom: 20px;
+  color: var(--muted);
+}
+
+/* Get Started button on homepage */
+#btn-get-started {
+  padding: 12px 25px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+#btn-get-started:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* ---------- BUTTONS ---------- */
+.btn {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 0;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s, transform 0.1s;
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-primary:hover { background: #1d4ed8; }
+.btn-ghost {
+  background: var(--secondary);
+  border: 1px solid #e5e7eb;
+  color: var(--accent);
+}
+.btn-ghost:hover { background: #e5e7eb; }
+
+/* ---------- GRID & CARDS ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+.card .small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.card button {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.empty-state {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+  padding: 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.empty-state h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.empty-state .empty-state-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.empty-state .btn,
+.empty-state .empty-state-cta {
+  margin-top: 2px;
+  min-height: 36px;
+  padding: 6px 10px;
+  text-decoration: none;
+}
+
+.progress {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: #2563eb;
+  transition: width 0.25s ease;
+}
+
+/* ---------- DASHBOARD GRID ---------- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+/* Dashboard list items */
+.list div {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f9fafb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+}
+.list div:hover { background: #f1f5f9; }
+.list div .small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- MODAL OVERLAY ---------- */
+.modal {
+  position: fixed;
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  background: rgba(0, 0, 0, 0.35); /* semi-transparent backdrop */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+
+  opacity: 0;            /* hidden by default */
+  pointer-events: none;  /* prevent clicks when hidden */
+  transition: opacity 0.3s ease-in-out; /* smooth fade */
+}
+
+/* Show modal */
+.modal.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ---------- MODAL PANEL ---------- */
+.modal-panel {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 25px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+
+  transform: translateY(-20px) scale(0.95); /* hidden state */
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+/* Animate panel when modal shows */
+.modal.show .modal-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* ---------- HEADINGS ---------- */
+.modal-panel h2 {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--accent);
+}
+
+/* ---------- FORM ---------- */
+#login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#login-form label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+  text-align: left;
+}
+
+#login-form input,
+#login-form select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+/* ---------- FORM BUTTONS ---------- */
+#login-form button[type="submit"] {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+#login-form button[type="submit"]:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* ---------- CLOSE BUTTON ---------- */
+#close-modal {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: var(--secondary);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#close-modal:hover {
+  background: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .container {
+    padding: 16px;
+  }
+
+  .dashboard-grid,
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .btn,
+  button,
+  nav .link,
+  a.btn {
+    min-height: 44px;
+  }
+
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  td,
+  th,
+  .card p,
+  .list div {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+
+/* ---------- HEADER ROW & LIST ---------- */
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- FOOTER ---------- */
+footer {
+  text-align: center;
+  padding: 15px 0;
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 40px;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 600px) {
+  .container { padding: 15px; }
+  .dashboard-grid { grid-template-columns: 1fr; gap: 15px; padding: 15px; }
+  section h1 { font-size: 1.8rem; }
+}
+/* ---------- ICONS & ACCENTS ---------- */
+/* Use pseudo-elements for small decorative icons or indicators */
+.card::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: var(--primary); /* small accent dot for card title */
+}
+
+.card h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* space between dot and title text */
+}
+
+/* ---------- GRADIENT ACCENTS ---------- */
+/* Add soft gradient to card headers for a modern feel */
+.card-gradient {
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Dashboard services / bookings cards */
+.dashboard-grid .card {
+  border: none;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Card hover effect for dashboard */
+.dashboard-grid .card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+}
+
+/* ---------- ICONS NEXT TO BUTTONS ---------- */
+/* Optional: Add pseudo-icons to buttons using ::before */
+.btn-primary::before {
+  content: '➤'; /* arrow icon */
+  margin-right: 6px;
+}
+
+/* Book buttons inside service cards */
+.btn-book::before {
+  content: '📅'; /* calendar icon for booking */
+  margin-right: 6px;
+}
+
+/* ---------- SERVICE CARDS ---------- */
+.grid .card {
+  border-left: 4px solid var(--primary); /* accent border */
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.grid .card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  border-color: #1d4ed8; /* slightly darker accent on hover */
+}
+
+/* ---------- BADGE / STATUS LABELS ---------- */
+.status-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: white;
+}
+
+/* Example colors for different statuses */
+.status-upcoming { background: #2563eb; }   /* blue for upcoming */
+.status-completed { background: #16a34a; }  /* green for completed */
+.status-canceled { background: #ef4444; }   /* red for canceled */
+
+/* ---------- DASHBOARD HEADINGS ---------- */
+.dashboard-grid h3 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- SMALL ICON SPACING ---------- */
+.small-icon {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* ---------- SUBTLE GRADIENT BUTTONS ---------- */
+.btn-primary-gradient {
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+}
+.btn-primary-gradient:hover {
+  background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%);
+}
+
+/* ---------- RESPONSIVE ADJUSTMENTS ---------- */
+@media (max-width: 600px) {
+  .grid .card {
+    border-left-width: 3px;
+  }
+  .dashboard-grid { grid-template-columns: 1fr; gap: 15px; }
+  section h1 { font-size: 1.8rem; }
+}
+/* ---------- LOGIN / REGISTER MODAL ---------- */
+.modal-panel h2 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: var(--accent);
+  text-align: center;
+}
+
+#login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* spacing between inputs */
+}
+
+#login-form label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+  text-align: left;
+}
+
+#login-form input, 
+#login-form select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+#login-form button[type="submit"] {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#login-form button[type="submit"]:hover {
+  background: #1d4ed8;
+}
+
+#close-modal {
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: var(--secondary);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+#close-modal:hover {
+  background: #e5e7eb;
+}
+
+/* ---------- LOGIN / REGISTER MODAL ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.modal.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-panel {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 25px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+
+  transform: translateY(-20px) scale(0.95);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.modal.show .modal-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.modal-panel h2 {
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--accent);
+}
+
+/* Form */
+#login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#login-form label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+  text-align: left;
+}
+
+#login-form input,
+#login-form select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+/* Submit button */
+#login-form button[type="submit"] {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+#login-form button[type="submit"]:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* Close button */
+#close-modal {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: var(--secondary);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#close-modal:hover {
+  background: #e5e7eb;
+}

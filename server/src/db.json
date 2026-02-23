@@ -1,0 +1,25 @@
+{
+  "users": [
+    {
+      "id": "a20b6310-bf35-43fb-83fa-0e913a4334d4",
+      "username": "testowner",
+      "passwordHash": "$2a$10$GogyL5G.lJGgIkk98emAie4P4A.q8.M5oivWlY/LAYsgQQbCEjN8q",
+      "role": "owner",
+      "createdAt": "2026-02-23T03:17:07.625Z"
+    },
+    {
+      "id": "16dc496a-0a58-44d7-bb86-7bc8151490a6",
+      "username": "dmcgee2121",
+      "passwordHash": "$2a$10$/UDE3vjge0oUKLh0n5JZKO4KO0lNtOeXethncskofw0NxE2plP59C",
+      "role": "customer",
+      "createdAt": "2026-02-23T03:40:24.575Z"
+    },
+    {
+      "id": "f1ba2061-e356-4e6c-bba9-6a6901792f78",
+      "username": "dmcgee21",
+      "passwordHash": "$2a$10$cBSU/LvHBMAuQt4Gs22gVOHS3l1EY9WdJJxX5zo6efKU7dryD71eu",
+      "role": "owner",
+      "createdAt": "2026-02-23T03:40:59.095Z"
+    }
+  ]
+}

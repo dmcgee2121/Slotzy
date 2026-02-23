@@ -1,0 +1,67 @@
+<!-- Show total earnings + breakdown -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Earnings Overview</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <h2>Earnings Overview</h2>
+      </div>
+      <nav>
+        <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-dashboard">
+    <div class="dashboard-header">
+      <h1>Revenue Summary</h1>
+      <p>Track your earnings across services and providers.</p>
+      <section id="earnings-summary">
+        <div class="summary-box">
+          <h2>Total Earnings</h2>
+          <p id="total-earnings">$0.00</p>
+        </div>
+        <div class="summary-breakdown" id="earnings-breakdown"></div>
+      </section>
+    </div>
+
+    <div>
+      <section id="earnings-filters">
+        <label for="date-start">Start Date:</label>
+        <input type="date" id="date-start" />
+
+        <label for="date-end">End Date:</label>
+        <input type="date" id="date-end" />
+
+        <label for="provider-filter">Provider:</label>
+        <select id="provider-filter">
+          <option value="">All Providers</option>
+          <option value="Jay the Barber">Jay the Barber</option>
+          <option value="Ink by Marcus">Ink by Marcus</option>
+          <option value="Tasha Green">Tasha Green</option>
+        </select>
+
+        <button id="clear-earnings-filters" class="btn btn-ghost">Clear Filters</button>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script src="../js/owner-earnings.js"></script>
+</body>
+</html>

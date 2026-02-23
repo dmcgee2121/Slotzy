@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Slotzy</title>
+
+  <!-- Link to external CSS file for all styling -->
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+
+<body>
+  <!-- ---------- TOP NAVIGATION BAR ---------- -->
+  <header class="topbar">
+    <div class="container">
+      <!-- Brand/logo section -->
+      <div class="brand">
+        <!-- Slotzy logo image -->
+        <!-- width/height here are a safe fallback in case CSS doesn't load -->
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" height="60">
+      </div>
+
+      <!-- Navigation buttons -->
+      <nav id="nav">
+        <!-- Home button: shows homepage -->
+        <button id="btn-home" class="link" aria-label="Home">Home</button>
+
+        <!-- Login/Register button: opens login modal -->
+        <button id="btn-login" class="link">Login / Register</button>
+
+        <!-- Dashboard button: shown only if user is signed in -->
+        <button id="btn-dashboard" class="link hidden">Dashboard</button>
+
+        <!-- Logout button: shown only if user is signed in -->
+        <button id="logoutBtn" class="link hidden logout-btn">Logout</button>
+        <span id="userBadge" class="user-badge hidden"></span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ---------- MAIN APP CONTAINER ---------- -->
+  <!-- This is where JavaScript will render different pages dynamically -->
+  <main class="container" id="app">
+    <!-- Example: Home page content, dashboards, services will appear here -->
+  </main>
+
+  <!-- ---------- MODAL OVERLAY ---------- -->
+  <!-- Hidden by default. Used for login forms, booking forms, or any popup -->
+  <div id="modal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-panel" id="modal-panel">
+      <!-- Modal content is injected by JavaScript -->
+       
+    </div>
+  </div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- ---------- PAGE FOOTER ---------- -->
+  <footer>
+    <p>© 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <!-- ---------- JAVASCRIPT ---------- -->
+  <!-- Link to main JS file where all functionality is handled -->
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Slotzy</title>
+
+  <!-- Link to external CSS file for all styling -->
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+
+<body>
+  <!-- ---------- TOP NAVIGATION BAR ---------- -->
+  <header class="topbar">
+    <div class="container">
+      <!-- Brand/logo section -->
+      <div class="brand">
+        <!-- width/height here are a safe fallback in case CSS doesn't load -->
+        <img src="./assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" height="60">
+      </div>
+
+      <!-- Navigation buttons -->
+      <nav id="nav">
+        <button id="btn-home" class="link" aria-label="Home">Home</button>
+        <button id="btn-login" class="link">Login / Register</button>
+        <button id="btn-dashboard" class="link hidden">Dashboard</button>
+        <button id="logoutBtn" class="link hidden logout-btn">Logout</button>
+        <span id="userBadge" class="user-badge hidden"></span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ---------- MAIN APP CONTAINER ---------- -->
+  <main class="container" id="app"></main>
+
+  <!-- ---------- MODAL OVERLAY ---------- -->
+  <div id="modal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-panel" id="modal-panel"></div>
+  </div>
+
+  <!-- ---------- PAGE FOOTER ---------- -->
+  <footer>
+    <p>© 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <!-- ---------- JAVASCRIPT ---------- -->
+  <script src="./js/session-ui.js"></script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

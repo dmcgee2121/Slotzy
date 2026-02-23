@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Manage Barbers</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Manage Barbers</h2>
+          <p>Business Control Center</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions">
+        <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-dashboard owner-layout">
+    <section class="card owner-panel">
+      <h2>Add Barber</h2>
+      <input id="barberName" type="text" placeholder="e.g., Chris" />
+      <button id="addBarberBtn" class="btn btn-primary" type="button">Add Barber</button>
+      <p id="barberStatus" class="small"></p>
+    </section>
+
+    <section class="card owner-panel">
+      <h2>Barber List</h2>
+      <div id="barberList"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/manage-barbers.js"></script>
+</body>
+</html>

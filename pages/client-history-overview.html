@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Client History Overview</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Client History Overview</h2>
+          <p>Business Control Center</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions">
+        <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-dashboard owner-layout client-history-overview">
+    <section class="card dashboard-header">
+      <h1>Past Appointments & Notes</h1>
+      <p>Browse appointment history across all clients, including service details, notes, and feedback.</p>
+    </section>
+
+    <div class="owner-two-col">
+      <section class="card owner-panel">
+        <h2>Filters</h2>
+        <label for="client-search">Search by Client Name:</label>
+        <input type="text" id="client-search" placeholder="e.g. Jasmine Carter" />
+
+        <label for="service-filter">Filter by Service:</label>
+        <select id="service-filter">
+          <option value="">All Services</option>
+          <option value="hair">Hair</option>
+          <option value="tattoo">Tattoo</option>
+          <option value="nails">Nails</option>
+        </select>
+
+        <label for="date-filter">Filter by Date:</label>
+        <input type="date" id="date-filter" />
+
+        <label for="tag-filter">Filter by Tag:</label>
+        <select id="tag-filter">
+          <option value="">All Tags</option>
+          <option value="repeat client">Repeat Client</option>
+          <option value="geometric">Geometric</option>
+          <option value="forearm">Forearm</option>
+          <option value="low fade">Low Fade</option>
+        </select>
+
+        <button id="clear-filters" class="btn btn-ghost">Clear All Filters</button>
+      </section>
+
+      <section class="card owner-panel">
+        <h2>History</h2>
+        <section id="client-history-list" class="grid"></section>
+      </section>
+    </div>
+
+    <aside id="history-filters" class="hidden">
+      <!-- your filter inputs here -->
+    </aside>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/app.js"></script>
+  <script src="../js/client-history-overview.js"></script>
+</body>
+</html>

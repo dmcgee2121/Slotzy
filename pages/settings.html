@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Settings</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Settings</h2>
+          <p>Profile & account details</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions">
+        <a id="backBtn" href="#" class="link">Back</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+        <button id="logoutBtn" class="link logout-btn">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-layout" id="settingsMain">
+    <section id="shopSettingsCard" class="card owner-panel hidden">
+      <h2>Shop Settings</h2>
+      <label for="businessNameInput">Business Name</label>
+      <input id="businessNameInput" type="text" placeholder="Your shop name" />
+
+      <label for="shopPhoneInput">Shop Phone</label>
+      <input id="shopPhoneInput" type="tel" placeholder="(555) 123-4567" />
+
+      <label for="shopEmailInput">Shop Email</label>
+      <input id="shopEmailInput" type="email" placeholder="shop@example.com" />
+
+      <label for="address1Input">Address</label>
+      <input id="address1Input" type="text" placeholder="Street address" />
+
+      <label for="cityInput">City</label>
+      <input id="cityInput" type="text" placeholder="City" />
+
+      <label for="stateInput">State</label>
+      <input id="stateInput" type="text" placeholder="State" />
+
+      <label for="zipInput">ZIP</label>
+      <input id="zipInput" type="text" placeholder="ZIP code" />
+
+      <h3>Booking Policy</h3>
+      <p class="small">Enforce now</p>
+      <label for="allowSameDayInput">Allow Same-Day Booking</label>
+      <input id="allowSameDayInput" type="checkbox" />
+
+      <label for="maxDaysAdvanceInput">Max Days in Advance</label>
+      <input id="maxDaysAdvanceInput" type="number" min="1" value="30" />
+
+      <label for="cancelHoursInput">Cancellation Window (hours)</label>
+      <input id="cancelHoursInput" type="number" min="0" value="24" />
+
+      <label for="bufferMinutesInput">Buffer Between Bookings (minutes)</label>
+      <input id="bufferMinutesInput" type="number" min="0" value="0" />
+
+      <p class="small">Save now, enforce later</p>
+      <label for="requireDepositInput">Require Deposit</label>
+      <input id="requireDepositInput" type="checkbox" />
+
+      <label for="depositAmountInput">Deposit Amount</label>
+      <input id="depositAmountInput" type="number" min="0" step="0.01" disabled />
+
+      <label for="lateGraceMinutesInput">Late Grace Period (minutes)</label>
+      <input id="lateGraceMinutesInput" type="number" min="0" value="10" />
+
+      <label for="noShowStrikeLimitInput">No-Show Strike Limit</label>
+      <input id="noShowStrikeLimitInput" type="number" min="0" value="2" />
+
+      <button id="saveShopBtn" class="btn btn-primary" type="button">Save Shop Settings</button>
+      <p id="shopStatus" class="small booking-status" aria-live="polite"></p>
+    </section>
+
+    <section class="card owner-panel">
+      <h2>Profile Settings</h2>
+      <p id="profileCompletenessText" class="small">Profile completeness: 0%</p>
+      <div class="progress" aria-hidden="true">
+        <div class="progress-bar" id="profileProgressBar"></div>
+      </div>
+      <p id="missingFields" class="small">Missing: full name, email, phone</p>
+      <label for="fullNameInput">Full Name</label>
+      <input id="fullNameInput" type="text" placeholder="Your full name" />
+
+      <label for="emailInput">Email</label>
+      <input id="emailInput" type="email" placeholder="name@example.com" />
+
+      <label for="phoneInput">Phone</label>
+      <input id="phoneInput" type="tel" placeholder="(555) 123-4567" />
+
+      <button id="saveProfileBtn" class="btn btn-primary" type="button">Save Profile</button>
+      <p class="small">Your contact info helps us send booking updates and reminders.</p>
+      <p id="profileStatus" class="small booking-status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/settings.js"></script>
+</body>
+</html>
