@@ -2,7 +2,12 @@ import { wireLogoutButton } from "./logout.js";
 import * as dataStore from "./dataStore.js";
 
 (function () {
+  const BOOKING_SYNC_EVENT = dataStore.EVENTS?.BOOKINGS_UPDATED || "slotzy:bookings-updated";
+  const BOOKINGS_STORAGE_KEY = dataStore.KEYS?.BOOKINGS || "Slotzy_bookings";
   let didRender = false;
+  let didBindListeners = false;
+  let currentContext = null;
+  let minuteRefreshTimer = null;
 
   document.addEventListener("DOMContentLoaded", initOwnerInsights);
 
@@ -10,46 +15,201 @@ import * as dataStore from "./dataStore.js";
     if (didRender) return;
     didRender = true;
 
-    const root = document.getElementById("insightTodayList");
+    const root = document.getElementById("ownerTodayGlanceCard") || document.getElementById("insightTodayList");
     if (!root) return;
 
     wireLogoutButton({ redirectPath: "../index.html" });
-    renderBusinessName();
-    renderInsights();
+    bindDashboardEvents();
+
+    const user = dataStore.getSessionUser();
+    const username = String(user?.username ?? "").trim();
+    const role = String(user?.role ?? "").toLowerCase();
+    const isStaff = role === "owner" || role === "barber";
+    if (!username || !isStaff) {
+      currentContext = null;
+      renderSignedOutState();
+      return;
+    }
+
+    const shopId = resolveShopId(username);
+    renderBusinessName(shopId);
+    renderOwnerOnlyControls({ role, shopId });
+    currentContext = { username, role, shopId };
+    renderInsights(currentContext);
   }
 
-  function renderInsights() {
-    const bookings = dataStore.getBookings();
-    const services = dataStore.getServices();
+  function bindDashboardEvents() {
+    if (didBindListeners) return;
+    didBindListeners = true;
+
+    const viewBtn = document.getElementById("ownerTodayViewBtn");
+    const shareBtn = document.getElementById("ownerTodayShareBtn");
+    const pilotSettingsBtn = document.getElementById("pilotSettingsBtn");
+    const pilotOpenBookingBtn = document.getElementById("pilotOpenBookingBtn");
+    const pilotCopyBookingBtn = document.getElementById("pilotCopyBookingBtn");
+    const pilotResetDemoBtn = document.getElementById("pilotResetDemoBtn");
+
+    viewBtn?.addEventListener("click", () => {
+      window.location.assign("owner-today.html");
+    });
+
+    shareBtn?.addEventListener("click", () => {
+      window.location.assign("settings.html#public-booking-link-section");
+    });
+    pilotSettingsBtn?.addEventListener("click", () => {
+      window.location.assign("settings.html#public-booking-link-section");
+    });
+    pilotOpenBookingBtn?.addEventListener("click", () => {
+      const link = String(document.getElementById("pilotBookingLink")?.value ?? "").trim();
+      if (!link) return;
+      window.open(link, "_blank", "noopener,noreferrer");
+    });
+    pilotCopyBookingBtn?.addEventListener("click", async () => {
+      const link = String(document.getElementById("pilotBookingLink")?.value ?? "").trim();
+      if (!link) return;
+      const copied = await copyText(link);
+      if (copied) {
+        window.showToast?.("Link copied", "success", 2000);
+      }
+    });
+    pilotResetDemoBtn?.addEventListener("click", () => {
+      window.location.assign("../index.html?reset=1&demo=1");
+    });
+
+    window.addEventListener("storage", handleBookingStorageSync);
+    window.addEventListener(BOOKING_SYNC_EVENT, handleBookingEventSync);
+    window.addEventListener("beforeunload", () => {
+      if (minuteRefreshTimer) {
+        window.clearInterval(minuteRefreshTimer);
+        minuteRefreshTimer = null;
+      }
+    });
+
+    minuteRefreshTimer = window.setInterval(() => {
+      renderInsightsFromState();
+    }, 60 * 1000);
+  }
+
+  function handleBookingStorageSync(event) {
+    if (event?.key && event.key !== BOOKINGS_STORAGE_KEY) return;
+    renderInsightsFromState();
+  }
+
+  function handleBookingEventSync() {
+    renderInsightsFromState();
+  }
+
+  function renderInsightsFromState() {
+    if (!currentContext) return;
+    renderInsights(currentContext);
+  }
+
+  function resolveShopId(username) {
+    const users = dataStore.getUsers();
+    const user = users.find((item) => String(item?.username ?? "") === username);
+    const direct = String(user?.shopId ?? "").trim();
+    if (direct) return direct;
+    const fallback = dataStore.getShopForUser(username);
+    return String(fallback?.id ?? "");
+  }
+
+  function renderSignedOutState() {
+    const glanceCount = document.getElementById("ownerTodayGlanceCount");
+    const glanceTitle = document.getElementById("ownerTodayNextTitle");
+    const glanceMeta = document.getElementById("ownerTodayNextMeta");
+    const todayCount = document.getElementById("insightTodayCount");
+    const todayList = document.getElementById("insightTodayList");
+    if (glanceCount) glanceCount.textContent = "0 booked or confirmed today";
+    if (glanceTitle) glanceTitle.textContent = "Staff sign-in required";
+    if (glanceMeta) glanceMeta.textContent = "Log in as an owner or barber to view your schedule.";
+    if (todayCount) todayCount.textContent = "0 scheduled today";
+    if (todayList) {
+      todayList.innerHTML = `
+        <section class="empty-state">
+          <span class="empty-state-icon" aria-hidden="true">S</span>
+          <h3>Staff sign-in required</h3>
+          <p>Log in as an owner or barber to view insights.</p>
+        </section>
+      `;
+    }
+  }
+
+  function renderInsights({ username, role, shopId }) {
+    const bookings = getManagedBookings({ username, role, shopId });
+
+    const services = dataStore.getServices().filter((service) => {
+      if (role === "owner") {
+        return String(service?.shopId ?? "") === shopId;
+      }
+      return String(service?.barberUsername ?? service?.ownerUsername ?? "") === username;
+    });
+
     const servicePriceById = buildServicePriceMap(services);
     const serviceNameById = buildServiceNameMap(services);
 
+    renderTodayGlance(bookings);
     renderTodayBookings(bookings);
     renderTodaySchedule(bookings);
     renderWeekRevenue(bookings, servicePriceById);
     renderMostPopularService(bookings, serviceNameById);
   }
 
+  function getManagedBookings({ username, role, shopId }) {
+    return dataStore.getBookings().filter((booking) => {
+      if (role === "owner") {
+        if (shopId) {
+          return String(booking?.shopId ?? "").trim() === shopId;
+        }
+        const bookingOwner = String(booking?.ownerUsername ?? booking?.barberUsername ?? "").trim();
+        return bookingOwner === username;
+      }
+
+      const bookingStaffUsername = String(booking?.barberUsername ?? booking?.ownerUsername ?? "").trim();
+      return bookingStaffUsername === username;
+    });
+  }
+
+  function renderTodayGlance(bookings) {
+    const countEl = document.getElementById("ownerTodayGlanceCount");
+    const titleEl = document.getElementById("ownerTodayNextTitle");
+    const metaEl = document.getElementById("ownerTodayNextMeta");
+    if (!countEl || !titleEl || !metaEl) return;
+
+    const todayBookings = getTodayScheduledBookings(bookings);
+    countEl.textContent = `${todayBookings.length} booked or confirmed today`;
+
+    if (todayBookings.length === 0) {
+      titleEl.textContent = "No appointments today";
+      metaEl.textContent = "Booked and confirmed appointments will appear here as soon as they are scheduled.";
+      return;
+    }
+
+    const now = Date.now();
+    const nextBooking = todayBookings.find((booking) => booking._start.getTime() >= now) || null;
+    if (!nextBooking) {
+      titleEl.textContent = "No more appointments today";
+      metaEl.textContent = `${todayBookings.length} booked or confirmed appointment${todayBookings.length === 1 ? "" : "s"} are already on today’s schedule.`;
+      return;
+    }
+
+    const clientName = String(nextBooking?.clientName ?? nextBooking?.customerUsername ?? "Client").trim() || "Client";
+    const serviceName = String(nextBooking?.serviceName ?? "Service").trim() || "Service";
+    titleEl.textContent = formatTimeLabelFromDate(nextBooking._start);
+    metaEl.textContent = `${clientName} | ${serviceName}`;
+  }
+
   function renderTodaySchedule(bookings) {
     const scheduleEl = document.getElementById("insightTodaySchedule");
     if (!scheduleEl) return;
 
-    const today = getTodayDateString();
-    const todaysBooked = bookings
-      .filter((booking) => normalizeStatus(booking?.status) === "booked")
-      .filter((booking) => getBookingDateText(booking) === today)
-      .sort((a, b) => {
-        const left = normalizeTimeTo24(String(a?.time ?? ""));
-        const right = normalizeTimeTo24(String(b?.time ?? ""));
-        return left.localeCompare(right);
-      });
+    const todaysBooked = getTodayScheduledBookings(bookings);
 
     if (todaysBooked.length === 0) {
       scheduleEl.innerHTML = `
         <section class="empty-state">
           <span class="empty-state-icon" aria-hidden="true">&#128467;</span>
           <h3>Schedule is clear</h3>
-          <p>No booked appointments for today yet.</p>
+          <p>No booked or confirmed appointments for today yet.</p>
         </section>
       `;
       return;
@@ -60,9 +220,10 @@ import * as dataStore from "./dataStore.js";
       <div class="owner-insight-list">
         ${topEight.map((booking) => {
           const serviceName = String(booking?.serviceName ?? "Service");
-          const customer = String(booking?.customerUsername ?? "Customer");
-          const time = normalizeTimeTo24(String(booking?.time ?? ""));
-          const timeLabel = time ? formatTimeLabel(time) : "Time TBD";
+          const customer = String(booking?.clientName ?? booking?.customerUsername ?? "Customer");
+          const timeLabel = Number.isFinite(booking?._start?.getTime?.())
+            ? formatTimeLabelFromDate(booking._start)
+            : "Time TBD";
           return `
             <div class="owner-insight-item">
               <span class="owner-insight-time">${escapeHtml(timeLabel)}</span>
@@ -80,24 +241,16 @@ import * as dataStore from "./dataStore.js";
     const listEl = document.getElementById("insightTodayList");
     if (!countEl || !listEl) return;
 
-    const today = getTodayDateString();
-    const todaysBooked = bookings
-      .filter((booking) => normalizeStatus(booking?.status) === "booked")
-      .filter((booking) => getBookingDateText(booking) === today)
-      .sort((a, b) => {
-        const left = normalizeTimeTo24(String(a?.time ?? ""));
-        const right = normalizeTimeTo24(String(b?.time ?? ""));
-        return left.localeCompare(right);
-      });
+    const todaysBooked = getTodayScheduledBookings(bookings);
 
-    countEl.textContent = `${todaysBooked.length} booked today`;
+    countEl.textContent = `${todaysBooked.length} scheduled today`;
 
     if (todaysBooked.length === 0) {
       listEl.innerHTML = `
         <section class="empty-state">
-          <span class="empty-state-icon" aria-hidden="true">📅</span>
+          <span class="empty-state-icon" aria-hidden="true">&#128197;</span>
           <h3>No bookings for today</h3>
-          <p>New appointments booked for today will appear here.</p>
+          <p>New booked or confirmed appointments for today will appear here.</p>
         </section>
       `;
       return;
@@ -108,9 +261,10 @@ import * as dataStore from "./dataStore.js";
       <div class="owner-insight-list">
         ${topFive.map((booking) => {
           const serviceName = String(booking?.serviceName ?? "Service");
-          const customer = String(booking?.customerUsername ?? "Customer");
-          const time = normalizeTimeTo24(String(booking?.time ?? ""));
-          const timeLabel = time ? formatTimeLabel(time) : "Time TBD";
+          const customer = String(booking?.clientName ?? booking?.customerUsername ?? "Customer");
+          const timeLabel = Number.isFinite(booking?._start?.getTime?.())
+            ? formatTimeLabelFromDate(booking._start)
+            : "Time TBD";
           return `
             <div class="owner-insight-item">
               <span class="owner-insight-time">${escapeHtml(timeLabel)}</span>
@@ -147,6 +301,12 @@ import * as dataStore from "./dataStore.js";
 
       completedCount += 1;
       const serviceId = String(booking?.serviceId ?? "");
+      const explicitPrice = Number(booking?.price ?? NaN);
+      if (Number.isFinite(explicitPrice)) {
+        revenue += explicitPrice;
+        return;
+      }
+
       const mappedPrice = servicePriceById.get(serviceId);
       if (!Number.isFinite(mappedPrice)) {
         missingPriceCount += 1;
@@ -177,7 +337,7 @@ import * as dataStore from "./dataStore.js";
 
     bookings.forEach((booking) => {
       const status = normalizeStatus(booking?.status);
-      if (status !== "booked" && status !== "completed") return;
+      if (!isScheduledStatus(status) && status !== "completed") return;
 
       const serviceId = String(booking?.serviceId ?? "").trim();
       const fallbackName = String(booking?.serviceName ?? "Service").trim() || "Service";
@@ -199,7 +359,7 @@ import * as dataStore from "./dataStore.js";
 
       const item = grouped.get(key);
       item.total += 1;
-      if (status === "booked") item.booked += 1;
+      if (isScheduledStatus(status)) item.booked += 1;
       if (status === "completed") item.completed += 1;
       if (item.name === "Service" && fallbackName) {
         item.name = fallbackName;
@@ -220,9 +380,9 @@ import * as dataStore from "./dataStore.js";
       emptyEl.classList.remove("hidden");
       emptyEl.innerHTML = `
         <section class="empty-state">
-          <span class="empty-state-icon" aria-hidden="true">⭐</span>
+          <span class="empty-state-icon" aria-hidden="true">S</span>
           <h3>No qualifying bookings</h3>
-          <p>Booked and completed services will appear here once activity starts.</p>
+          <p>Scheduled and completed services will appear here once activity starts.</p>
         </section>
       `;
       return;
@@ -232,16 +392,85 @@ import * as dataStore from "./dataStore.js";
     emptyEl.innerHTML = "";
     nameEl.textContent = popular.name;
     countEl.textContent = `${popular.total} booking${popular.total === 1 ? "" : "s"}`;
-    breakdownEl.textContent = `Booked: ${popular.booked}  Completed: ${popular.completed}`;
+    breakdownEl.textContent = `Scheduled: ${popular.booked} | Completed: ${popular.completed}`;
   }
 
-  function renderBusinessName() {
+  function renderBusinessName(shopId) {
     const heroTitleEl = document.getElementById("ownerHeroTitle");
     if (!heroTitleEl) return;
 
-    const shop = dataStore.getShop() || {};
-    const businessName = String(shop?.businessName ?? "").trim();
+    const shop = dataStore.getShopById(shopId) || dataStore.getShops()[0] || null;
+    const businessName = String(shop?.name ?? "").trim();
     heroTitleEl.textContent = `Welcome, ${businessName || "Your Shop"}`;
+  }
+
+  function renderOwnerOnlyControls({ role, shopId }) {
+    const teamCard = document.getElementById("ownerTeamCard");
+    const pilotModeBanner = document.getElementById("pilotModeBanner");
+    const pilotBookingLink = document.getElementById("pilotBookingLink");
+    const pilotBookingQr = document.getElementById("pilotBookingQr");
+    const pilotBookingQrEmpty = document.getElementById("pilotBookingQrEmpty");
+    const pilotResetDemoBtn = document.getElementById("pilotResetDemoBtn");
+
+    const isOwner = role === "owner";
+    teamCard?.classList.toggle("hidden", !isOwner);
+    if (!pilotModeBanner) return;
+
+    if (!isOwner) {
+      pilotModeBanner.classList.add("hidden");
+      return;
+    }
+
+    const shop = dataStore.getShopById(shopId) || dataStore.getShops()[0] || null;
+    const slug = String(shop?.slug ?? "").trim();
+    if (!slug) {
+      pilotModeBanner.classList.add("hidden");
+      return;
+    }
+
+    const bookingLink = `${window.location.origin}/pages/book.html?shop=${encodeURIComponent(slug)}`;
+    if (pilotBookingLink) pilotBookingLink.value = bookingLink;
+    if (pilotResetDemoBtn) {
+      pilotResetDemoBtn.classList.toggle("hidden", !dataStore.isDemoMode());
+    }
+
+    renderPilotQr(bookingLink, pilotBookingQr, pilotBookingQrEmpty);
+    pilotModeBanner.classList.remove("hidden");
+  }
+
+  async function renderPilotQr(bookingLink, imageEl, emptyEl) {
+    if (!imageEl || !emptyEl) return;
+    if (!window.QRCode || typeof window.QRCode.toDataURL !== "function") {
+      imageEl.classList.add("hidden");
+      emptyEl.textContent = "QR quick access is available when the QR helper loads.";
+      emptyEl.classList.remove("hidden");
+      return;
+    }
+
+    try {
+      const dataUrl = await window.QRCode.toDataURL(bookingLink, {
+        margin: 1,
+        width: 220,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      });
+      imageEl.src = String(dataUrl ?? "");
+      imageEl.classList.remove("hidden");
+      emptyEl.classList.add("hidden");
+    } catch {
+      imageEl.classList.add("hidden");
+      emptyEl.textContent = "QR quick access is unavailable right now.";
+      emptyEl.classList.remove("hidden");
+    }
+  }
+
+  async function copyText(value) {
+    const text = String(value ?? "").trim();
+    if (!text) return false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    return false;
   }
 
   function buildServicePriceMap(services) {
@@ -274,9 +503,33 @@ import * as dataStore from "./dataStore.js";
     return `${yyyy}-${mm}-${dd}`;
   }
 
+  function getTodayScheduledBookings(bookings) {
+    const today = getTodayDateString();
+    return bookings
+      .filter((booking) => isScheduledStatus(booking?.status))
+      .map((booking) => ({
+        ...booking,
+        _start: getBookingStartDate(booking),
+      }))
+      .filter((booking) => Number.isFinite(booking?._start?.getTime?.()))
+      .filter((booking) => toYmdLocal(booking._start) === today)
+      .sort((a, b) => a._start.getTime() - b._start.getTime());
+  }
+
   function getBookingDateText(booking) {
     const dateText = String(booking?.date ?? "").trim();
     if (dateText) return dateText;
+
+    const startIso = String(booking?.startISO ?? booking?.startAtISO ?? "").trim();
+    if (startIso) {
+      const parsed = new Date(startIso);
+      if (Number.isFinite(parsed.getTime())) {
+        const yyyy = String(parsed.getFullYear());
+        const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+        const dd = String(parsed.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+    }
 
     if (booking?.datetime) {
       const parsed = new Date(booking.datetime);
@@ -290,21 +543,52 @@ import * as dataStore from "./dataStore.js";
     return "";
   }
 
+  function getBookingStartDate(booking) {
+    const startIso = String(booking?.startISO ?? booking?.startAtISO ?? booking?.datetime ?? "").trim();
+    if (startIso) {
+      const parsed = new Date(startIso);
+      if (Number.isFinite(parsed.getTime())) return parsed;
+    }
+
+    const dateText = getBookingDateText(booking);
+    const time24 = normalizeTimeTo24(String(booking?.time ?? "").trim());
+    if (dateText && time24) {
+      const parsed = new Date(`${dateText}T${time24}:00`);
+      if (Number.isFinite(parsed.getTime())) return parsed;
+    }
+    if (dateText) {
+      const parsed = new Date(`${dateText}T00:00:00`);
+      if (Number.isFinite(parsed.getTime())) return parsed;
+    }
+    return new Date(NaN);
+  }
+
   function getBookingTimestamp(booking) {
+    const startIso = String(booking?.startISO ?? booking?.startAtISO ?? "").trim();
+    if (startIso) {
+      const isoTs = new Date(startIso).getTime();
+      if (Number.isFinite(isoTs)) return isoTs;
+    }
+
     const dateText = getBookingDateText(booking);
     const time24 = normalizeTimeTo24(String(booking?.time ?? "").trim());
     if (dateText && time24) return new Date(`${dateText}T${time24}:00`).getTime();
     if (dateText) return new Date(`${dateText}T00:00:00`).getTime();
-
-    if (booking?.datetime) {
-      const legacy = new Date(booking.datetime).getTime();
-      if (Number.isFinite(legacy)) return legacy;
-    }
     return NaN;
   }
 
   function normalizeStatus(statusValue) {
-    return String(statusValue ?? "").trim().toLowerCase();
+    const status = String(statusValue ?? "").trim().toLowerCase();
+    if (status === "confirmed") return "confirmed";
+    if (status === "completed") return "completed";
+    if (status === "cancelled") return "cancelled";
+    if (status === "no-show" || status === "no_show" || status === "noshow") return "no-show";
+    return "booked";
+  }
+
+  function isScheduledStatus(statusValue) {
+    const status = normalizeStatus(statusValue);
+    return status === "booked" || status === "confirmed";
   }
 
   function normalizeTimeTo24(timeValue) {
@@ -327,6 +611,22 @@ import * as dataStore from "./dataStore.js";
     const suffix = h >= 12 ? "PM" : "AM";
     const hour12 = ((h + 11) % 12) + 1;
     return `${hour12}:${String(m).padStart(2, "0")} ${suffix}`;
+  }
+
+  function formatTimeLabelFromDate(date) {
+    if (!(date instanceof Date) || !Number.isFinite(date.getTime())) return "Time TBD";
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const suffix = hours >= 12 ? "PM" : "AM";
+    const hour12 = ((hours + 11) % 12) + 1;
+    return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+  }
+
+  function toYmdLocal(date) {
+    const yyyy = String(date.getFullYear());
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   function formatMoney(value) {

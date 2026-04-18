@@ -21,57 +21,227 @@
       </div>
       <nav class="owner-header-actions">
         <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <a href="owner-today.html" class="link">Today</a>
+        <a href="client-history-overview.html" class="link">Clients</a>
         <span id="userBadge" class="user-badge hidden"></span>
       </nav>
     </div>
   </header>
 
-  <main class="container owner-dashboard owner-layout">
-    <section class="card dashboard-header">
-      <h1>Appointment Manager</h1>
-      <p>View, filter, and manage your upcoming bookings.</p>
-      <div class="calendar-header">
+  <main class="container owner-dashboard owner-layout page-stack">
+    <section class="card dashboard-header section-stack">
+      <div class="card-head">
+        <h1>Appointment Manager</h1>
+        <p>View, filter, and manage upcoming bookings from one place.</p>
+      </div>
+      <div class="calendar-header card-head">
         <h2 id="calendar-month">November 2025</h2>
         <p id="calendar-summary">3 appointments this month</p>
       </div>
+      <div class="cta-row">
+        <button id="addWalkinBtn" class="btn btn-primary" type="button">+ Add Walk-in</button>
+      </div>
     </section>
 
-    <div class="owner-two-col">
-      <section class="card owner-panel">
-        <h2>Filters</h2>
-        <section id="appointment-controls">
-          <label for="date-filter">Filter by Date:</label>
-          <input type="date" id="date-filter" />
+    <div class="owner-two-col appointments-layout">
+      <section class="card owner-panel appointments-filter-panel section-stack">
+        <div class="card-head">
+          <h2>Filters</h2>
+          <p>Switch views and narrow appointments by client or barber.</p>
+        </div>
+        <section id="appointment-controls" class="appointment-controls form-stack">
+          <p class="small">View</p>
+          <div class="appointment-view-segments" role="group" aria-label="View appointments">
+            <button type="button" class="btn btn-ghost segment-btn active" data-filter-value="today" aria-pressed="true">Today</button>
+            <button type="button" class="btn btn-ghost segment-btn" data-filter-value="this_week" aria-pressed="false">This Week</button>
+            <button type="button" class="btn btn-ghost segment-btn" data-filter-value="all" aria-pressed="false">All</button>
+            <button type="button" class="btn btn-ghost segment-btn" data-filter-value="cancelled" aria-pressed="false">Cancelled</button>
+            <button type="button" class="btn btn-ghost segment-btn" data-filter-value="no_show" aria-pressed="false">No-show</button>
+          </div>
 
-          <label for="status-filter">Status:</label>
-          <select id="status-filter">
+          <div class="field">
+            <label for="appointment-search">Search client</label>
+            <input id="appointment-search" type="search" placeholder="Name or contact" />
+          </div>
+
+          <div class="field">
+            <label for="appointment-owner-filter">Appointment scope</label>
+            <select id="appointment-owner-filter">
+              <option value="my">My appointments</option>
+              <option value="all">All barbers</option>
+              <option value="specific">Specific barber</option>
+            </select>
+          </div>
+
+          <label for="appointment-owner-select" id="appointment-owner-select-label" class="hidden">Select barber</label>
+          <select id="appointment-owner-select" class="hidden">
+            <option value="">Select barber</option>
+          </select>
+
+          <select id="appointment-filter" class="appointment-filter-hidden" aria-hidden="true" tabindex="-1">
+            <option value="today">Today</option>
+            <option value="this_week">This Week</option>
             <option value="all">All</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="no_show">No-show</option>
           </select>
         </section>
       </section>
 
-      <section class="card owner-panel">
-        <h2>Calendar</h2>
+      <section class="card owner-panel appointments-calendar-panel section-stack">
+        <div class="card-head">
+          <h2>Calendar</h2>
+          <p>See the month at a glance and jump into each day's bookings.</p>
+        </div>
         <section id="calendar-section">
-          <div id="calendar"></div>
+          <div id="calendar" role="region" aria-label="Appointments calendar"></div>
         </section>
       </section>
     </div>
 
-    <section class="card owner-panel">
-      <h2>Appointments</h2>
+    <section class="card owner-panel section-stack">
+      <div class="owner-panel-heading">
+        <div class="card-head">
+          <h2>Appointments</h2>
+          <p>Review booking details, update statuses, and export your current list.</p>
+        </div>
+        <button id="exportAppointmentsCsvBtn" class="btn btn-ghost" type="button">Export CSV</button>
+      </div>
+      <div id="active-day-filter" class="active-day-filter-chip hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+      <p id="appointment-status" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <section id="appointment-list" class="grid"></section>
     </section>
 
-    <div id="summary-modal" class="modal hidden">
-      <div class="modal-content">
-        <h2>Appointments on <span id="summary-date"></span></h2>
+    <div id="summary-modal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="summary-modal-title">
+      <div class="modal-content" tabindex="-1">
+        <h2 id="summary-modal-title">Appointments on <span id="summary-date"></span></h2>
         <ul id="summary-list"></ul>
-        <button id="close-summary" class="btn btn-ghost">Close</button>
+        <button id="close-summary" class="btn btn-ghost" type="button">Close</button>
       </div>
+    </div>
+
+    <div id="reschedule-modal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="reschedule-title">
+      <section class="modal-panel owner-reschedule-modal-panel section-stack">
+        <div class="card-head">
+          <h2 id="reschedule-title">Reschedule Appointment</h2>
+          <p id="reschedule-summary" class="small muted"></p>
+        </div>
+
+        <div class="form-stack">
+          <div class="field">
+            <label for="reschedule-date">New date</label>
+            <input id="reschedule-date" type="date" />
+          </div>
+
+          <div class="field">
+            <label for="reschedule-slot">New time slot</label>
+            <select id="reschedule-slot" disabled>
+              <option value="">Select a time...</option>
+            </select>
+          </div>
+        </div>
+        <p id="reschedule-empty" class="small muted hidden">No available times for this date.</p>
+
+        <p id="reschedule-status" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+        <div class="owner-reschedule-actions">
+          <button id="reschedule-confirm" class="btn btn-primary" type="button" disabled>Confirm Reschedule</button>
+          <button id="reschedule-cancel" class="btn btn-ghost" type="button">Cancel</button>
+          <button id="reschedule-close" class="btn btn-ghost" type="button">Close</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="walkin-modal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="walkin-title">
+      <section class="modal-panel owner-reschedule-modal-panel walkin-modal-panel section-stack">
+        <div class="card-head">
+          <h2 id="walkin-title">Add Walk-in / Manual Appointment</h2>
+          <p class="small muted">Create a confirmed appointment for a walk-in, call-in, or in-person booking.</p>
+        </div>
+
+        <div class="walkin-form-grid">
+          <div class="field">
+            <label for="walkinBarberSelect">Barber</label>
+            <select id="walkinBarberSelect"></select>
+          </div>
+
+          <div class="field">
+            <label for="walkinServiceSelect">Service</label>
+            <select id="walkinServiceSelect"></select>
+            <div class="cta-row">
+              <button id="walkinRepeatLastServiceBtn" class="btn btn-ghost btn-sm" type="button" disabled>Repeat last service</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="walkinCustomServiceFields" class="walkin-form-grid hidden">
+          <div class="field">
+            <label for="walkinCustomServiceName">Custom Service Name</label>
+            <input id="walkinCustomServiceName" type="text" placeholder="Walk-in haircut" />
+          </div>
+
+          <div class="field">
+            <label for="walkinCustomDuration">Duration (minutes)</label>
+            <input id="walkinCustomDuration" type="number" min="5" max="480" step="5" placeholder="30" />
+          </div>
+
+          <div class="field">
+            <label for="walkinCustomPrice">Price (optional)</label>
+            <input id="walkinCustomPrice" type="number" min="0" step="0.01" placeholder="25.00" />
+          </div>
+        </div>
+
+        <div class="walkin-form-grid">
+          <div class="field">
+            <label for="walkinDate">Date</label>
+            <input id="walkinDate" type="date" />
+            <div class="cta-row">
+              <button id="walkinNowBtn" class="btn btn-ghost btn-sm" type="button">Now</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="walkinSlotSelect">Time slot</label>
+            <select id="walkinSlotSelect" disabled>
+              <option value="">Select a time...</option>
+            </select>
+            <div class="cta-row">
+              <button id="walkinNextAvailableBtn" class="btn btn-ghost btn-sm" type="button" disabled>Use next available</button>
+            </div>
+          </div>
+        </div>
+
+        <p id="walkinSlotEmpty" class="small muted hidden">No available time slots for this selection.</p>
+
+        <div class="walkin-form-grid">
+          <div class="field">
+            <label for="walkinClientName">Client Name</label>
+            <input id="walkinClientName" type="text" placeholder="Client name" />
+            <div class="cta-row">
+              <button id="walkinSameClientBtn" class="btn btn-ghost btn-sm" type="button" disabled>Same client</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="walkinClientContact">Client Contact (optional)</label>
+            <input id="walkinClientContact" type="text" placeholder="Phone or email" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="walkinNotes">Notes (optional)</label>
+          <textarea id="walkinNotes" placeholder="Walk-in, call-in, requested style, or payment notes"></textarea>
+        </div>
+
+        <p id="walkinStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+        <div class="owner-reschedule-actions">
+          <button id="walkinQuickAddBtn" class="btn btn-ghost" type="button">Quick Add Walk-in</button>
+          <button id="walkinCreateBtn" class="btn btn-primary" type="button">Create Appointment</button>
+          <button id="walkinCancelBtn" class="btn btn-ghost" type="button">Cancel</button>
+          <button id="walkinCloseBtn" class="btn btn-ghost" type="button">Close</button>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -81,7 +251,7 @@
 
   <script type="module" src="../js/owner-appointments.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script type="module" src="../js/owner-setup-guard.js"></script>
   <script type="module" src="../js/session-ui.js"></script>
-  <script type="module" src="../js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Manage Appointments | Slotzy</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Manage Appointments</h2>
+          <p id="manageHeaderShopName">Slotzy</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions" aria-label="Manage appointment navigation">
+        <a href="../index.html" class="link">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-layout manage-page-layout page-stack">
+    <section class="card owner-panel manage-access-card section-stack">
+      <div class="card-head">
+        <h1>My Appointments</h1>
+        <p class="small">Use your manage link to see upcoming visits and your history for this shop.</p>
+      </div>
+      <p id="manageIdentitySummary" class="small muted"></p>
+      <p id="manageStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section id="manageContinueCard" class="card owner-panel hidden section-stack">
+      <div class="card-head">
+        <h2>Continue to your appointments</h2>
+        <p class="small">We found a recent manage link saved in this browser.</p>
+      </div>
+      <div class="manage-continue-actions cta-row">
+        <a id="manageContinueLink" class="btn btn-primary" href="#">Continue</a>
+      </div>
+    </section>
+
+    <section id="manageUpcomingSection" class="card owner-panel section-stack">
+      <div class="owner-section-head">
+        <h2>Upcoming</h2>
+        <p>Booked and confirmed appointments you can still manage.</p>
+      </div>
+      <div id="manageUpcomingList" class="grid"></div>
+      <div id="manageUpcomingEmpty" class="empty-state">
+        <span class="empty-state-icon" aria-hidden="true">&#128197;</span>
+        <h3 class="empty-state-title">No upcoming appointments</h3>
+        <p class="empty-state-subtitle">Your next booked appointment will show up here.</p>
+      </div>
+    </section>
+
+    <section id="managePastSection" class="card owner-panel section-stack">
+      <div class="owner-section-head">
+        <h2>Past</h2>
+        <p>Completed, cancelled, and older appointments for this contact.</p>
+      </div>
+      <div id="managePastList" class="grid"></div>
+      <div id="managePastEmpty" class="empty-state">
+        <span class="empty-state-icon" aria-hidden="true">&#128340;</span>
+        <h3 class="empty-state-title">No past appointments</h3>
+        <p class="empty-state-subtitle">When appointments are completed or cancelled, they will appear here.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="clientRescheduleModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="clientRescheduleTitle">
+    <section class="modal-panel owner-reschedule-modal-panel client-reschedule-modal-panel section-stack">
+      <div class="card-head">
+        <h2 id="clientRescheduleTitle">Reschedule Appointment</h2>
+        <p id="clientRescheduleSummary" class="small muted"></p>
+      </div>
+
+      <div class="form-stack">
+        <div class="field">
+          <label for="clientRescheduleDate">New date</label>
+          <input id="clientRescheduleDate" type="date" />
+        </div>
+      </div>
+      <p id="clientReschedulePolicyHint" class="small muted"></p>
+
+      <div class="form-stack">
+        <div class="field">
+          <label for="clientRescheduleSlot">New time slot</label>
+          <select id="clientRescheduleSlot" disabled>
+            <option value="">Select a time...</option>
+          </select>
+        </div>
+      </div>
+      <p id="clientRescheduleEmpty" class="small muted hidden">No available times for this date.</p>
+
+      <p id="clientRescheduleStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+      <div class="owner-reschedule-actions client-reschedule-actions">
+        <button id="clientRescheduleConfirm" class="btn btn-primary" type="button" disabled>Confirm Reschedule</button>
+        <button id="clientRescheduleClose" class="btn btn-ghost" type="button">Close</button>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/client-manage.js"></script>
+</body>
+</html>

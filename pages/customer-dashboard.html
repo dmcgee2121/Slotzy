@@ -3,118 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Customer Dashboard</title>
+  <title>Customer Access Moved</title>
   <link rel="stylesheet" href="../css/styles.css" />
-  <link rel="stylesheet" href="../css/owner-dashboard.css" />
 </head>
-
-<body class="owner-page">
-  <header class="topbar">
-    <div class="container owner-shell-header">
-      <div class="brand owner-brand">
-        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
-        <div class="owner-brand-copy">
-          <h2>Customer Dashboard</h2>
-          <p>Your booking hub</p>
-        </div>
+<body>
+  <main class="container" id="app" tabindex="-1">
+    <section class="card owner-panel" style="max-width: 640px; margin: 3rem auto; text-align: center;">
+      <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" style="margin: 0 auto 1rem;" />
+      <h1>Customer dashboard moved</h1>
+      <p>Customer logins not enabled — use booking link</p>
+      <p class="small muted">Ask your barber for their booking link or scan the QR. You can also open public booking and choose a shop, then use your manage link from the receipt for updates.</p>
+      <div class="home-login-row" style="justify-content: center;">
+        <a href="../index.html" class="btn btn-ghost">Home</a>
+        <a href="book.html" class="btn btn-primary">Book using a shop link</a>
+        <a href="manage.html" class="btn btn-ghost">Manage Appointment</a>
       </div>
-      <nav class="owner-header-actions">
-        <span id="userBadge" class="user-badge hidden"></span>
-        <a href="../index.html" class="link">Home</a>
-        <a href="settings.html" class="link">Settings</a>
-        <button id="logoutBtn" class="link logout-btn">Logout</button>
-      </nav>
-    </div>
-  </header>
-
-  <main class="container owner-layout">
-    <section class="card dashboard-header">
-      <h1>Welcome Back</h1>
-      <p>Manage your bookings and quickly schedule your next appointment.</p>
+      <p class="small muted" id="redirectStatus">Redirecting to home...</p>
     </section>
-
-    <div class="owner-two-col">
-      <section class="card owner-panel" id="bookingPanel">
-        <h2>Book an Appointment</h2>
-        <p>Browse services and pick an available time slot.</p>
-        <label for="barberSelect">Barber (optional)</label>
-        <select id="barberSelect"></select>
-        <label for="serviceSelect">Service</label>
-        <select id="serviceSelect">
-          <option value="">Select a service</option>
-          <option value="haircut">Haircut</option>
-          <option value="beard-trim">Beard Trim</option>
-          <option value="cut-beard">Cut + Beard</option>
-        </select>
-
-        <label for="bookingDate">Date</label>
-        <input type="date" id="bookingDate" />
-
-        <label for="bookingTime">Time</label>
-        <select id="bookingTime">
-          <option value="">Select a time</option>
-          <option value="09:00">9:00 AM</option>
-          <option value="11:00">11:00 AM</option>
-          <option value="14:00">2:00 PM</option>
-          <option value="16:00">4:00 PM</option>
-        </select>
-
-        <button id="bookBtn" class="btn btn-primary owner-action-btn" type="button">Book Appointment</button>
-        <p id="policyHint" class="small muted"></p>
-        <p id="bookingStatus" class="small booking-status" aria-live="polite"></p>
-      </section>
-
-      <div class="owner-right-col">
-      <section class="card owner-panel" id="nextAppointmentCard">
-        <h2>Your Next Appointment</h2>
-        <div id="nextAppointmentDetails" class="appointment-row hidden">
-          <div id="nextAppointmentService" class="appointment-main">Service</div>
-          <div class="appointment-datetime">
-            <span id="nextAppointmentDate"></span>
-            <span id="nextAppointmentTime"></span>
-          </div>
-          <div class="appointment-actions">
-            <span class="badge badge-booked">Booked</span>
-          </div>
-        </div>
-        <div id="nextAppointmentEmptyState" class="empty-state">
-          <span class="empty-state-icon" aria-hidden="true">&#128197;</span>
-          <h3>No next appointment yet</h3>
-          <p>Your next booked visit will appear here.</p>
-        </div>
-      </section>
-
-      <section class="card owner-panel">
-        <h2>Upcoming Appointments</h2>
-        <div id="upcomingList" class="grid"></div>
-        <div id="upcomingEmptyState" class="empty-state">
-          <span class="empty-state-icon" aria-hidden="true">📅</span>
-          <h3>No upcoming appointments</h3>
-          <p>Once you book a service, it will show up here.</p>
-          <a href="#bookingPanel" class="btn btn-ghost empty-state-cta">Book your first appointment</a>
-        </div>
-      </section>
-      </div>
-    </div>
-
-    <section class="card owner-panel">
-      <h2>Past Appointments</h2>
-      <div id="pastList" class="grid"></div>
-      <div id="pastEmptyState" class="empty-state">
-        <span class="empty-state-icon" aria-hidden="true">🕘</span>
-        <h3>No past appointments yet</h3>
-        <p>Completed and cancelled bookings will appear here.</p>
-        <a href="#upcomingList" class="btn btn-ghost empty-state-cta">View upcoming appointments</a>
-      </div>
-    </section>
-
   </main>
 
-  <footer>
-    <p>&copy; 2026 Slotzy. All rights reserved.</p>
-  </footer>
-  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-  <script type="module" src="../js/session-ui.js"></script>
-  <script type="module" src="../js/customer-dashboard.js"></script>
+  <script>
+    (function () {
+      try {
+        sessionStorage.setItem("Slotzy_homeNotice", "Customer logins not enabled — use booking link");
+      } catch {
+        // ignore storage failures
+      }
+      window.setTimeout(function () {
+        window.location.replace("../index.html");
+      }, 1200);
+    })();
+  </script>
 </body>
 </html>

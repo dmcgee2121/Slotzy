@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Slotzy Admin Console</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Admin Console</h2>
+          <p>Private pilot tooling</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions" aria-label="Admin navigation">
+        <a href="../index.html" class="link">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-layout page-stack">
+    <section class="card owner-panel section-stack">
+      <div class="card-head">
+        <h1>Platform Admin</h1>
+        <p class="small">Admin console - do not use in production</p>
+      </div>
+      <p id="adminStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section id="adminDisabledCard" class="card owner-panel section-stack hidden">
+      <div class="card-head">
+        <h2>Admin disabled</h2>
+        <p class="small">Set <code>ADMIN_SECRET</code> on the backend to enable the private admin console.</p>
+      </div>
+    </section>
+
+    <section id="adminLoginCard" class="card owner-panel section-stack hidden">
+      <div class="card-head">
+        <h2>Admin sign-in</h2>
+        <p class="small">Enter the admin secret to open the pilot console.</p>
+      </div>
+      <div class="field">
+        <label for="adminSecretInput">Admin secret</label>
+        <input id="adminSecretInput" type="password" autocomplete="current-password" />
+      </div>
+      <div class="cta-row">
+        <button id="adminLoginBtn" class="btn btn-primary" type="button">Sign In</button>
+      </div>
+    </section>
+
+    <section id="adminConsole" class="hidden page-stack">
+      <section class="card owner-panel section-stack">
+        <div class="card-head">
+          <h2>Quick Actions</h2>
+          <p class="small">Developer-only pilot actions.</p>
+        </div>
+        <div class="public-booking-qr-actions">
+          <button id="adminSeedDemoBtn" class="btn btn-ghost" type="button">Seed Demo Shop</button>
+          <button id="adminClearAllBtn" class="btn btn-danger" type="button">Clear All Data</button>
+          <button id="adminLogoutBtn" class="btn btn-ghost" type="button">Log Out</button>
+        </div>
+      </section>
+
+      <section class="card owner-panel section-stack">
+        <div class="card-head">
+          <h2>Shops</h2>
+          <p class="small">Private pilot overview of current shops.</p>
+        </div>
+        <div id="adminShopsList" class="owner-section-grid"></div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/admin.js"></script>
+</body>
+</html>

@@ -27,7 +27,6 @@ import * as dataStore from "./dataStore.js";
 
   function isOwnerUser() {
     const parsedUser = dataStore.getSessionUser();
-    console.log("[manage-barbers] parsed user:", parsedUser);
     return Boolean(parsedUser && parsedUser.role === "owner");
   }
 
@@ -161,7 +160,10 @@ import * as dataStore from "./dataStore.js";
 
   function setStatus(message, isSuccess) {
     if (!barberStatus) return;
-    barberStatus.textContent = message;
+    barberStatus.textContent = String(message ?? "");
+    barberStatus.setAttribute("role", isSuccess ? "status" : "alert");
+    barberStatus.setAttribute("aria-live", isSuccess ? "polite" : "assertive");
+    barberStatus.setAttribute("aria-atomic", "true");
     barberStatus.style.color = isSuccess ? "#166534" : "#b91c1c";
   }
 

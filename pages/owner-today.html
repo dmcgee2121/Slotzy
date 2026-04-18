@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Today Agenda</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page today-print-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Today Agenda</h2>
+          <p>Fast daily booking timeline</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions" aria-label="Owner navigation">
+        <a href="business-owner.html" class="link">Dashboard</a>
+        <a href="owner-today.html" class="link" aria-current="page">Today</a>
+        <a href="manage-appointments.html" class="link">Appointments</a>
+        <a href="client-history-overview.html" class="link">Clients</a>
+        <a href="settings.html" class="link">Settings</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+        <button id="logoutBtn" class="link logout-btn">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-dashboard owner-layout">
+    <section class="card dashboard-header">
+      <h1>Today</h1>
+      <p>Booked and confirmed appointments in time order, with free-time gaps.</p>
+    </section>
+
+    <section class="card owner-panel today-next-card" id="todayNextCard">
+      <h2>Next Appointment</h2>
+      <p id="todayNextCountdown" class="owner-insight-value">No appointments today</p>
+      <p id="todayNextMeta" class="small muted">Your schedule is clear for now.</p>
+    </section>
+
+    <section class="card owner-panel" id="todayControlsCard">
+      <div class="today-controls">
+        <div id="todayScopeWrap" class="today-scope-wrap">
+          <label for="todayScope">Scope</label>
+          <select id="todayScope">
+            <option value="all">All barbers</option>
+            <option value="my">My appointments</option>
+          </select>
+        </div>
+        <button id="todayPrintBtn" class="btn btn-ghost" type="button">Print Today</button>
+      </div>
+      <p id="todayStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section class="card owner-panel">
+      <h2>Timeline</h2>
+      <section id="todayAgendaList" class="today-agenda-list"></section>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/owner-today.js"></script>
+  <script type="module" src="../js/owner-setup-guard.js"></script>
+  <script type="module" src="../js/session-ui.js"></script>
+</body>
+</html>

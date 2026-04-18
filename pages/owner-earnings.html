@@ -9,15 +9,17 @@
   <link rel="stylesheet" href="../css/owner-dashboard.css" />
 </head>
 
-<body>
+<body class="owner-page">
   <header class="topbar">
     <div class="container">
       <div class="brand">
         <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
         <h2>Earnings Overview</h2>
       </div>
-      <nav>
+      <nav class="owner-header-actions">
         <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <a href="owner-today.html" class="link">Today</a>
+        <a href="client-history-overview.html" class="link">Clients</a>
         <span id="userBadge" class="user-badge hidden"></span>
       </nav>
     </div>
@@ -37,31 +39,60 @@
     </div>
 
     <div>
-      <section id="earnings-filters">
+      <section id="earnings-filters" class="card owner-panel">
+        <label for="period-filter">Period:</label>
+        <select id="period-filter">
+          <option value="today">Today</option>
+          <option value="this_week">This Week</option>
+          <option value="this_month" selected>This Month</option>
+          <option value="custom">Custom Range</option>
+        </select>
+
         <label for="date-start">Start Date:</label>
         <input type="date" id="date-start" />
 
         <label for="date-end">End Date:</label>
         <input type="date" id="date-end" />
 
+        <label for="scope-filter">Scope:</label>
+        <select id="scope-filter">
+          <option value="all">All barbers in shop</option>
+          <option value="my">My bookings</option>
+          <option value="specific">Specific barber</option>
+        </select>
+
         <label for="provider-filter">Provider:</label>
         <select id="provider-filter">
           <option value="">All Providers</option>
-          <option value="Jay the Barber">Jay the Barber</option>
-          <option value="Ink by Marcus">Ink by Marcus</option>
-          <option value="Tasha Green">Tasha Green</option>
         </select>
 
+        <label for="include-projected">
+          <input type="checkbox" id="include-projected" checked />
+          Include projected revenue (future booked/confirmed)
+        </label>
+
         <button id="clear-earnings-filters" class="btn btn-ghost">Clear Filters</button>
+        <p id="earnings-status" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
       </section>
     </div>
+
+    <section class="card owner-panel">
+      <h2>By Service</h2>
+      <div class="summary-breakdown" id="earnings-service-breakdown"></div>
+    </section>
+
+    <section class="card owner-panel">
+      <h2>By Barber</h2>
+      <div class="summary-breakdown" id="earnings-barber-breakdown"></div>
+    </section>
   </main>
 
   <footer>
     <p>&copy; 2026 Slotzy. All rights reserved.</p>
   </footer>
 
+  <script type="module" src="../js/owner-setup-guard.js"></script>
   <script type="module" src="../js/session-ui.js"></script>
-  <script src="../js/owner-earnings.js"></script>
+  <script type="module" src="../js/owner-earnings.js"></script>
 </body>
 </html>

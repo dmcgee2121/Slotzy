@@ -1,6 +1,11 @@
+import * as dataStore from "./dataStore.js";
+
 (function () {
-  const SERVICES_KEY = "Slotzy_services";
   let didBind = false;
+  const sessionUser = dataStore.getSessionUser();
+  const currentUsername = String(sessionUser?.username ?? "").trim();
+  const currentRole = String(sessionUser?.role ?? "").toLowerCase();
+  const isStaff = currentRole === "owner" || currentRole === "barber";
 
   document.addEventListener("DOMContentLoaded", initQuickAddService);
 
@@ -21,6 +26,11 @@
       return;
     }
 
+    if (!isStaff || !currentUsername) {
+      quickAddBtn.classList.add("hidden");
+      return;
+    }
+
     quickAddBtn.addEventListener("click", () => {
       clearStatus();
       nameInput.value = "";
@@ -34,6 +44,10 @@
     createBtn.addEventListener("click", handleCreateService);
     modal.addEventListener("click", (event) => {
       if (event.target !== modal) return;
+      closeModal();
+    });
+    modal.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
       closeModal();
     });
 
@@ -61,20 +75,27 @@
       const lowerName = name.toLowerCase();
       const hasDuplicate = services.some((service) => {
         const existing = String(service?.name ?? service?.title ?? "").trim().toLowerCase();
-        return existing === lowerName;
+        const barber = String(service?.barberUsername ?? service?.ownerUsername ?? "");
+        return existing === lowerName && barber === currentUsername;
       });
       if (hasDuplicate) {
         setStatus("A service with that name already exists.", false);
         return;
       }
 
+      const shopId = resolveCurrentShopId();
       services.push({
         id: makeServiceId(),
         name,
+        title: name,
         price: Math.round(price * 100) / 100,
         duration: Math.round(duration),
+        durationMinutes: Math.round(duration),
         active: true,
-        createdAt: new Date().toISOString(),
+        createdAtISO: new Date().toISOString(),
+        shopId,
+        barberUsername: currentUsername,
+        ownerUsername: currentUsername,
       });
       saveServices(services);
 
@@ -90,6 +111,7 @@
       modal.setAttribute("aria-hidden", "false");
       requestAnimationFrame(() => {
         modal.classList.add("show");
+        nameInput.focus();
       });
     }
 
@@ -101,29 +123,37 @@
     }
 
     function setStatus(message, isSuccess) {
-      statusEl.textContent = message;
+      statusEl.textContent = String(message ?? "");
+      statusEl.setAttribute("role", isSuccess ? "status" : "alert");
+      statusEl.setAttribute("aria-live", isSuccess ? "polite" : "assertive");
+      statusEl.setAttribute("aria-atomic", "true");
       statusEl.classList.remove("status-success", "status-error");
       statusEl.classList.add(isSuccess ? "status-success" : "status-error");
     }
 
     function clearStatus() {
       statusEl.textContent = "";
+      statusEl.setAttribute("role", "status");
+      statusEl.setAttribute("aria-live", "polite");
+      statusEl.setAttribute("aria-atomic", "true");
       statusEl.classList.remove("status-success", "status-error");
     }
   }
 
   function loadServices() {
-    try {
-      const raw = localStorage.getItem(SERVICES_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return dataStore.getServices();
   }
 
   function saveServices(services) {
-    localStorage.setItem(SERVICES_KEY, JSON.stringify(services));
+    dataStore.saveServices(services);
+  }
+
+  function resolveCurrentShopId() {
+    const user = dataStore.getUsers().find((item) => String(item?.username ?? "") === currentUsername);
+    const direct = String(user?.shopId ?? "").trim();
+    if (direct) return direct;
+    const fallback = dataStore.getShopForUser(currentUsername);
+    return String(fallback?.id ?? "");
   }
 
   function makeServiceId() {

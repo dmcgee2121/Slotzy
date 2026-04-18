@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Owner Setup Wizard</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Owner Setup Wizard</h2>
+          <p>First-run onboarding</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions" aria-label="Owner setup navigation">
+        <a href="business-owner.html" class="link">Dashboard</a>
+        <span id="userBadge" class="user-badge hidden"></span>
+        <button id="logoutBtn" class="link logout-btn" type="button">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-layout" id="ownerSetupMain">
+    <section class="card owner-panel owner-setup-shell">
+      <div class="owner-setup-shell-copy">
+        <p id="setupStepSummary" class="small owner-setup-step-summary">Step 1 of 5</p>
+        <h1>Get your shop live in a few minutes</h1>
+        <p id="setupIntroText">Set up your shop, team, services, and hours once, then start sharing your booking link.</p>
+      </div>
+      <ol class="setup-stepper" id="setupStepper">
+        <li class="setup-step is-active" data-step="1">1. Shop</li>
+        <li class="setup-step" data-step="2">2. Team</li>
+        <li class="setup-step" data-step="3">3. Services</li>
+        <li class="setup-step" data-step="4">4. Hours</li>
+        <li class="setup-step" data-step="5">5. Ready</li>
+      </ol>
+    </section>
+
+    <section class="card owner-panel" data-step-panel="1">
+      <h2>Step 1: Shop</h2>
+      <p class="small">Choose the shop name and branding clients will see on your booking page and QR handout.</p>
+
+      <div class="field">
+        <label for="setupShopName">Shop Name</label>
+        <input id="setupShopName" type="text" placeholder="Slotzy Barbershop" />
+      </div>
+
+      <div class="field">
+        <label for="setupShopLogoInput">Upload Shop Logo</label>
+        <input id="setupShopLogoInput" type="file" accept="image/*" />
+      </div>
+      <p class="small shop-logo-input-help">Use a JPG, PNG, or WEBP logo up to 1 MB.</p>
+      <p id="setupShopLogoStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+      <div class="shop-logo-settings-card owner-setup-logo-card">
+        <div class="shop-logo-preview-frame logo-preview">
+          <img id="setupShopLogoPreview" alt="Shop logo preview" />
+        </div>
+        <div class="shop-logo-preview-copy">
+          <p id="setupShopLogoPreviewStatus" class="small">Using the default Slotzy logo.</p>
+          <button id="setupRemoveShopLogoBtn" class="btn btn-ghost" type="button">Remove Logo</button>
+        </div>
+      </div>
+
+      <p id="setupShopStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <div class="setup-actions">
+        <button id="setupStep1Next" class="btn btn-primary" type="button">Save and Continue</button>
+      </div>
+    </section>
+
+    <section class="card owner-panel hidden" data-step-panel="2">
+      <h2>Step 2: Team</h2>
+      <p class="small">Solo-first by default. Keep "I'm the only barber" on for the fastest launch, or turn it off if you want multiple schedules.</p>
+
+      <div class="toggle-row">
+        <label for="setupOnlyBarberCheckbox">I'm the only barber</label>
+        <input id="setupOnlyBarberCheckbox" type="checkbox" checked />
+      </div>
+
+      <div id="setupOwnerBarberFields" class="setup-form-cluster">
+        <div class="field">
+          <label for="setupOwnerDisplayName">Your display name</label>
+          <input id="setupOwnerDisplayName" type="text" placeholder="Jordan Owner" />
+        </div>
+        <p class="small">This name appears on the public booking page. We'll use it as your solo barber profile automatically.</p>
+      </div>
+
+      <div id="setupBarberAddCard" class="setup-form-cluster hidden">
+        <h3>Add a barber (optional)</h3>
+        <p class="small">Only needed if you want multiple schedules.</p>
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="setupBarberDisplayName">Display Name</label>
+            <input id="setupBarberDisplayName" type="text" placeholder="Alex Fade" />
+          </div>
+
+          <div class="field">
+            <label for="setupBarberUsername">Username</label>
+            <input id="setupBarberUsername" type="text" placeholder="alexfade" />
+          </div>
+
+          <div class="field">
+            <label for="setupBarberPassword">Password</label>
+            <input id="setupBarberPassword" type="password" placeholder="Create a password" />
+          </div>
+
+          <div class="field">
+            <label for="setupBarberEmail">Email (optional)</label>
+            <input id="setupBarberEmail" type="email" placeholder="alex@example.com" />
+          </div>
+        </div>
+
+        <button id="setupAddBarberBtn" class="btn btn-primary" type="button">Add Barber</button>
+        <p id="setupBarberStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+
+      <div id="setupBarberTeamSection" class="setup-list-head hidden">
+        <h3>Booking team</h3>
+        <p class="small">At least one barber needs to be available for clients to book.</p>
+      </div>
+      <div id="setupBarberList" class="availability-timeoff-list hidden"></div>
+
+      <div class="setup-actions">
+        <button id="setupStep2Back" class="btn btn-ghost" type="button">Back</button>
+        <button id="setupStep2Next" class="btn btn-primary" type="button">Continue</button>
+      </div>
+    </section>
+
+    <section class="card owner-panel hidden" data-step-panel="3">
+      <h2>Step 3: Add services</h2>
+      <p class="small">Create at least two bookable services before you share your public booking link.</p>
+
+      <div class="setup-form-cluster">
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="setupServiceBarber">Barber</label>
+            <select id="setupServiceBarber"></select>
+          </div>
+
+          <div class="field">
+            <label for="setupServiceName">Service Name</label>
+            <input id="setupServiceName" type="text" placeholder="Classic Cut" />
+          </div>
+
+          <div class="field">
+            <label for="setupServicePrice">Price (USD)</label>
+            <input id="setupServicePrice" type="number" min="0.01" step="0.01" placeholder="35" />
+          </div>
+
+          <div class="field">
+            <label for="setupServiceDuration">Duration (minutes)</label>
+            <input id="setupServiceDuration" type="number" min="10" max="240" step="5" placeholder="30" />
+          </div>
+        </div>
+
+        <button id="setupAddServiceBtn" class="btn btn-primary" type="button">Add Service</button>
+        <p id="setupServiceStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+
+      <div class="setup-list-head">
+        <h3>Services</h3>
+        <p class="small">Need at least 2 total services to continue.</p>
+      </div>
+      <div id="setupServiceList" class="availability-timeoff-list"></div>
+
+      <div class="setup-actions">
+        <button id="setupStep3Back" class="btn btn-ghost" type="button">Back</button>
+        <button id="setupStep3Next" class="btn btn-primary" type="button">Continue</button>
+      </div>
+    </section>
+
+    <section class="card owner-panel hidden" data-step-panel="4">
+      <h2>Step 4: Set weekly hours</h2>
+      <p class="small">Set weekly hours and booking buffer for each barber. Save at least one enabled day before continuing.</p>
+
+      <div class="form-grid-3">
+        <div class="field">
+          <label for="setupAvailabilityBarber">Barber</label>
+          <select id="setupAvailabilityBarber"></select>
+        </div>
+
+        <div class="field availability-controls">
+          <label for="setupTimezone">Timezone</label>
+          <select id="setupTimezone">
+            <option value="America/Chicago">America/Chicago</option>
+            <option value="America/New_York">America/New_York</option>
+            <option value="America/Los_Angeles">America/Los_Angeles</option>
+            <option value="America/Denver">America/Denver</option>
+          </select>
+        </div>
+
+        <div class="field availability-controls">
+          <label for="setupBufferMinutes">Buffer Time</label>
+          <select id="setupBufferMinutes">
+            <option value="0">0 minutes</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="availability-table-wrap">
+        <table class="availability-table">
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Enabled</th>
+              <th>Start</th>
+              <th>End</th>
+            </tr>
+          </thead>
+          <tbody id="setupAvailabilityWeeklyBody"></tbody>
+        </table>
+      </div>
+
+      <p id="setupAvailabilityStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+      <div class="setup-actions">
+        <button id="setupSaveAvailabilityBtn" class="btn btn-ghost" type="button">Save Availability</button>
+        <button id="setupStep4Back" class="btn btn-ghost" type="button">Back</button>
+        <button id="setupStep4Next" class="btn btn-primary" type="button">Continue</button>
+      </div>
+    </section>
+
+    <section class="card owner-panel hidden" data-step-panel="5">
+      <div class="setup-success-head">
+        <h2>You're ready</h2>
+        <p class="small">Your booking page is live. Copy the link, print the QR, and start sharing it with clients.</p>
+      </div>
+
+      <div class="setup-ready-grid">
+        <p><strong>Shop:</strong> <span id="setupReadyShopName">-</span></p>
+        <p><strong>Booking team:</strong> <span id="setupReadyBarberName">-</span></p>
+      </div>
+
+      <div class="field">
+        <label for="setupBookingLink">Public Booking Link</label>
+        <input id="setupBookingLink" type="url" readonly />
+      </div>
+
+      <div class="public-booking-link-actions">
+        <button id="setupCopyBookingLink" class="btn btn-ghost" type="button">Copy Link</button>
+        <button id="setupPrintBookingQr" class="btn btn-ghost" type="button">Print QR</button>
+        <button id="setupOpenBookingPage" class="btn btn-ghost" type="button">Open Booking Page</button>
+        <button id="setupGoDashboard" class="btn btn-primary" type="button">Go to Dashboard</button>
+      </div>
+
+      <div class="public-booking-qr-block setup-ready-qr-block">
+        <p class="small">Scan to open booking page quickly.</p>
+        <div class="public-booking-qr-preview">
+          <img id="setupBookingQrImage" class="hidden" alt="QR code for shop booking link" />
+          <p id="setupBookingQrEmpty" class="small">QR code will appear once your booking link is ready.</p>
+        </div>
+      </div>
+
+      <p id="setupReadyStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <p id="setupStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script src="../js/vendor/qrcode.min.js"></script>
+  <script type="module" src="../js/owner-setup.js"></script>
+</body>
+</html>

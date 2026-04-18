@@ -1,16 +1,19 @@
-const SESSION_KEYS_TO_CLEAR = [
-  "Slotzy_user",
-  "Slotzy_token",
-];
+const SESSION_KEYS_TO_CLEAR = ["Slotzy_user", "Slotzy_auth_token", "Slotzy_token"];
+const LOCAL_KEYS_TO_CLEAR = ["Slotzy_auth_token", "Slotzy_token"];
 
-export function doLogout(redirectPath) {
-  SESSION_KEYS_TO_CLEAR.forEach((key) => {
+function clearStorageKeys(storage, keys) {
+  keys.forEach((key) => {
     try {
-      sessionStorage.removeItem(key);
+      storage.removeItem(key);
     } catch {
       // Ignore storage errors during logout.
     }
   });
+}
+
+export function doLogout(redirectPath) {
+  clearStorageKeys(sessionStorage, SESSION_KEYS_TO_CLEAR);
+  clearStorageKeys(localStorage, LOCAL_KEYS_TO_CLEAR);
 
   window.location.href = redirectPath || "../index.html";
 }

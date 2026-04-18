@@ -20,17 +20,25 @@
       </div>
       <nav class="owner-header-actions">
         <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <a href="owner-today.html" class="link">Today</a>
+        <a href="client-history-overview.html" class="link">Clients</a>
         <span id="userBadge" class="user-badge hidden"></span>
       </nav>
     </div>
   </header>
 
   <main class="container owner-dashboard owner-layout">
+    <section class="card dashboard-header">
+      <h1>Barber Manager</h1>
+      <p>Add, activate, or remove barbers for your shop.</p>
+    </section>
+
     <section class="card owner-panel">
       <h2>Add Barber</h2>
+      <label for="barberName">Barber Name</label>
       <input id="barberName" type="text" placeholder="e.g., Chris" />
       <button id="addBarberBtn" class="btn btn-primary" type="button">Add Barber</button>
-      <p id="barberStatus" class="small"></p>
+      <p id="barberStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
 
     <section class="card owner-panel">
@@ -43,6 +51,7 @@
     <p>&copy; 2026 Slotzy. All rights reserved.</p>
   </footer>
 
+  <script type="module" src="../js/owner-setup-guard.js"></script>
   <script type="module" src="../js/session-ui.js"></script>
   <script type="module" src="../js/manage-barbers.js"></script>
 </body>

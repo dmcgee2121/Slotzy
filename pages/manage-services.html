@@ -20,34 +20,55 @@
       </div>
       <nav class="owner-header-actions">
         <a href="business-owner.html" class="link">Back to Dashboard</a>
+        <a href="owner-today.html" class="link">Today</a>
+        <a href="client-history-overview.html" class="link">Clients</a>
         <span id="userBadge" class="user-badge hidden"></span>
       </nav>
     </div>
   </header>
 
-  <main class="container owner-dashboard owner-layout">
-    <section class="card dashboard-header">
-      <h1>Service Editor</h1>
-      <p>Add or remove services for your business.</p>
+  <main class="container owner-dashboard owner-layout page-stack">
+    <section class="card dashboard-header section-stack">
+      <div class="card-head">
+        <h1>Service Editor</h1>
+        <p>Add, price, and organize the services clients can book.</p>
+      </div>
     </section>
 
     <div class="owner-two-col">
-      <section class="card owner-panel">
-        <h2>Add Service</h2>
-        <label for="serviceName">Service Name</label>
-        <input id="serviceName" type="text" placeholder="Service name" />
+      <section class="card owner-panel section-stack">
+        <div class="card-head">
+          <h2>Add Service</h2>
+          <p>Create a new service with a clear name, price, and duration.</p>
+        </div>
 
-        <label for="servicePrice">Price</label>
-        <input id="servicePrice" type="number" placeholder="Price" />
+        <div class="form-stack">
+          <div class="field">
+            <label for="serviceName">Service Name</label>
+            <input id="serviceName" type="text" placeholder="Service name" />
+          </div>
 
-        <label for="serviceDuration">Duration</label>
-        <input id="serviceDuration" type="number" placeholder="Minutes" />
+          <div class="field">
+            <label for="servicePrice">Price</label>
+            <input id="servicePrice" type="number" placeholder="Price" />
+          </div>
 
-        <button id="addServiceBtn" class="btn btn-primary" type="button">Add Service</button>
+          <div class="field">
+            <label for="serviceDuration">Duration</label>
+            <input id="serviceDuration" type="number" placeholder="Minutes" />
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <button id="addServiceBtn" class="btn btn-primary" type="button">Add Service</button>
+        </div>
       </section>
 
-      <section class="card owner-panel">
-        <h2>Service List</h2>
+      <section class="card owner-panel section-stack">
+        <div class="card-head">
+          <h2>Service List</h2>
+          <p>Review existing services and keep your booking menu up to date.</p>
+        </div>
         <div id="serviceList" class="grid"></div>
       </section>
     </div>
@@ -58,6 +79,7 @@
   </footer>
 
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script type="module" src="../js/owner-setup-guard.js"></script>
   <script type="module" src="../js/session-ui.js"></script>
   <script type="module" src="../js/manage-services.js"></script>
 </body>

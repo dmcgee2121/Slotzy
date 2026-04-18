@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Client History Overview</title>
+  <title>Clients</title>
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/owner-dashboard.css" />
 </head>
@@ -14,69 +14,63 @@
       <div class="brand owner-brand">
         <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
         <div class="owner-brand-copy">
-          <h2>Client History Overview</h2>
+          <h2>Clients</h2>
           <p>Business Control Center</p>
         </div>
       </div>
-      <nav class="owner-header-actions">
-        <a href="business-owner.html" class="link">Back to Dashboard</a>
+      <nav class="owner-header-actions" aria-label="Owner navigation">
+        <a href="business-owner.html" class="link">Dashboard</a>
+        <a href="owner-today.html" class="link">Today</a>
+        <a href="manage-appointments.html" class="link">Appointments</a>
+        <a href="client-history-overview.html" class="link" aria-current="page">Clients</a>
+        <a href="settings.html" class="link">Settings</a>
         <span id="userBadge" class="user-badge hidden"></span>
+        <button id="logoutBtn" class="link logout-btn">Logout</button>
       </nav>
     </div>
   </header>
 
-  <main class="container owner-dashboard owner-layout client-history-overview">
+  <main class="container owner-dashboard owner-layout">
     <section class="card dashboard-header">
-      <h1>Past Appointments & Notes</h1>
-      <p>Browse appointment history across all clients, including service details, notes, and feedback.</p>
+      <h1>Client List</h1>
+      <p>Repeat clients and visit history derived from bookings.</p>
+      <p id="clientsSummary" class="small muted">0 clients found.</p>
     </section>
 
-    <div class="owner-two-col">
+    <div class="owner-two-col clients-layout">
       <section class="card owner-panel">
-        <h2>Filters</h2>
-        <label for="client-search">Search by Client Name:</label>
-        <input type="text" id="client-search" placeholder="e.g. Jasmine Carter" />
+        <div class="owner-panel-heading">
+          <h2>All Clients</h2>
+          <button id="exportClientsCsvBtn" class="btn btn-ghost" type="button">Export Clients CSV</button>
+        </div>
+        <label for="client-search">Search by name or contact</label>
+        <input type="text" id="client-search" placeholder="e.g. Jasmine or (555)..." />
 
-        <label for="service-filter">Filter by Service:</label>
-        <select id="service-filter">
-          <option value="">All Services</option>
-          <option value="hair">Hair</option>
-          <option value="tattoo">Tattoo</option>
-          <option value="nails">Nails</option>
-        </select>
+        <label for="repeat-only-toggle" class="small">
+          <input type="checkbox" id="repeat-only-toggle" />
+          Repeat clients only (2+ visits)
+        </label>
 
-        <label for="date-filter">Filter by Date:</label>
-        <input type="date" id="date-filter" />
+        <button id="clear-filters" class="btn btn-ghost" type="button">Clear Filters</button>
+        <p id="client-history-status" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
 
-        <label for="tag-filter">Filter by Tag:</label>
-        <select id="tag-filter">
-          <option value="">All Tags</option>
-          <option value="repeat client">Repeat Client</option>
-          <option value="geometric">Geometric</option>
-          <option value="forearm">Forearm</option>
-          <option value="low fade">Low Fade</option>
-        </select>
-
-        <button id="clear-filters" class="btn btn-ghost">Clear All Filters</button>
+        <section id="client-list" class="clients-list"></section>
       </section>
 
       <section class="card owner-panel">
-        <h2>History</h2>
-        <section id="client-history-list" class="grid"></section>
+        <h2 id="selected-client-heading">Select a client</h2>
+        <p id="selected-client-summary" class="small muted">Choose a client to see appointment history.</p>
+        <section id="client-history-list" class="clients-history-list"></section>
       </section>
     </div>
-
-    <aside id="history-filters" class="hidden">
-      <!-- your filter inputs here -->
-    </aside>
   </main>
 
   <footer>
     <p>&copy; 2026 Slotzy. All rights reserved.</p>
   </footer>
 
+  <script type="module" src="../js/owner-setup-guard.js"></script>
   <script type="module" src="../js/session-ui.js"></script>
-  <script type="module" src="../js/app.js"></script>
-  <script src="../js/client-history-overview.js"></script>
+  <script type="module" src="../js/client-history-overview.js"></script>
 </body>
 </html>

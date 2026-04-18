@@ -20,6 +20,70 @@
       "passwordHash": "$2a$10$cBSU/LvHBMAuQt4Gs22gVOHS3l1EY9WdJJxX5zo6efKU7dryD71eu",
       "role": "owner",
       "createdAt": "2026-02-23T03:40:59.095Z"
+    },
+    {
+      "id": "e0beeaff-182f-416c-9f4d-3658e3ec09ce",
+      "username": "mcgee21",
+      "displayName": "mcgee21",
+      "passwordHash": "$2a$10$Hl5nyL1qHk5d78XctSMvneV10Xues0hG7rQ8rVjnJxDwO6UzyZpa.",
+      "role": "owner",
+      "shopId": null,
+      "createdAt": "2026-03-15T03:05:48.947Z"
+    },
+    {
+      "id": "db076342-ec06-42a3-ae3e-d30539f69af7",
+      "username": "mcgee19",
+      "displayName": "mcgee19",
+      "passwordHash": "$2a$10$Y4ybZX7Og894yl6.Me/0D.8Y3Q/eFhI0jg3edEuN6l9yVf34Y5FkG",
+      "role": "customer",
+      "shopId": null,
+      "createdAt": "2026-03-15T03:08:24.530Z"
+    }
+  ],
+  "shops": [],
+  "services": [],
+  "availability": {},
+  "bookings": [],
+  "emails": [
+    {
+      "id": "53d936c6-698f-4182-a033-cc1c8ba4a2b6",
+      "createdAtISO": "2026-03-16T00:14:56.730Z",
+      "to": "directory@example.com",
+      "subject": "Slotzy Booking Confirmed: Downtown Fade",
+      "html": "\n    <div style=\"font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;\">\n      <h2 style=\"margin: 0 0 12px;\">Booking confirmed</h2>\n      <p>Hi Directory Booker,</p>\n      <p>Your Downtown Fade appointment with Downtown Owner is confirmed.</p>\n      <ul>\n        <li>Shop: Downtown Clips</li><li>Barber: Downtown Owner</li><li>Service: Downtown Fade</li><li>Date &amp; time: Mon, Mar 16, 2026 | 9:00 AM - 9:30 AM</li><li>Duration: 30 min</li><li>Price: $40.00</li><li>Confirmation: 11B2A9</li><li>Manage link: http://127.0.0.1:4173/pages/manage.html?shop=downtown-clips&amp;contact=directory%40example.com&amp;code=11B2A9</li><li>Deposit: not required</li>\n      </ul>\n      <p>Thanks for booking with Slotzy.</p>\n    </div>\n  ",
+      "text": "Hi Directory Booker,\n\nYour Downtown Fade appointment with Downtown Owner is confirmed.\n\n- Shop: Downtown Clips\n- Barber: Downtown Owner\n- Service: Downtown Fade\n- Date & time: Mon, Mar 16, 2026 | 9:00 AM - 9:30 AM\n- Duration: 30 min\n- Price: $40.00\n- Confirmation: 11B2A9\n- Manage link: http://127.0.0.1:4173/pages/manage.html?shop=downtown-clips&contact=directory%40example.com&code=11B2A9\n- Deposit: not required\n\nThanks for booking with Slotzy.",
+      "tags": [
+        "booking_created",
+        "client"
+      ],
+      "meta": {
+        "bookingId": "1627e0c9-f59a-418b-bd8e-8324f011b2a9",
+        "shopId": "shop_directory_south",
+        "recipient": "client",
+        "eventType": "booking_created",
+        "manageLink": "http://127.0.0.1:4173/pages/manage.html?shop=downtown-clips&contact=directory%40example.com&code=11B2A9",
+        "source": "public-booking"
+      }
+    },
+    {
+      "id": "c664be92-8af3-4f2c-8646-70e3ff8811f1",
+      "createdAtISO": "2026-03-16T00:14:59.540Z",
+      "to": "customer-smoke@example.com",
+      "subject": "Slotzy Booking Confirmed: Smoke Haircut",
+      "html": "\n    <div style=\"font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;\">\n      <h2 style=\"margin: 0 0 12px;\">Booking confirmed</h2>\n      <p>Hi Customer Smoke,</p>\n      <p>Your Smoke Haircut appointment with Owner Smoke is confirmed.</p>\n      <ul>\n        <li>Shop: Smoke Shop</li><li>Barber: Owner Smoke</li><li>Service: Smoke Haircut</li><li>Date &amp; time: Mon, Mar 16, 2026 | 9:00 AM - 9:30 AM</li><li>Duration: 30 min</li><li>Price: $30.00</li><li>Confirmation: FA0934</li><li>Manage link: http://127.0.0.1:4173/pages/manage.html?shop=smoke-shop&amp;contact=customer-smoke%40example.com&amp;code=FA0934</li><li>Deposit: not required</li>\n      </ul>\n      <p>Thanks for booking with Slotzy.</p>\n    </div>\n  ",
+      "text": "Hi Customer Smoke,\n\nYour Smoke Haircut appointment with Owner Smoke is confirmed.\n\n- Shop: Smoke Shop\n- Barber: Owner Smoke\n- Service: Smoke Haircut\n- Date & time: Mon, Mar 16, 2026 | 9:00 AM - 9:30 AM\n- Duration: 30 min\n- Price: $30.00\n- Confirmation: FA0934\n- Manage link: http://127.0.0.1:4173/pages/manage.html?shop=smoke-shop&contact=customer-smoke%40example.com&code=FA0934\n- Deposit: not required\n\nThanks for booking with Slotzy.",
+      "tags": [
+        "booking_created",
+        "client"
+      ],
+      "meta": {
+        "bookingId": "cc83862e-bc13-4321-a5e9-a45d75fa0934",
+        "shopId": "shop_smoke_1",
+        "recipient": "client",
+        "eventType": "booking_created",
+        "manageLink": "http://127.0.0.1:4173/pages/manage.html?shop=smoke-shop&contact=customer-smoke%40example.com&code=FA0934",
+        "source": "public-booking"
+      }
     }
   ]
 }

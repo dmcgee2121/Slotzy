@@ -1,12 +1,49 @@
 import * as dataStore from "./dataStore.js";
 import { doLogout } from "./logout.js";
+import { showToast as showToastBase } from "./toast.js";
 
 (function () {
   let escapeHandler = null;
-  let toastTimer = null;
+  const DEMO_BANNER_ID = "demoModeBanner";
 
   function getSessionUser() {
     return dataStore.getSessionUser();
+  }
+
+  function getDemoResetUrl() {
+    const isPagesRoute = window.location.pathname.includes("/pages/");
+    return isPagesRoute
+      ? "../index.html?reset=1&demo=1"
+      : "./index.html?reset=1&demo=1";
+  }
+
+  function renderDemoModeBanner() {
+    const existing = document.getElementById(DEMO_BANNER_ID);
+    const isActive = typeof dataStore.isDemoMode === "function" && dataStore.isDemoMode();
+
+    if (!isActive) {
+      existing?.remove();
+      return;
+    }
+
+    const banner = existing || document.createElement("aside");
+    banner.id = DEMO_BANNER_ID;
+    banner.className = "demo-mode-banner";
+    banner.setAttribute("role", "status");
+    banner.setAttribute("aria-live", "polite");
+    banner.innerHTML = `
+      <span class="demo-mode-banner__text"><strong>Demo Mode ON</strong></span>
+      <button type="button" class="btn btn-ghost demo-mode-banner__reset">Reset Demo</button>
+    `;
+
+    const resetBtn = banner.querySelector(".demo-mode-banner__reset");
+    resetBtn?.addEventListener("click", () => {
+      window.location.href = getDemoResetUrl();
+    });
+
+    if (!existing) {
+      document.body.prepend(banner);
+    }
   }
 
   function updateUserBadge() {
@@ -109,13 +146,16 @@ import { doLogout } from "./logout.js";
     const { overlay, panel, isSharedAppModal } = modalNodes;
 
     panel.innerHTML = `
-      <h2>Log out?</h2>
+      <h2 id="logout-modal-title">Log out?</h2>
       <p class="small session-modal-copy">You'll need to sign in again to access your dashboard.</p>
       <div class="session-modal-actions">
         <button type="button" class="btn btn-ghost" data-action="cancel-logout">Cancel</button>
         <button type="button" class="btn btn-primary" data-action="confirm-logout">Log out</button>
       </div>
     `;
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-labelledby", "logout-modal-title");
 
     if (isSharedAppModal) {
       overlay.classList.remove("hidden");
@@ -139,6 +179,7 @@ import { doLogout } from "./logout.js";
       closeModal(modalNodes);
     };
     overlay.addEventListener("click", overlayClose, { once: true });
+    panel.querySelector('[data-action="cancel-logout"]')?.focus();
 
     escapeHandler = (event) => {
       if (event.key !== "Escape") return;
@@ -159,42 +200,82 @@ import { doLogout } from "./logout.js";
     });
   }
 
-  function getToastNode() {
-    let toast = document.getElementById("toast");
-    if (toast) return toast;
+  function initMobileDashboardNav() {
+    const headers = document.querySelectorAll(".owner-shell-header");
+    if (!headers.length) return;
 
-    toast = document.createElement("div");
-    toast.id = "toast";
-    toast.className = "toast hidden";
-    toast.setAttribute("role", "status");
-    toast.setAttribute("aria-live", "polite");
-    document.body.appendChild(toast);
-    return toast;
+    headers.forEach((header, index) => {
+      if (!(header instanceof HTMLElement)) return;
+      if (header.dataset.mobileNavReady === "true") return;
+
+      const nav = header.querySelector(".owner-header-actions");
+      if (!(nav instanceof HTMLElement)) return;
+
+      const navId = String(nav.id || `owner-header-nav-${index + 1}`);
+      nav.id = navId;
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "owner-mobile-nav-toggle";
+      toggleBtn.setAttribute("aria-controls", navId);
+      toggleBtn.setAttribute("aria-expanded", "false");
+      toggleBtn.setAttribute("aria-label", "Toggle navigation menu");
+      toggleBtn.innerHTML = `
+        <span class="owner-mobile-nav-label">Menu</span>
+        <span class="owner-mobile-nav-icon" aria-hidden="true"></span>
+      `;
+
+      const brand = header.querySelector(".owner-brand");
+      if (brand instanceof HTMLElement) {
+        brand.insertAdjacentElement("afterend", toggleBtn);
+      } else {
+        header.prepend(toggleBtn);
+      }
+
+      const closeMenu = () => {
+        header.classList.remove("mobile-nav-open");
+        toggleBtn.setAttribute("aria-expanded", "false");
+      };
+
+      toggleBtn.addEventListener("click", () => {
+        const isOpen = header.classList.toggle("mobile-nav-open");
+        toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+
+      nav.querySelectorAll("a, button").forEach((item) => {
+        if (!(item instanceof HTMLElement)) return;
+        item.addEventListener("click", () => {
+          if (window.matchMedia("(max-width: 768px)").matches) {
+            closeMenu();
+          }
+        });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        closeMenu();
+      });
+
+      window.addEventListener("resize", () => {
+        if (!window.matchMedia("(max-width: 768px)").matches) {
+          closeMenu();
+        }
+      });
+
+      header.dataset.mobileNavReady = "true";
+    });
   }
 
-  function showToast(message, type = "success") {
-    const toast = getToastNode();
-    const safeMessage = String(message ?? "").trim();
-    if (!safeMessage) return;
-
-    if (toastTimer) {
-      clearTimeout(toastTimer);
-      toastTimer = null;
+  function showToast(message, typeOrOptions = "success", durationMs = 2500) {
+    if (typeOrOptions && typeof typeOrOptions === "object" && !Array.isArray(typeOrOptions)) {
+      showToastBase(message, typeOrOptions);
+      return;
     }
 
-    toast.textContent = safeMessage;
-    toast.classList.remove("hidden", "toast-success", "toast-error", "toast-info");
-    if (type === "error") {
-      toast.classList.add("toast-error");
-    } else {
-      toast.classList.add("toast-success");
-    }
-
-    toastTimer = window.setTimeout(() => {
-      toast.classList.add("hidden");
-      toast.classList.remove("toast-success", "toast-error", "toast-info");
-      toastTimer = null;
-    }, 2500);
+    showToastBase(message, {
+      type: String(typeOrOptions ?? "success"),
+      duration: durationMs,
+    });
   }
 
   // Expose for module scripts that want to delegate logout handling.
@@ -202,7 +283,9 @@ import { doLogout } from "./logout.js";
   window.showToast = showToast;
 
   function initSessionUi() {
+    renderDemoModeBanner();
     updateUserBadge();
+    initMobileDashboardNav();
   }
 
   if (document.readyState === "loading") {

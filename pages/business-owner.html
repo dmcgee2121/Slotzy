@@ -18,7 +18,10 @@
           <p>Business Control Center</p>
         </div>
       </div>
-      <nav class="owner-header-actions">
+      <nav class="owner-header-actions" aria-label="Owner navigation">
+        <a href="owner-today.html" class="link">Today</a>
+        <a href="client-history-overview.html" class="link">Clients</a>
+        <a href="#owner-availability" class="link">Availability</a>
         <a href="settings.html" class="link">Settings</a>
         <span id="userBadge" class="user-badge hidden"></span>
         <button id="logoutBtn" class="link logout-btn">Logout</button>
@@ -27,6 +30,29 @@
   </header>
 
   <main class="container owner-dashboard owner-page-layout owner-layout">
+    <section id="pilotModeBanner" class="card owner-panel hidden section-stack">
+      <div class="card-head">
+        <h2>Pilot Mode</h2>
+        <p>Quick access for live testing and early pilot runs.</p>
+      </div>
+      <div class="form-grid-2">
+        <div class="field">
+          <label for="pilotBookingLink">Booking link</label>
+          <input id="pilotBookingLink" type="url" readonly />
+        </div>
+        <div class="public-booking-qr-preview shop-branding-block">
+          <img id="pilotBookingQr" class="hidden" alt="Pilot booking QR code" />
+          <p id="pilotBookingQrEmpty" class="small">QR will appear when your booking link is ready.</p>
+        </div>
+      </div>
+      <div class="public-booking-qr-actions">
+        <button id="pilotCopyBookingBtn" class="btn btn-ghost" type="button">Copy Booking Link</button>
+        <button id="pilotOpenBookingBtn" class="btn btn-ghost" type="button">Open Booking Page</button>
+        <button id="pilotSettingsBtn" class="btn btn-ghost" type="button">QR &amp; Link Settings</button>
+        <button id="pilotResetDemoBtn" class="btn btn-ghost hidden" type="button">Reset Demo</button>
+      </div>
+    </section>
+
     <section class="dashboard-header owner-hero card">
       <div class="owner-hero-copy">
         <h1 id="ownerHeroTitle">Welcome, Your Shop</h1>
@@ -36,6 +62,25 @@
         <span class="owner-pill">Today</span>
         <span class="owner-pill">Open</span>
         <button id="quickAddServiceBtn" class="btn btn-primary" type="button">+ Add Service</button>
+      </div>
+    </section>
+
+    <section class="card owner-today-glance-card" id="ownerTodayGlanceCard" aria-labelledby="ownerTodayGlanceTitle">
+      <div class="owner-today-glance-head">
+        <div class="owner-today-glance-copy">
+          <span class="owner-pill">Today</span>
+          <h2 id="ownerTodayGlanceTitle">Today at a Glance</h2>
+          <p id="ownerTodayGlanceCount" class="owner-insight-value">0 booked or confirmed today</p>
+        </div>
+        <div class="owner-today-glance-actions">
+          <button id="ownerTodayViewBtn" class="btn btn-primary" type="button">View Today</button>
+          <button id="ownerTodayShareBtn" class="btn btn-ghost" type="button">Share Booking Link</button>
+        </div>
+      </div>
+      <div class="owner-today-glance-body">
+        <p class="small owner-today-glance-label">Next appointment</p>
+        <p id="ownerTodayNextTitle" class="owner-today-next-title">No appointments today</p>
+        <p id="ownerTodayNextMeta" class="small owner-today-glance-meta">Booked and confirmed appointments will appear here as soon as they are scheduled.</p>
       </div>
     </section>
 
@@ -82,10 +127,10 @@
           <p>Edit your offerings and pricing.</p>
           <a href="manage-services.html" class="btn btn-primary owner-action-btn">Manage Services</a>
         </article>
-        <article class="card owner-action-card">
-          <h3>Barbers</h3>
-          <p>Add or update active barbers for customer booking.</p>
-          <a href="manage-barbers.html" class="btn btn-primary owner-action-btn">Manage Barbers</a>
+        <article id="ownerTeamCard" class="card owner-action-card">
+          <h3>Team</h3>
+          <p>Add a barber (optional). Only needed if you want multiple schedules.</p>
+          <a href="manage-barbers.html" class="btn btn-primary owner-action-btn">Add a barber (optional)</a>
         </article>
       </div>
     </section>
@@ -109,6 +154,105 @@
       </div>
     </section>
 
+    <section class="owner-section card" id="owner-upcoming-section">
+      <div class="owner-section-head">
+        <h2>Upcoming Appointments</h2>
+        <p>Bookings for your shop sorted by start time.</p>
+      </div>
+      <div id="owner-upcoming-list" class="availability-timeoff-list"></div>
+    </section>
+
+    <section id="owner-availability" class="owner-section card">
+      <div class="owner-section-head">
+        <h2>Availability</h2>
+        <p>Set weekly hours, booking buffer, and time off blocks.</p>
+      </div>
+
+      <div class="availability-grid">
+        <article class="card owner-action-card">
+          <h3>Weekly Hours</h3>
+
+          <div class="availability-controls">
+            <label for="availability-timezone">Timezone</label>
+            <select id="availability-timezone">
+              <option value="America/Chicago">America/Chicago</option>
+              <option value="America/New_York">America/New_York</option>
+              <option value="America/Los_Angeles">America/Los_Angeles</option>
+              <option value="America/Denver">America/Denver</option>
+            </select>
+          </div>
+
+          <div class="availability-controls">
+            <label for="availability-buffer">Buffer Time</label>
+            <select id="availability-buffer">
+              <option value="0">0 minutes</option>
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15">15 minutes</option>
+            </select>
+          </div>
+
+          <div class="availability-table-wrap">
+            <table class="availability-table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Enabled</th>
+                  <th>Start</th>
+                  <th>End</th>
+                </tr>
+              </thead>
+              <tbody id="availability-weekly-body"></tbody>
+            </table>
+          </div>
+
+          <div id="availability-weekly-error" class="service-form-error hidden"></div>
+          <button id="availability-save-weekly" class="btn btn-primary" type="button">Save Availability</button>
+        </article>
+
+        <article class="card owner-action-card">
+          <h3>Time Off</h3>
+          <div class="field">
+            <label for="availability-quick-date">Break Date</label>
+            <input id="availability-quick-date" type="date" />
+          </div>
+
+          <div class="availability-quick-breaks">
+            <button id="availability-add-lunch-break" class="btn btn-ghost" type="button">Lunch 12:00-1:00</button>
+            <button id="availability-add-afternoon-break" class="btn btn-ghost" type="button">Break 3:00-3:15</button>
+            <button id="availability-block-day" class="btn btn-ghost" type="button">Block off this day</button>
+            <button id="availability-clear-day-blocks" class="btn btn-ghost" type="button">Clear day blocks</button>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="availability-custom-break-start">Custom Start</label>
+              <input id="availability-custom-break-start" type="time" value="12:00" />
+            </div>
+            <div class="field">
+              <label for="availability-custom-break-end">Custom End</label>
+              <input id="availability-custom-break-end" type="time" value="12:30" />
+            </div>
+          </div>
+          <button id="availability-add-custom-break" class="btn btn-ghost" type="button">Custom</button>
+
+          <label for="availability-timeoff-start">Start</label>
+          <input id="availability-timeoff-start" type="datetime-local" />
+
+          <label for="availability-timeoff-end">End</label>
+          <input id="availability-timeoff-end" type="datetime-local" />
+
+          <label for="availability-timeoff-note">Note (optional)</label>
+          <input id="availability-timeoff-note" type="text" placeholder="Vacation, break, personal time..." />
+
+          <div id="availability-timeoff-error" class="service-form-error hidden"></div>
+          <button id="availability-add-timeoff" class="btn btn-primary" type="button">Add Time Off</button>
+
+          <div id="availability-timeoff-list" class="availability-timeoff-list"></div>
+        </article>
+      </div>
+    </section>
+
     <section class="owner-section card">
       <div class="owner-section-head">
         <h2>Reports</h2>
@@ -124,7 +268,7 @@
     </section>
 
     <section id="owner-services" class="owner-services hidden">
-      <!-- This will be populated dynamically by owner-dashboard.js -->
+      <!-- legacy/kept for compatibility: placeholder retained for old dashboard flow -->
     </section>
   </main>
 
@@ -132,7 +276,7 @@
     <p>© 2026 Slotzy. All rights reserved.</p>
   </footer>
 
-  <div id="quickServiceModal" class="modal hidden" role="dialog" aria-hidden="true" aria-labelledby="quickServiceModalTitle">
+  <div id="quickServiceModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="quickServiceModalTitle" aria-describedby="quickServiceStatus">
     <div class="modal-panel">
       <h2 id="quickServiceModalTitle">Add Service</h2>
       <label for="serviceNameQuick">Service Name</label>
@@ -144,7 +288,7 @@
       <label for="serviceDurationQuick">Duration (minutes)</label>
       <input id="serviceDurationQuick" type="number" min="5" step="5" />
 
-      <p id="quickServiceStatus" class="small booking-status" aria-live="polite"></p>
+      <p id="quickServiceStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="session-modal-actions">
         <button id="cancelQuickServiceBtn" class="btn btn-ghost" type="button">Cancel</button>
         <button id="createQuickServiceBtn" class="btn btn-primary" type="button">Create</button>
@@ -152,9 +296,12 @@
     </div>
   </div>
 
+  <script type="module" src="../js/owner-setup-guard.js"></script>
   <script type="module" src="../js/session-ui.js"></script>
+  <script src="../js/vendor/qrcode.min.js"></script>
   <script type="module" src="../js/owner-insights.js"></script>
   <script type="module" src="../js/owner-quick-add.js"></script>
-  <script type="module" src="../js/app.js"></script>
+  <script type="module" src="../js/owner-availability.js"></script>
+  <script type="module" src="../js/owner-upcoming.js"></script>
 </body>
 </html>

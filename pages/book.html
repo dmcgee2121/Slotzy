@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Book a Shop | Slotzy</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+      </div>
+      <nav aria-label="Public booking navigation">
+        <a href="../index.html" class="link">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-layout page-stack">
+    <section class="card owner-panel public-shop-directory hidden section-stack" id="publicShopPickerSection" aria-labelledby="publicShopPickerTitle">
+      <div class="public-shop-directory-copy">
+        <p class="small public-shop-directory-tip">If your barber gave you a link or QR, use that for the fastest booking.</p>
+        <h1 id="publicShopPickerTitle">Choose your shop</h1>
+        <p class="small">Search by name, choose your shop, and continue to the booking flow.</p>
+      </div>
+
+      <label for="publicShopSearch" class="sr-only">Search shops</label>
+      <input id="publicShopSearch" type="search" placeholder="Search shops by name" autocomplete="off" />
+
+      <div id="publicShopPickerList" class="public-shop-directory-list" role="list"></div>
+      <p id="publicShopPickerStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section class="card owner-panel section-stack" id="publicShopHero">
+      <div class="public-shop-hero-head">
+        <img id="publicShopLogo" class="public-shop-logo" src="../assets/images/slotzy-logo.png" alt="Slotzy logo" />
+        <div class="public-shop-hero-copy">
+          <h1 id="publicShopName">Loading shop...</h1>
+          <p id="publicShopBranding">Book in 30 seconds. Choose your service, pick a time, and you're done.</p>
+          <p id="publicShopPhone" class="small hidden"></p>
+          <p id="publicShopAddress" class="small hidden"></p>
+          <p id="publicShopError" class="small hidden" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card owner-panel section-stack" id="bookingPanel">
+      <div class="card-head">
+        <h2>Book in 30 seconds</h2>
+        <p class="small">Pick your service, choose a time, and confirm your visit. Need to reschedule later? Use your manage link from the receipt.</p>
+      </div>
+
+      <label for="shopSelect" class="small hidden">Shop</label>
+      <select id="shopSelect" class="hidden" aria-hidden="true">
+        <option value="">Loading...</option>
+      </select>
+
+      <div class="form-stack">
+        <div class="field" id="barberField">
+          <label for="barberSelect">Barber</label>
+          <select id="barberSelect" disabled>
+            <option value="">Select a barber</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="serviceSelect">Service</label>
+          <select id="serviceSelect" disabled>
+            <option value="">Select a service</option>
+          </select>
+        </div>
+
+        <section id="bookingPolicyCard" class="card owner-action-card section-stack hidden" aria-live="polite">
+          <div class="card-head">
+            <h3>Booking policy</h3>
+          </div>
+          <p id="bookingPolicySameDay" class="small muted hidden"></p>
+          <p id="bookingPolicyAdvance" class="small muted"></p>
+          <p id="bookingPolicyCancel" class="small muted"></p>
+        </section>
+
+        <div class="field">
+          <label for="bookingDate">Date</label>
+          <input type="date" id="bookingDate" />
+        </div>
+
+        <div class="field">
+          <span id="slotListLabel" class="field-label">Choose a time</span>
+          <div id="slotList" class="availability-timeoff-list" role="region" aria-labelledby="slotListLabel"></div>
+        </div>
+      </div>
+      <p id="changeBarberHelp" class="small hidden">
+        Need a different schedule?
+        <a id="changeBarberLink" href="#barberSelect">Change barber</a>
+      </p>
+
+      <div class="form-stack">
+        <div class="field">
+          <label for="clientName">Your Name</label>
+          <input type="text" id="clientName" placeholder="Enter your full name" />
+        </div>
+
+        <div class="field">
+          <label for="clientContact">Contact (phone or email)</label>
+          <input type="text" id="clientContact" placeholder="Enter phone or email" />
+        </div>
+      </div>
+      <p class="small muted">Need to reschedule? Use your manage link from the booking receipt. No account needed.</p>
+
+      <section id="depositNotice" class="card owner-action-card hidden section-stack">
+        <div class="card-head">
+          <h3>Deposit Policy</h3>
+        </div>
+        <p id="depositNoticeText" class="small">No deposit required for this booking.</p>
+        <div id="depositAckWrap" class="toggle-row hidden">
+          <label for="depositAcknowledge">I understand a deposit is required for this appointment.</label>
+          <input type="checkbox" id="depositAcknowledge" />
+        </div>
+      </section>
+
+      <div class="cta-row">
+        <button id="bookBtn" class="btn btn-primary owner-action-btn" type="button">Book Appointment</button>
+      </div>
+      <p id="policyHint" class="small muted">Slots are generated from owner availability and existing bookings.</p>
+      <p id="bookingStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/public-book.js"></script>
+</body>
+</html>

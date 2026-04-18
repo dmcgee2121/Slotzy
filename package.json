@@ -1,0 +1,15 @@
+{
+  "name": "slotzy-smoke-tests",
+  "private": true,
+  "scripts": {
+    "serve": "node scripts/serve.cjs",
+    "dev:all": "powershell -ExecutionPolicy Bypass -File scripts/dev-all.ps1",
+    "make:demo-zip": "node scripts/make-demo-zip.js",
+    "test:smoke": "playwright test",
+    "test:smoke:headed": "playwright test --headed",
+    "test:smoke:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1"
+  }
+}

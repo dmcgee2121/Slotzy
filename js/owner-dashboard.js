@@ -1,3 +1,7 @@
+/* legacy/kept for compatibility
+   Deprecated dashboard script replaced by dedicated owner modules.
+*/
+
 // ---------- SERVICE DATA HANDLING ----------
 function getServices() {
   return JSON.parse(localStorage.getItem("Slotzy_services") || "[]");

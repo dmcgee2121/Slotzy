@@ -4,12 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Slotzy</title>
+  <meta name="theme-color" content="#1d4ed8" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Slotzy" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
 
   <!-- Link to external CSS file for all styling -->
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 
 <body>
+  <a class="skip-link" href="#app">Skip to main content</a>
   <!-- ---------- TOP NAVIGATION BAR ---------- -->
   <header class="topbar">
     <div class="container">
@@ -20,9 +29,10 @@
       </div>
 
       <!-- Navigation buttons -->
-      <nav id="nav">
+      <nav id="nav" aria-label="Primary">
         <button id="btn-home" class="link" aria-label="Home">Home</button>
-        <button id="btn-login" class="link">Login / Register</button>
+        <a href="./pages/pricing.html" class="link">Pricing</a>
+        <button id="btn-login" class="link">Owner / Barber Login</button>
         <button id="btn-dashboard" class="link hidden">Dashboard</button>
         <button id="logoutBtn" class="link hidden logout-btn">Logout</button>
         <span id="userBadge" class="user-badge hidden"></span>
@@ -31,11 +41,11 @@
   </header>
 
   <!-- ---------- MAIN APP CONTAINER ---------- -->
-  <main class="container" id="app"></main>
+  <main class="container" id="app" tabindex="-1"></main>
 
   <!-- ---------- MODAL OVERLAY ---------- -->
-  <div id="modal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-panel" id="modal-panel"></div>
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modal-title" aria-describedby="auth-error">
+    <div class="modal-panel" id="modal-panel" tabindex="-1"></div>
   </div>
 
   <!-- ---------- PAGE FOOTER ---------- -->
@@ -44,7 +54,27 @@
   </footer>
 
   <!-- ---------- JAVASCRIPT ---------- -->
-  <script src="./js/session-ui.js"></script>
+  <script>
+    (function () {
+      if (window.location.protocol !== "file:") return;
+
+      var app = document.getElementById("app");
+      var banner = document.createElement("div");
+
+      banner.setAttribute("role", "alert");
+      banner.style.cssText = "margin: 2rem 0; padding: 1rem 1.25rem; border: 1px solid #f59e0b; border-radius: 12px; background: #fffbeb; color: #78350f; box-shadow: 0 8px 24px rgba(120, 53, 15, 0.08);";
+      banner.innerHTML = "<strong style=\"display:block; margin-bottom:0.5rem;\">Slotzy uses JavaScript modules and must be served over HTTP. Use Live Server (Go Live).</strong><div>1. Open this project in VS Code.</div><div>2. Click <strong>Go Live</strong> and open the local URL instead of the <code>file://</code> page.</div>";
+
+      if (app) {
+        app.innerHTML = "";
+        app.appendChild(banner);
+        return;
+      }
+
+      document.body.insertBefore(banner, document.body.firstChild);
+    })();
+  </script>
+  <script type="module" src="./js/session-ui.js"></script>
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

@@ -20,86 +20,345 @@
       </div>
       <nav class="owner-header-actions">
         <a id="backBtn" href="#" class="link">Back</a>
+        <a href="owner-today.html" class="link">Today</a>
+        <a href="client-history-overview.html" class="link">Clients</a>
         <span id="userBadge" class="user-badge hidden"></span>
         <button id="logoutBtn" class="link logout-btn">Logout</button>
       </nav>
     </div>
   </header>
 
-  <main class="container owner-layout" id="settingsMain">
-    <section id="shopSettingsCard" class="card owner-panel hidden">
-      <h2>Shop Settings</h2>
-      <label for="businessNameInput">Business Name</label>
-      <input id="businessNameInput" type="text" placeholder="Your shop name" />
+  <main class="container owner-layout page-stack" id="settingsMain">
+    <h1 class="sr-only">Settings</h1>
+    <section id="shopSettingsCard" class="card owner-panel settings-card hidden section-stack">
+      <div class="card-head">
+        <h2>Shop Settings</h2>
+        <p>Update your public shop details, booking rules, reminders, and sharing tools.</p>
+      </div>
+      <section class="owner-section">
+        <h3>Shop</h3>
+        <div class="field">
+          <label for="businessNameInput">Business Name</label>
+          <input id="businessNameInput" type="text" placeholder="Your shop name" />
+        </div>
 
-      <label for="shopPhoneInput">Shop Phone</label>
-      <input id="shopPhoneInput" type="tel" placeholder="(555) 123-4567" />
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="shopPhoneInput">Shop Phone</label>
+            <input id="shopPhoneInput" type="tel" placeholder="(555) 123-4567" />
+          </div>
+          <div class="field">
+            <label for="shopEmailInput">Shop Email</label>
+            <input id="shopEmailInput" type="email" placeholder="shop@example.com" />
+          </div>
+        </div>
 
-      <label for="shopEmailInput">Shop Email</label>
-      <input id="shopEmailInput" type="email" placeholder="shop@example.com" />
+        <div class="field">
+          <label for="shopLogoInput">Upload Shop Logo</label>
+          <input id="shopLogoInput" type="file" accept="image/*" />
+        </div>
+        <p class="small shop-logo-input-help">Use a JPG, PNG, or WEBP logo up to 1 MB.</p>
+        <p id="shopLogoInputStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="shop-logo-settings-card">
+          <div class="shop-logo-preview-wrap">
+            <div class="shop-logo-preview-frame logo-preview">
+              <img id="shopLogoPreview" alt="Shop logo preview" />
+            </div>
+          </div>
+          <div class="shop-logo-preview-copy">
+            <p id="shopLogoPreviewStatus" class="small">Using the default Slotzy logo.</p>
+            <button id="removeShopLogoBtn" class="btn btn-ghost" type="button">Remove Logo</button>
+          </div>
+        </div>
 
-      <label for="address1Input">Address</label>
-      <input id="address1Input" type="text" placeholder="Street address" />
+        <div class="field">
+          <label for="shopCoverInput">Upload Cover Image (optional)</label>
+          <input id="shopCoverInput" type="file" accept="image/*" />
+        </div>
+        <p class="small shop-logo-input-help">Use a JPG, PNG, or WEBP cover image up to 1 MB. It appears on the public booking page.</p>
+        <p id="shopCoverInputStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="shop-logo-settings-card shop-cover-settings-card">
+          <div class="shop-logo-preview-wrap shop-cover-preview-wrap">
+            <div class="shop-logo-preview-frame shop-cover-preview-frame shop-branding-block">
+              <img id="shopCoverPreview" alt="Shop cover preview" />
+            </div>
+          </div>
+          <div class="shop-logo-preview-copy">
+            <p id="shopCoverPreviewStatus" class="small">No cover image yet. The public page will use the shared Slotzy surface styling.</p>
+            <button id="removeShopCoverBtn" class="btn btn-ghost" type="button">Remove Cover</button>
+          </div>
+        </div>
+      </section>
 
-      <label for="cityInput">City</label>
-      <input id="cityInput" type="text" placeholder="City" />
+      <div class="section-divider" aria-hidden="true"></div>
 
-      <label for="stateInput">State</label>
-      <input id="stateInput" type="text" placeholder="State" />
+      <section class="owner-section">
+        <h3>Address</h3>
+        <div class="field">
+          <label for="address1Input">Address</label>
+          <input id="address1Input" type="text" placeholder="Street address" />
+        </div>
 
-      <label for="zipInput">ZIP</label>
-      <input id="zipInput" type="text" placeholder="ZIP code" />
+        <div class="form-grid-3">
+          <div class="field">
+            <label for="cityInput">City</label>
+            <input id="cityInput" type="text" placeholder="City" />
+          </div>
+          <div class="field">
+            <label for="stateInput">State</label>
+            <input id="stateInput" type="text" placeholder="State" />
+          </div>
+          <div class="field">
+            <label for="zipInput">ZIP</label>
+            <input id="zipInput" type="text" placeholder="ZIP code" />
+          </div>
+        </div>
+      </section>
 
-      <h3>Booking Policy</h3>
-      <p class="small">Enforce now</p>
-      <label for="allowSameDayInput">Allow Same-Day Booking</label>
-      <input id="allowSameDayInput" type="checkbox" />
+      <div class="section-divider" aria-hidden="true"></div>
 
-      <label for="maxDaysAdvanceInput">Max Days in Advance</label>
-      <input id="maxDaysAdvanceInput" type="number" min="1" value="30" />
+      <section class="owner-section">
+        <h3>Booking policy</h3>
+        <p class="small">Enforce now</p>
+        <div class="toggle-row">
+          <label for="allowSameDayInput">Allow Same-Day Booking</label>
+          <input id="allowSameDayInput" type="checkbox" />
+        </div>
 
-      <label for="cancelHoursInput">Cancellation Window (hours)</label>
-      <input id="cancelHoursInput" type="number" min="0" value="24" />
+        <div class="form-grid-3">
+          <div class="field">
+            <label for="maxDaysAdvanceInput">Max Days in Advance</label>
+            <input id="maxDaysAdvanceInput" type="number" min="1" value="30" />
+          </div>
+          <div class="field">
+            <label for="cancelHoursInput">Cancellation Window (hours)</label>
+            <input id="cancelHoursInput" type="number" min="0" value="24" />
+          </div>
+          <div class="field">
+            <label for="bufferMinutesInput">Buffer Between Bookings (minutes)</label>
+            <input id="bufferMinutesInput" type="number" min="0" value="0" />
+          </div>
+        </div>
 
-      <label for="bufferMinutesInput">Buffer Between Bookings (minutes)</label>
-      <input id="bufferMinutesInput" type="number" min="0" value="0" />
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="lateGraceMinutesInput">Late Grace Period (minutes)</label>
+            <input id="lateGraceMinutesInput" type="number" min="0" value="10" />
+          </div>
+          <div class="field">
+            <label for="noShowStrikeLimitInput">No-Show Strike Limit</label>
+            <input id="noShowStrikeLimitInput" type="number" min="0" value="2" />
+          </div>
+        </div>
+      </section>
 
-      <p class="small">Save now, enforce later</p>
-      <label for="requireDepositInput">Require Deposit</label>
-      <input id="requireDepositInput" type="checkbox" />
+      <div class="section-divider" aria-hidden="true"></div>
 
-      <label for="depositAmountInput">Deposit Amount</label>
-      <input id="depositAmountInput" type="number" min="0" step="0.01" disabled />
+      <section class="owner-section">
+        <h3>Deposits</h3>
+        <p class="small">Save now, enforce later</p>
+        <div class="form-grid-2">
+          <div class="toggle-row">
+            <label for="requireDepositInput">Require Deposit</label>
+            <input id="requireDepositInput" type="checkbox" />
+          </div>
+          <div class="field">
+            <label for="depositAmountInput">Deposit Amount</label>
+            <input id="depositAmountInput" type="number" min="0" step="0.01" disabled />
+          </div>
+        </div>
+      </section>
 
-      <label for="lateGraceMinutesInput">Late Grace Period (minutes)</label>
-      <input id="lateGraceMinutesInput" type="number" min="0" value="10" />
+      <div class="section-divider" aria-hidden="true"></div>
 
-      <label for="noShowStrikeLimitInput">No-Show Strike Limit</label>
-      <input id="noShowStrikeLimitInput" type="number" min="0" value="2" />
+      <section class="owner-section">
+        <h3>Reminders</h3>
+        <p class="small">These reminders are shown in-app and can trigger local browser demo alerts while the app is open.</p>
 
-      <button id="saveShopBtn" class="btn btn-primary" type="button">Save Shop Settings</button>
-      <p id="shopStatus" class="small booking-status" aria-live="polite"></p>
+        <div class="form-grid-2">
+          <div class="toggle-row">
+            <label for="reminder24HoursInput">24 Hours Before</label>
+            <input id="reminder24HoursInput" type="checkbox" checked />
+          </div>
+          <div class="toggle-row">
+            <label for="reminder2HoursInput">2 Hours Before</label>
+            <input id="reminder2HoursInput" type="checkbox" checked />
+          </div>
+          <div class="toggle-row">
+            <label for="reminderCustomEnabledInput">Enable Custom Reminder</label>
+            <input id="reminderCustomEnabledInput" type="checkbox" />
+          </div>
+          <div class="field">
+            <label for="reminderCustomMinutesInput">Custom Reminder Minutes Before</label>
+            <input id="reminderCustomMinutesInput" type="number" min="5" max="10080" step="5" value="60" disabled />
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <section id="public-booking-link-section" class="owner-section">
+        <h3>Public booking link</h3>
+        <p class="small">Share this URL with clients so they can book directly with your shop.</p>
+        <p class="small"><strong>Public booking link:</strong></p>
+        <div class="field">
+          <label for="publicBookingLinkInput">Booking URL</label>
+          <input id="publicBookingLinkInput" type="url" readonly />
+        </div>
+        <div class="public-booking-link-actions">
+          <button id="copyPublicBookingLinkBtn" class="btn btn-ghost" type="button">Copy Link</button>
+          <button id="openPublicBookingLinkBtn" class="btn btn-ghost" type="button" disabled>Open Link</button>
+        </div>
+        <p class="small public-booking-link-tip">Tip: add this link to your Instagram bio, Google Business Profile, and text it to clients.</p>
+        <p id="publicBookingLinkStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="public-booking-qr-block">
+          <p class="small">Scan QR to open booking page quickly.</p>
+          <div class="public-booking-qr-preview">
+            <img id="publicBookingQrImage" class="hidden" alt="QR code for shop booking link" />
+            <p id="publicBookingQrEmpty" class="small">QR code will appear once booking URL is available.</p>
+          </div>
+          <div class="public-booking-qr-actions">
+            <button id="downloadPublicBookingQrBtn" class="btn btn-ghost" type="button" disabled>Download QR</button>
+            <button id="printPublicBookingQrBtn" class="btn btn-ghost" type="button" disabled>Print QR</button>
+          </div>
+          <p id="publicBookingQrStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        </div>
+      </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <div class="owner-section">
+        <div class="cta-row">
+          <button id="saveShopBtn" class="btn btn-primary" type="button">Save Shop Settings</button>
+        </div>
+        <p id="shopStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <section id="shopTeamBlock" class="owner-section">
+        <h3>Shop team</h3>
+        <p class="small">Add a barber (optional). Only needed if you want multiple schedules.</p>
+
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="barberDisplayNameInput">Display Name</label>
+            <input id="barberDisplayNameInput" type="text" placeholder="Jordan T." />
+          </div>
+
+          <div class="field">
+            <label for="barberUsernameInput">Username</label>
+            <input id="barberUsernameInput" type="text" placeholder="jordan" />
+          </div>
+
+          <div class="field">
+            <label for="barberEmailInput">Email (optional)</label>
+            <input id="barberEmailInput" type="email" placeholder="jordan@example.com" />
+          </div>
+
+          <div class="field">
+            <label for="barberPasswordInput">Password</label>
+            <input id="barberPasswordInput" type="password" placeholder="Create a password" />
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <button id="addBarberUserBtn" class="btn btn-primary" type="button">Add a barber (optional)</button>
+        </div>
+        <p id="barberUserStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div id="barberUsersList" class="availability-timeoff-list"></div>
+      </section>
     </section>
 
-    <section class="card owner-panel">
-      <h2>Profile Settings</h2>
+    <section id="demoModeCard" class="card owner-panel hidden section-stack">
+      <div class="card-head">
+        <h2>Demo Mode</h2>
+        <p class="small">Reset the sample shop data and copy the demo owner login when you need a fresh walkthrough.</p>
+      </div>
+      <p class="small"><strong>Demo Mode: ON</strong></p>
+      <p class="small">Demo data is active for this device. Reset to restore the sample shop, barbers, services, and bookings.</p>
+      <p class="small">
+        <strong>Demo logins:</strong><br />
+        Owner: <code>owner_demo</code> / <code>demo</code><br />
+        Jordan: <code>jordan_demo</code> / <code>demo</code><br />
+        Alex: <code>alex_demo</code> / <code>demo</code>
+      </p>
+      <div class="public-booking-qr-actions">
+        <button id="copyDemoOwnerBtn" class="btn btn-ghost" type="button">Copy Owner Login</button>
+      </div>
+      <div class="cta-row">
+        <button id="resetDemoBtn" class="btn btn-ghost" type="button">Reset Demo</button>
+      </div>
+      <p id="demoStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section id="backupRestoreCard" class="card owner-panel hidden section-stack">
+      <div class="card-head">
+        <h2>Backup &amp; Restore</h2>
+        <p class="small">Export all Slotzy app data to one JSON file, then restore it on this device if you need to recover or move pilot data.</p>
+      </div>
+      <p class="small">Export includes all current Slotzy local data on this browser, including shops, users, services, availability, bookings, branding, setup state, and demo mode flags.</p>
+      <div class="public-booking-qr-actions">
+        <button id="exportBackupBtn" class="btn btn-ghost" type="button">Export Backup (JSON)</button>
+        <button id="importBackupBtn" class="btn btn-ghost" type="button">Import Backup (JSON)</button>
+        <input id="backupImportInput" class="hidden" type="file" accept=".json,application/json" />
+      </div>
+      <section id="backupRestoreWarning" class="empty-state empty-state-warning empty-state-inline hidden" role="alert" aria-live="assertive">
+        <span class="empty-state-icon" aria-hidden="true">!</span>
+        <h3>Restore will replace current Slotzy data on this device</h3>
+        <p id="backupRestoreSummary" class="small">Choose a backup file to review it before restoring.</p>
+        <div class="public-booking-qr-actions">
+          <button id="confirmBackupRestoreBtn" class="btn btn-danger" type="button">Confirm Restore</button>
+          <button id="cancelBackupRestoreBtn" class="btn btn-ghost" type="button">Cancel</button>
+        </div>
+      </section>
+      <p id="backupStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section id="supportToolsCard" class="card owner-panel hidden section-stack">
+      <div class="card-head">
+        <h2>Support Tools</h2>
+        <p class="small">Copy support details before reporting a pilot issue.</p>
+      </div>
+      <div class="public-booking-qr-actions">
+        <button id="reportProblemBtn" class="btn btn-ghost" type="button">Report a problem</button>
+      </div>
+      <p class="small">Copies app version, demo mode, current shop ID, and browser info to your clipboard.</p>
+      <p id="supportStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section class="card owner-panel settings-card section-stack">
+      <div class="card-head">
+        <h2>Profile Settings</h2>
+        <p>Keep your personal contact details current for booking updates and reminders.</p>
+      </div>
       <p id="profileCompletenessText" class="small">Profile completeness: 0%</p>
       <div class="progress" aria-hidden="true">
         <div class="progress-bar" id="profileProgressBar"></div>
       </div>
       <p id="missingFields" class="small">Missing: full name, email, phone</p>
-      <label for="fullNameInput">Full Name</label>
-      <input id="fullNameInput" type="text" placeholder="Your full name" />
+      <div class="form-grid-3">
+        <div class="field">
+          <label for="fullNameInput">Full Name</label>
+          <input id="fullNameInput" type="text" placeholder="Your full name" />
+        </div>
 
-      <label for="emailInput">Email</label>
-      <input id="emailInput" type="email" placeholder="name@example.com" />
+        <div class="field">
+          <label for="emailInput">Email</label>
+          <input id="emailInput" type="email" placeholder="name@example.com" />
+        </div>
 
-      <label for="phoneInput">Phone</label>
-      <input id="phoneInput" type="tel" placeholder="(555) 123-4567" />
+        <div class="field">
+          <label for="phoneInput">Phone</label>
+          <input id="phoneInput" type="tel" placeholder="(555) 123-4567" />
+        </div>
+      </div>
 
-      <button id="saveProfileBtn" class="btn btn-primary" type="button">Save Profile</button>
+      <div class="cta-row">
+        <button id="saveProfileBtn" class="btn btn-primary" type="button">Save Profile</button>
+      </div>
       <p class="small">Your contact info helps us send booking updates and reminders.</p>
-      <p id="profileStatus" class="small booking-status" aria-live="polite"></p>
+      <p id="profileStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
   </main>
 
@@ -107,7 +366,9 @@
     <p>&copy; 2026 Slotzy. All rights reserved.</p>
   </footer>
 
+  <script type="module" src="../js/owner-setup-guard.js"></script>
   <script type="module" src="../js/session-ui.js"></script>
+  <script src="../js/vendor/qrcode.min.js"></script>
   <script type="module" src="../js/settings.js"></script>
 </body>
 </html>

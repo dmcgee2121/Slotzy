@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dev Outbox | Slotzy</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/owner-dashboard.css" />
+</head>
+
+<body class="owner-page">
+  <header class="topbar">
+    <div class="container owner-shell-header">
+      <div class="brand owner-brand">
+        <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
+        <div class="owner-brand-copy">
+          <h2>Dev Outbox</h2>
+          <p>Email previews and delivery fallback</p>
+        </div>
+      </div>
+      <nav class="owner-header-actions" aria-label="Dev outbox navigation">
+        <a href="../index.html" class="link">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container owner-layout dev-emails-layout">
+    <section class="card owner-panel dev-emails-toolbar">
+      <div>
+        <h1>Dev Emails</h1>
+        <p class="small">When SMTP is not configured, Slotzy stores emails here for demo and QA review.</p>
+      </div>
+      <div class="dev-emails-actions">
+        <button id="devEmailsRefreshBtn" class="btn btn-primary" type="button">Refresh</button>
+        <button id="devEmailsClearBtn" class="btn btn-ghost" type="button">Clear</button>
+      </div>
+      <p id="devEmailsMeta" class="small muted">Loading outbox...</p>
+      <p id="devEmailsStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
+    <section class="card owner-panel">
+      <div id="devEmailsList" class="dev-emails-list"></div>
+      <section id="devEmailsEmpty" class="empty-state hidden">
+        <span class="empty-state-icon" aria-hidden="true">&#9993;</span>
+        <h3 class="empty-state-title">No emails yet</h3>
+        <p class="empty-state-subtitle">Your next booking email will appear here.</p>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Slotzy. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="../js/session-ui.js"></script>
+  <script type="module" src="../js/dev-emails.js"></script>
+</body>
+</html>
