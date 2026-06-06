@@ -129,6 +129,10 @@ async function seedStorage(page, seed) {
     }
     localStorage.clear();
     sessionStorage.clear();
+
+    // Disable API mode to use localStorage
+    localStorage.setItem("Slotzy_api_mode", "0");
+
     Object.entries(seedPayload.local || {}).forEach(([key, value]) => {
       localStorage.setItem(key, JSON.stringify(value));
     });

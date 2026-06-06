@@ -143,6 +143,9 @@ async function seedStorage(page, seed) {
     localStorage.clear();
     sessionStorage.clear();
 
+    // Disable API mode to use localStorage
+    localStorage.setItem("Slotzy_api_mode", "0");
+
     Object.entries(seedPayload.local || {}).forEach(([key, value]) => {
       localStorage.setItem(key, JSON.stringify(value));
     });
@@ -547,7 +550,25 @@ test.describe("Slotzy critical smoke flows", () => {
       services: [service],
       bookings: [],
     });
-    await seedStorage(page, seed);
+    await page.goto("/pages/book.html?shop=smoke-shop");
+
+    // Set localStorage after page load
+    await page.evaluate((seed) => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem("Slotzy_api_mode", "0");
+      Object.entries(seed.local || {}).forEach(([key, value]) => {
+        localStorage.setItem(key, JSON.stringify(value));
+      });
+      Object.entries(seed.session || {}).forEach(([key, value]) => {
+        if (value === null || value === undefined) return;
+        sessionStorage.setItem(key, JSON.stringify(value));
+      });
+    }, seed);
+
+    // Reload the page to pick up the localStorage
+    await page.reload();
+
     await page.addInitScript(() => {
       window.__copiedReceiptSummary = "";
       Object.defineProperty(navigator, "clipboard", {
@@ -559,8 +580,6 @@ test.describe("Slotzy critical smoke flows", () => {
         },
       });
     });
-
-    await page.goto("/pages/book.html?shop=smoke-shop");
 
     await page.selectOption("#barberSelect", OWNER_USERNAME);
     await page.selectOption("#serviceSelect", SERVICE_ID);

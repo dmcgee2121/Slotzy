@@ -1,6 +1,6 @@
 const { defineConfig } = require("@playwright/test");
 
-const PORT = Number(process.env.SMOKE_PORT || 4173);
+const PORT = Number(process.env.SMOKE_PORT || 5173);
 
 module.exports = defineConfig({
   testDir: "./tests/smoke",
@@ -16,7 +16,7 @@ module.exports = defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `node ./tests/helpers/static-server.cjs ${PORT}`,
+    command: `node ./scripts/serve.cjs ${PORT}`,
     port: PORT,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
