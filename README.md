@@ -25,10 +25,16 @@ Notes:
 1. Start backend server:
    - `cd server`
    - `npm install`
+   - optional: create `server/.env` from `server/.env.example`
    - `npm run dev`
 2. Keep backend running at `http://localhost:3001`.
 3. In a separate terminal (or VSCode Live Server), run frontend from repo root:
    - open `index.html` with Live Server.
+
+Backend config notes:
+- Local development can run without `JWT_SECRET`; the API falls back to a development-only secret and prints a warning.
+- Pilot or production deployments must set `JWT_SECRET`. The server refuses to start with `NODE_ENV=production` if it is missing.
+- SMTP is optional. When SMTP variables are missing, Slotzy uses the Dev Outbox instead of sending real email.
 
 Auth endpoints used by frontend:
 - `POST /api/auth/register`
@@ -78,16 +84,17 @@ Dev endpoints:
 - `DELETE /api/dev/emails`
 
 ### Enable real SMTP
-Create a local `.env` in `server/` (or export environment variables) with:
+Create a local `.env` in `server/` from `server/.env.example` (or export environment variables) with:
+- `JWT_SECRET` for any pilot or production environment
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_USER`
 - `SMTP_PASS`
 - `SMTP_FROM`
 
-When all SMTP variables are present, Slotzy sends real email through `nodemailer`. If any are missing, it automatically falls back to the Dev Outbox.
+When all SMTP variables are present, Slotzy sends real email through `nodemailer`. If any are missing, it automatically falls back to the Dev Outbox. Local development can leave SMTP unset.
 
-Never commit SMTP secrets or real mailbox credentials to source control.
+Never commit real secrets or mailbox credentials to source control.
 
 ## Server db.json shape
 ```json

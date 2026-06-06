@@ -11,9 +11,10 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const ADMIN_SECRET = String(process.env.ADMIN_SECRET || "").trim();
 const IS_PRODUCTION = String(process.env.NODE_ENV || "").trim().toLowerCase() === "production";
+const DEV_JWT_FALLBACK = "dev-secret-change-me";
+const JWT_SECRET = resolveJwtSecret();
 
 const ROLE_OWNER = "owner";
 const ROLE_BARBER = "barber";
@@ -62,6 +63,24 @@ const EMPTY_DB = {
   bookings: [],
   emails: [],
 };
+
+function resolveJwtSecret() {
+  const configuredSecret = String(process.env.JWT_SECRET || "").trim();
+  if (configuredSecret) {
+    return configuredSecret;
+  }
+
+  if (IS_PRODUCTION) {
+    throw new Error(
+      "Missing JWT_SECRET. Refusing to start in production without an explicit JWT secret."
+    );
+  }
+
+  console.warn(
+    "[Slotzy:auth] JWT_SECRET is not set. Using the development fallback secret; set JWT_SECRET before any pilot or production deployment."
+  );
+  return DEV_JWT_FALLBACK;
+}
 
 app.use(express.json({ limit: "5mb" }));
 app.use(cors({ origin: true }));
