@@ -8,3 +8,6 @@ playwright-report/
 *.tmp
 *.temp
 *~
+
+# Preserve separate React/Vite experiment outside pilot baseline
+slotzy/
