@@ -1,0 +1,10 @@
+node_modules/
+server/node_modules/
+test-results/
+server/test-results/
+playwright-report/
+.env
+*.zip
+*.tmp
+*.temp
+*~
