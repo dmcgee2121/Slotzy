@@ -36,6 +36,10 @@ Backend config notes:
 - Pilot or production deployments must set `JWT_SECRET`. The server refuses to start with `NODE_ENV=production` if it is missing.
 - SMTP is optional. When SMTP variables are missing, Slotzy uses the Dev Outbox instead of sending real email.
 
+Pilot navigation notes:
+- Core owner/barber pages are `business-owner`, `manage-appointments`, `manage-services`, `manage-barbers`, and `settings`.
+- `pages/dev-emails.html` is a direct dev/QA route for the Dev Outbox and is not part of normal pilot navigation.
+
 Auth endpoints used by frontend:
 - `POST /api/auth/register`
 - `POST /api/auth/login`
@@ -78,6 +82,8 @@ If SMTP is not configured, emails are stored in `server/src/db.json` under `emai
 3. Use:
    - `Refresh` to reload the latest 50 emails
    - `Clear` to empty the outbox
+
+This route is intended for local dev and QA only. Do not treat Dev Outbox as a normal barber-facing feature.
 
 Dev endpoints:
 - `GET /api/dev/emails`
@@ -198,7 +204,7 @@ Auth token storage:
 3. Continue into:
    - Public client booking flow: `pages/book.html?shop=slug`
    - Manage-link client flow: `pages/manage.html?shop=slug&contact=...`
-   - Owner/barber flow: `pages/business-owner.html` and linked owner pages
+   - Owner/barber flow: `pages/business-owner.html` and the core pilot pages `manage-appointments.html`, `manage-services.html`, `manage-barbers.html`, and `settings.html`
 4. Do not use deprecated legacy scripts as new entry points.
 
 ## Notes

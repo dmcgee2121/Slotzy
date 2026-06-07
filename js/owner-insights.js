@@ -50,7 +50,7 @@ import * as dataStore from "./dataStore.js";
     const pilotResetDemoBtn = document.getElementById("pilotResetDemoBtn");
 
     viewBtn?.addEventListener("click", () => {
-      window.location.assign("owner-today.html");
+      window.location.assign("manage-appointments.html");
     });
 
     shareBtn?.addEventListener("click", () => {
