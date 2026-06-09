@@ -317,30 +317,32 @@
           <p class="small">Add another barber only if you want multiple schedules or staff logins during the pilot.</p>
         </div>
 
-        <div class="form-grid-2">
-          <div class="field">
-            <label for="barberDisplayNameInput">Display Name</label>
-            <input id="barberDisplayNameInput" type="text" placeholder="Jordan T." />
+        <div class="settings-subcard settings-team-panel">
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="barberDisplayNameInput">Display Name</label>
+              <input id="barberDisplayNameInput" type="text" placeholder="Jordan T." />
+            </div>
+
+            <div class="field">
+              <label for="barberUsernameInput">Username</label>
+              <input id="barberUsernameInput" type="text" placeholder="jordan" />
+            </div>
+
+            <div class="field">
+              <label for="barberEmailInput">Email (optional)</label>
+              <input id="barberEmailInput" type="email" placeholder="jordan@example.com" />
+            </div>
+
+            <div class="field">
+              <label for="barberPasswordInput">Password</label>
+              <input id="barberPasswordInput" type="password" placeholder="Create a password" />
+            </div>
           </div>
 
-          <div class="field">
-            <label for="barberUsernameInput">Username</label>
-            <input id="barberUsernameInput" type="text" placeholder="jordan" />
+          <div class="cta-row settings-save-actions">
+            <button id="addBarberUserBtn" class="btn btn-primary" type="button">Add a barber (optional)</button>
           </div>
-
-          <div class="field">
-            <label for="barberEmailInput">Email (optional)</label>
-            <input id="barberEmailInput" type="email" placeholder="jordan@example.com" />
-          </div>
-
-          <div class="field">
-            <label for="barberPasswordInput">Password</label>
-            <input id="barberPasswordInput" type="password" placeholder="Create a password" />
-          </div>
-        </div>
-
-        <div class="cta-row">
-          <button id="addBarberUserBtn" class="btn btn-primary" type="button">Add a barber (optional)</button>
         </div>
         <p id="barberUserStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
         <div id="barberUsersList" class="availability-timeoff-list"></div>

@@ -93,6 +93,12 @@
   color: var(--primary-hover);
 }
 
+.owner-header-actions .link[aria-current="page"] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--card);
+}
+
 .owner-mobile-nav-toggle {
   display: none;
   align-items: center;
@@ -748,6 +754,13 @@
   gap: 10px;
 }
 
+.owner-page .settings-intro-card {
+  gap: 6px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(255, 255, 255, 0.96)),
+    var(--card);
+}
+
 .owner-page #shopSettingsCard {
   gap: 0;
 }
@@ -756,15 +769,98 @@
   margin-bottom: 14px;
 }
 
+.owner-page .settings-section-head {
+  display: grid;
+  gap: 6px;
+}
+
+.owner-page .settings-section-head h3,
+.owner-page .settings-section-head h4,
+.owner-page .settings-subcard h4 {
+  margin: 0;
+}
+
+.owner-page .settings-section-head > p,
+.owner-page .settings-subcard > p {
+  margin: 0;
+}
+
+.owner-page .settings-kicker {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
 .owner-page #settingsMain .owner-section {
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
 }
 
+.owner-page .settings-feature-card {
+  padding: 18px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.owner-page .settings-share-layout,
+.owner-page .settings-dual-panel,
+.owner-page .settings-branding-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.owner-page .settings-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.owner-page .settings-share-main,
+.owner-page .settings-share-aside {
+  min-width: 0;
+}
+
+.owner-page .settings-share-aside {
+  justify-items: center;
+}
+
+.owner-page .settings-subcard {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--secondary);
+  min-width: 0;
+}
+
+.owner-page .settings-subcard-wide {
+  grid-column: 1 / -1;
+}
+
+.owner-page .settings-action-row {
+  align-items: stretch;
+}
+
+.owner-page .settings-action-row .btn {
+  flex: 0 1 auto;
+}
+
+.owner-page .settings-share-help {
+  color: var(--muted);
+  text-align: center;
+}
+
 .owner-page .public-booking-qr-block {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin-top: 6px;
 }
 
@@ -786,7 +882,7 @@
 
 .owner-page #public-booking-link-section {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   scroll-margin-top: 110px;
 }
 
@@ -797,17 +893,24 @@
 .owner-page .public-booking-qr-preview {
   display: grid;
   gap: 8px;
-  justify-items: start;
-  padding: 10px;
+  justify-items: center;
+  align-content: start;
+  padding: 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--secondary);
+  background: var(--card);
+  min-height: 250px;
+  max-width: 260px;
+  width: 100%;
+  margin-inline: auto;
 }
 
 .owner-page .public-booking-qr-preview img {
-  width: 220px;
-  height: 220px;
+  width: min(220px, 100%);
+  height: auto;
   max-width: 100%;
+  max-height: 220px;
+  aspect-ratio: 1 / 1;
   border-radius: 8px;
   background: var(--card);
   border: 1px solid var(--border);
@@ -815,13 +918,20 @@
 }
 
 .owner-page #publicBookingQrImage {
-  width: 220px;
-  height: 220px;
+  width: min(220px, 100%);
+  height: auto;
   max-width: 100%;
+  max-height: 220px;
+  aspect-ratio: 1 / 1;
   border-radius: 8px;
   background: var(--card);
   border: 1px solid var(--border);
   padding: 8px;
+}
+
+.owner-page #publicBookingQrEmpty {
+  text-align: center;
+  max-width: 28ch;
 }
 
 .owner-page .public-booking-qr-actions {
@@ -839,12 +949,12 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
-  align-items: center;
+  align-items: start;
   padding: 14px;
   margin-top: 8px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: var(--secondary);
+  background: var(--card);
 }
 
 .owner-page .shop-cover-settings-card {
@@ -857,13 +967,18 @@
   color: var(--muted);
 }
 
+.owner-page .settings-card input[type="file"] {
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .shop-logo-preview-wrap {
-  margin-top: 10px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--card);
-  max-width: 640px;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  max-width: 100%;
 }
 
 .shop-cover-preview-wrap {
@@ -914,7 +1029,10 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card);
-  max-width: 520px;
+  width: min(100%, 280px);
+  min-height: 144px;
+  max-width: 280px;
+  overflow: hidden;
 }
 
 .owner-page .logo-preview img {
@@ -930,10 +1048,58 @@
   display: grid;
   gap: 10px;
   min-width: 0;
+  align-content: start;
 }
 
 .owner-page .shop-logo-preview-copy p {
   margin: 0;
+}
+
+.owner-page .shop-logo-preview-copy .btn {
+  justify-self: start;
+}
+
+.owner-page .settings-team-panel {
+  margin-top: 0;
+}
+
+.owner-page .settings-save-section {
+  gap: 10px;
+}
+
+.owner-page .settings-save-actions {
+  justify-content: flex-start;
+}
+
+.owner-page .settings-toggle-row {
+  align-items: flex-start;
+  min-height: 74px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.owner-page .settings-toggle-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.owner-page .settings-toggle-copy label {
+  margin: 0;
+}
+
+.owner-page .settings-toggle-copy p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.owner-page .settings-toggle-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--primary);
 }
 
 .public-shop-hero-head {
@@ -1687,6 +1853,22 @@
     gap: 8px;
   }
 
+  .owner-page .settings-share-layout,
+  .owner-page .settings-dual-panel,
+  .owner-page .settings-branding-grid,
+  .owner-page .settings-policy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-page .settings-subcard-wide {
+    grid-column: auto;
+  }
+
+  .owner-page .settings-feature-card,
+  .owner-page .settings-subcard {
+    padding: 14px;
+  }
+
   .owner-today-glance-head {
     flex-direction: column;
   }
@@ -1752,6 +1934,16 @@
   .owner-page .toggle-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .owner-page .settings-toggle-row {
+    padding: 12px;
+  }
+
+  .owner-page .public-booking-link-actions .btn,
+  .owner-page .public-booking-qr-actions .btn,
+  .owner-page .settings-save-actions .btn {
+    width: 100%;
   }
 
   .form-grid-2,
@@ -1834,6 +2026,21 @@
   .owner-page .shop-cover-settings-card,
   .public-shop-hero-head {
     grid-template-columns: 1fr;
+  }
+
+  .owner-page .public-booking-qr-preview {
+    max-width: 100%;
+    width: 100%;
+    min-height: 0;
+  }
+
+  .owner-page .settings-share-aside {
+    justify-items: stretch;
+  }
+
+  .owner-page .logo-preview {
+    width: 100%;
+    max-width: 100%;
   }
 
   .shop-cover-preview-frame img {

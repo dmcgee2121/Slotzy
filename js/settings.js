@@ -639,7 +639,7 @@ import { wireLogoutButton } from "./logout.js";
     if (shopLogoPreviewStatus) {
       shopLogoPreviewStatus.textContent = shopLogoDataUrl
         ? "Custom shop logo ready. It will appear on your public booking page and QR printout."
-        : "Using the default Slotzy logo.";
+        : "No custom logo yet. Clients will see the default Slotzy logo until you upload one.";
     }
     if (removeShopLogoBtn) {
       removeShopLogoBtn.disabled = !shopLogoDataUrl;
@@ -662,7 +662,7 @@ import { wireLogoutButton } from "./logout.js";
     if (shopCoverPreviewStatus) {
       shopCoverPreviewStatus.textContent = shopCoverDataUrl
         ? "Custom cover image ready. It will appear on your public booking page."
-        : "No cover image yet. The public page will use the shared Slotzy surface styling.";
+        : "No cover image yet. Clients will see the default Slotzy page styling until you add one.";
     }
     if (removeShopCoverBtn) {
       removeShopCoverBtn.disabled = !shopCoverDataUrl;
@@ -1313,7 +1313,7 @@ import { wireLogoutButton } from "./logout.js";
       publicBookingLinkInput.value = "";
       if (copyPublicBookingLinkBtn) copyPublicBookingLinkBtn.disabled = true;
       if (openPublicBookingLinkBtn) openPublicBookingLinkBtn.disabled = true;
-      setPublicBookingQrUnavailable("QR code will appear once booking URL is available.");
+      setPublicBookingQrUnavailable("QR code will appear once your booking page URL is ready.");
       return;
     }
 
@@ -1422,7 +1422,7 @@ import { wireLogoutButton } from "./logout.js";
   async function renderPublicBookingQr(bookingUrl) {
     const value = String(bookingUrl ?? "").trim();
     if (!value) {
-      setPublicBookingQrUnavailable("QR code will appear once booking URL is available.");
+      setPublicBookingQrUnavailable("QR code will appear once your booking page URL is ready.");
       return;
     }
 
