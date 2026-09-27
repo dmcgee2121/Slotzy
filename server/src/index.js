@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { randomUUID } from "crypto";
+import { lookup } from "node:dns/promises";
+import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
 import { STORAGE_ADAPTER, readStore, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 
@@ -95,6 +97,30 @@ function getCorsOptions() {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   };
+}
+
+async function logStagingSupabaseDnsProbe() {
+  if (RUNTIME_ENVIRONMENT !== "staging" || STORAGE_ADAPTER !== "postgres") return;
+  let hostname = "";
+  try {
+    hostname = new URL(String(process.env.SUPABASE_URL ?? "")).hostname;
+  } catch {
+    console.warn("[Slotzy:storage] staging Supabase DNS probe skipped: SUPABASE_URL has no valid hostname");
+    return;
+  }
+  if (!hostname) {
+    console.warn("[Slotzy:storage] staging Supabase DNS probe skipped: SUPABASE_URL has no hostname");
+    return;
+  }
+  try {
+    await lookup(hostname);
+    console.info("[Slotzy:storage] staging Supabase DNS probe succeeded", { hostname });
+  } catch (error) {
+    console.warn("[Slotzy:storage] staging Supabase DNS probe failed", {
+      hostname,
+      ...flattenSafeNetworkDiagnostic(error),
+    });
+  }
 }
 
 app.use(express.json({ limit: "5mb" }));
@@ -2101,4 +2127,5 @@ app.post("/api/admin/clear-all", requireAdmin, async (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Slotzy API server listening on http://localhost:${PORT}`);
+  void logStagingSupabaseDnsProbe();
 });

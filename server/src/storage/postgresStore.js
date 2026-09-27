@@ -26,19 +26,28 @@ function safeDiagnosticText(value) {
 // Do not retain arbitrary error objects: Supabase configuration and request
 // objects can contain credentials. These fields are enough to diagnose Node
 // transport failures such as DNS, TLS, or socket errors.
-function safeErrorDiagnostic(error, depth = 0) {
-  if (!error || typeof error !== "object" || depth > 1) return null;
+function diagnosticFieldName(prefix, field) {
+  return `${prefix}${field[0].toUpperCase()}${field.slice(1)}`;
+}
+
+// Keep this flat because hosted structured-log viewers abbreviate nested
+// objects as `[Object]`. A third level covers the Node fetch error's cause
+// without retaining an unbounded error chain.
+export function flattenSafeNetworkDiagnostic(error, prefix = "network") {
   const diagnostic = {};
-  DIAGNOSTIC_FIELDS.forEach((field) => {
-    if (error[field] !== undefined && error[field] !== null && error[field] !== "") {
-      diagnostic[field] = safeDiagnosticText(error[field]);
-    }
-  });
-  if (error.cause && error.cause !== error) {
-    const cause = safeErrorDiagnostic(error.cause, depth + 1);
-    if (cause) diagnostic.cause = cause;
+  let current = error;
+  let currentPrefix = prefix;
+  for (let depth = 0; depth < 3 && current && typeof current === "object"; depth += 1) {
+    DIAGNOSTIC_FIELDS.forEach((field) => {
+      if (current[field] !== undefined && current[field] !== null && current[field] !== "") {
+        diagnostic[diagnosticFieldName(currentPrefix, field)] = safeDiagnosticText(current[field]);
+      }
+    });
+    if (!current.cause || current.cause === current) break;
+    current = current.cause;
+    currentPrefix = `${currentPrefix}Cause`;
   }
-  return Object.keys(diagnostic).length ? diagnostic : null;
+  return diagnostic;
 }
 
 function fail(error, operation, networkFailures = []) {
@@ -47,11 +56,11 @@ function fail(error, operation, networkFailures = []) {
   if (error.code) wrapped.code = error.code;
   wrapped.storageDiagnostic = {
     operation,
-    error: safeErrorDiagnostic(error),
+    ...flattenSafeNetworkDiagnostic(error, "storageError"),
     // The Supabase SDK may turn a rejected fetch into a plain PostgREST error.
     // Capture the original Node fetch error separately while retaining only the
     // allowlisted fields above.
-    network: networkFailures.at(-1) ?? null,
+    ...(networkFailures.at(-1) ?? {}),
   };
   throw wrapped;
 }
@@ -83,8 +92,7 @@ export function createPostgresStore(env = process.env) {
         try {
           return await globalThis.fetch(...args);
         } catch (error) {
-          const diagnostic = safeErrorDiagnostic(error);
-          if (diagnostic) networkFailures.push(diagnostic);
+          networkFailures.push(flattenSafeNetworkDiagnostic(error));
           throw error;
         }
       },

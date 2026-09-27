@@ -10,7 +10,7 @@ Owner registration is verified by the post-registration authenticated UI (`userB
 
 If registration remains open, the E2E first reports the `/api/auth/register` HTTP status and safe response error, then checks visible `#auth-error`; it does not wait for a generic modal timeout. A successful API response without a modal close or inline error is reported as an auth-UI defect.
 
-For a staging registration HTTP 500, inspect the Render server log entry `[Slotzy:auth] POST /api/auth/register failed`. It includes only the active storage adapter, named storage operation, and allowlisted transport fields (`name`, `message`, `code`, `errno`, `syscall`, and hostname, including a nested fetch cause when supplied by Node). URLs are redacted. It deliberately excludes username, password, request body, JWT, Authorization headers, and Supabase credentials.
+For a staging registration HTTP 500, inspect the Render server log entry `[Slotzy:auth] POST /api/auth/register failed`. Its storage diagnostic uses flat fields such as `networkCode`, `networkHostname`, `networkCauseCode`, and `networkCauseHostname`, so Render will not collapse an underlying fetch cause as `[Object]`. On staging/Postgres startup, also inspect the non-blocking `[Slotzy:storage] staging Supabase DNS probe ...` entry. URLs are redacted; logs deliberately exclude username, password, request body, JWT, Authorization headers, and Supabase credentials.
 
 ## 1. Infrastructure
 
