@@ -12,30 +12,93 @@ const identity = {
 };
 
 function failGuard(message) { throw new Error(`Staging E2E safety guard: ${message}`); }
-async function registrationOutcome(page, response) {
+function safeDiagnosticText(value) {
+  return String(value ?? "")
+    .replace(/https?:\/\/[^\s)\]}]+/gi, "[redacted-url]")
+    .replace(/\bBearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+    .replace(/\b(token|authorization|password)\b\s*[:=]\s*[^,\s}\]]+/gi, "$1=[redacted]")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted-jwt]")
+    .slice(0, 500);
+}
+
+function collectBrowserDiagnostics(page) {
+  const errors = [];
+  const add = (source, message) => {
+    if (errors.length < 10) errors.push(`${source}: ${safeDiagnosticText(message)}`);
+  };
+  page.on("pageerror", (error) => add("pageerror", error?.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") add("console", message.text());
+  });
+  return errors;
+}
+
+async function registrationUiState(page) {
+  const inspect = async (selector) => {
+    const locator = page.locator(selector);
+    if (!await locator.count()) return null;
+    return locator.evaluate((element) => ({
+      text: String(element.textContent || "").trim(),
+      className: String(element.className || ""),
+      ariaHidden: element.getAttribute("aria-hidden"),
+      visible: Boolean(element.getClientRects().length),
+    })).catch(() => null);
+  };
+  let path = "";
+  try { path = new URL(page.url()).pathname; } catch { path = "[unavailable]"; }
+  return {
+    path,
+    modal: await inspect("#modal"),
+    authError: await inspect("#auth-error"),
+    userBadge: await inspect("#userBadge"),
+    dashboard: await inspect("#btn-dashboard"),
+  };
+}
+
+async function registrationOutcome(page, response, expectedUser, browserErrors) {
   const status = response.status();
   let payload = {};
   try { payload = await response.json(); } catch { /* response diagnostics below remain safe */ }
   if (!response.ok()) {
     throw new Error(`Synthetic owner registration failed with HTTP ${status}: ${String(payload?.error || payload?.message || "no safe error message")}`);
   }
+  const responseShape = {
+    status,
+    hasUser: Boolean(payload?.user && typeof payload.user === "object"),
+    hasToken: Boolean(String(payload?.token ?? "").trim()),
+    username: String(payload?.user?.username ?? "").trim(),
+    role: String(payload?.user?.role ?? "").trim(),
+  };
+  if (!responseShape.hasUser || !responseShape.hasToken || responseShape.username !== expectedUser.username || responseShape.role !== "owner") {
+    throw new Error(`Synthetic owner registration returned an invalid success shape: ${JSON.stringify(responseShape)}`);
+  }
 
-  // Auth failures deliberately keep the modal open. Race the expected close
-  // against its inline error so a hosted failure reports the real cause rather
-  // than a generic 20-second aria-hidden timeout.
-  await page.waitForFunction(() => {
-    const modal = document.querySelector("#modal");
-    const error = document.querySelector("#auth-error");
-    return modal?.getAttribute("aria-hidden") === "true" || Boolean(error && !error.classList.contains("hidden") && error.textContent.trim());
-  }, undefined, { timeout: 5000 });
-  const authError = await page.locator("#auth-error").textContent();
-  const modalHidden = await page.locator("#modal").getAttribute("aria-hidden");
+  // `hideModal` completes after its transition, while `goToDashboard` changes
+  // documents immediately. A correct owner navigation can therefore replace
+  // index.html before that transition finalizes. Treat only that intended
+  // owner destination as an alternative to an in-place modal close.
+  try {
+    await page.waitForFunction(() => {
+      const modal = document.querySelector("#modal");
+      const error = document.querySelector("#auth-error");
+      const ownerDestination = /\/pages\/(owner-setup|business-owner)\.html$/.test(window.location.pathname);
+      return ownerDestination || modal?.getAttribute("aria-hidden") === "true" || Boolean(error && !error.classList.contains("hidden") && error.textContent.trim());
+    }, undefined, { timeout: 5000 });
+  } catch {
+    const ui = await registrationUiState(page);
+    throw new Error(`Synthetic owner registration returned ${JSON.stringify(responseShape)}, but the authenticated UI did not transition within 5 seconds. state=${JSON.stringify(ui)} browserErrors=${JSON.stringify(browserErrors)}`);
+  }
+  const ui = await registrationUiState(page);
+  const authError = String(ui.authError?.text ?? "").trim();
+  const modalHidden = ui.modal?.ariaHidden;
+  const ownerDestination = /\/pages\/(owner-setup|business-owner)\.html$/.test(ui.path);
   if (String(authError || "").trim()) {
-    throw new Error(`Synthetic owner registration returned HTTP ${status} but the UI kept the modal open: ${authError.trim()}`);
+    throw new Error(`Synthetic owner registration returned HTTP ${status} but the UI kept the modal open: ${authError}`);
   }
-  if (modalHidden !== "true") {
-    throw new Error(`Synthetic owner registration returned HTTP ${status}, but neither closed the modal nor showed #auth-error.`);
+  if (!ownerDestination && modalHidden !== "true") {
+    throw new Error(`Synthetic owner registration returned HTTP ${status}, but neither closed the modal nor reached the intended owner destination.`);
   }
+  return { navigatedToOwnerDestination: ownerDestination };
 }
 function requireStagingUrl(value, name) {
   if (!value) failGuard(`${name} is required.`);
@@ -70,6 +133,7 @@ test.beforeAll(async () => {
 });
 
 test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context }) => {
+  const browserErrors = collectBrowserDiagnostics(page);
   // The health guard above completes before this test can write any data.
   await page.goto(`${frontendUrl}/pages/index.html`);
   await page.locator("#btn-login").click();
@@ -81,15 +145,24 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     response.request().method() === "POST" && new URL(response.url()).pathname.endsWith("/api/auth/register")
   ));
   await page.getByRole("button", { name: "Continue" }).click();
-  await registrationOutcome(page, await registrationResponse);
+  const registration = await registrationOutcome(page, await registrationResponse, identity, browserErrors);
   // Hosted registration can retain index.html while it applies authenticated
   // navigation state. Verify that state rather than treating any landing URL
   // as success, then use the real Dashboard entry point.
-  await expect(page.locator("#modal")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator("#userBadge")).toContainText(identity.username);
-  await expect(page.locator("#btn-dashboard")).toBeVisible();
-  await page.locator("#btn-dashboard").click();
+  if (!registration.navigatedToOwnerDestination) {
+    await expect(page.locator("#modal")).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator("#userBadge")).toContainText(identity.username);
+    await expect(page.locator("#btn-dashboard")).toBeVisible();
+    await page.locator("#btn-dashboard").click();
+  }
   await expect(page).toHaveURL(/\/pages\/(owner-setup|business-owner)\.html/);
+  await expect(page.locator("#userBadge")).toContainText(identity.username);
+  await expect(page.locator('a[href="business-owner.html"], #setupGoDashboard').first()).toBeVisible();
+  const sessionUser = await page.evaluate(() => {
+    const raw = sessionStorage.getItem("Slotzy_user");
+    return raw ? JSON.parse(raw) : null;
+  });
+  expect(sessionUser).toMatchObject({ username: identity.username, role: "owner" });
 
   // Complete the minimum owner configuration through the hosted UI.
   if (await page.locator("#setupShopName").count()) {
