@@ -420,3 +420,10 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - JSON remains the default adapter. Explicit `SLOTZY_STORAGE=postgres` continues to require server-only Supabase credentials and cannot fall back to JSON.
 - Staging/production-like startup now requires both `JWT_SECRET` and a non-empty `CORS_ALLOWED_ORIGINS`; local development retains the existing JWT fallback and permissive CORS. `/api/health` reports only `ok`, service name, active adapter, and runtime environment—never URLs, credentials, or tokens.
 - Added `server/.env.example` placeholders and `docs/STAGING_CUTOVER.md`, covering a separate empty staging project, schema application, backend-only secret configuration, functional/manual QA, synthetic-only seed strategy, and the explicit `SLOTZY_STORAGE=json` rollback. No deployment or infrastructure change occurred.
+
+## Successful staging validation and QA gate (2026-09-27)
+
+- Staging is live and validated: Netlify frontend `https://slotzy-staging.netlify.app`, Render API `https://slotzy-staging-api.onrender.com`, and a dedicated Supabase staging project. Health confirms `ok=true`, `storage=postgres`, and `environment=staging`.
+- Manual end-to-end checks passed for registration, authenticated owner dashboard, service creation, availability, refresh persistence, public booking link/booking, owner appointment visibility, manage link, cancellation, and rescheduling. This remains synthetic staging data only.
+- Added `docs/STAGING_QA_CHECKLIST.md` for repeatable infrastructure, auth, setup, booking, management, mobile, recovery, and data-safety testing, plus `docs/PILOT_READINESS.md` for the pilot, native, and production gates. No runtime, schema, database, deployment, or nested-project change was made.
+- Next recommended work: build a staging-only automated E2E smoke path with isolated synthetic data, then complete the remaining manual/mobile/recovery checklist cases before inviting real barbers.

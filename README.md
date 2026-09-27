@@ -69,6 +69,10 @@ window.SLOTZY_CONFIG = {
 
 Local development uses `cors({ origin: true })`. Staging and production require an explicit comma-separated `CORS_ALLOWED_ORIGINS` allowlist, such as the exact Netlify staging origin. Keep staging and production lists separate; do not use `*` for authenticated API endpoints.
 
+## Staging validation
+
+The staging frontend and API are validated against the dedicated staging Postgres project. See `docs/STAGING_QA_CHECKLIST.md` for repeatable QA and `docs/PILOT_READINESS.md` for the gates before real-barber or production use. These documents do not authorize production deployment or real-data migration.
+
 Pilot navigation notes:
 - Core owner/barber pages are `business-owner`, `manage-appointments`, `manage-services`, `manage-barbers`, and `settings`.
 - `pages/dev-emails.html` is a direct dev/QA route for the Dev Outbox and is not part of normal pilot navigation.
