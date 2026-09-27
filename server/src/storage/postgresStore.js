@@ -15,8 +15,45 @@ export function getPostgresConfiguration(env = process.env) {
   return config;
 }
 
-function fail(error, operation) {
-  if (error) throw new Error(`Postgres storage ${operation} failed: ${error.message}`);
+const DIAGNOSTIC_FIELDS = ["name", "message", "code", "errno", "syscall", "hostname"];
+
+function safeDiagnosticText(value) {
+  return String(value ?? "")
+    .replace(/https?:\/\/[^\s)\]}]+/gi, "[redacted-url]")
+    .slice(0, 500);
+}
+
+// Do not retain arbitrary error objects: Supabase configuration and request
+// objects can contain credentials. These fields are enough to diagnose Node
+// transport failures such as DNS, TLS, or socket errors.
+function safeErrorDiagnostic(error, depth = 0) {
+  if (!error || typeof error !== "object" || depth > 1) return null;
+  const diagnostic = {};
+  DIAGNOSTIC_FIELDS.forEach((field) => {
+    if (error[field] !== undefined && error[field] !== null && error[field] !== "") {
+      diagnostic[field] = safeDiagnosticText(error[field]);
+    }
+  });
+  if (error.cause && error.cause !== error) {
+    const cause = safeErrorDiagnostic(error.cause, depth + 1);
+    if (cause) diagnostic.cause = cause;
+  }
+  return Object.keys(diagnostic).length ? diagnostic : null;
+}
+
+function fail(error, operation, networkFailures = []) {
+  if (!error) return;
+  const wrapped = new Error(`Postgres storage ${operation} failed: ${error.message}`, { cause: error });
+  if (error.code) wrapped.code = error.code;
+  wrapped.storageDiagnostic = {
+    operation,
+    error: safeErrorDiagnostic(error),
+    // The Supabase SDK may turn a rejected fetch into a plain PostgREST error.
+    // Capture the original Node fetch error separately while retaining only the
+    // allowlisted fields above.
+    network: networkFailures.at(-1) ?? null,
+  };
+  throw wrapped;
 }
 
 const cents = (value) => Math.round(Number(value ?? 0) * 100);
@@ -38,20 +75,42 @@ function legacyPolicy(row = {}) {
 // current Express routes expect; routes do not receive database column names.
 export function createPostgresStore(env = process.env) {
   const config = getPostgresConfiguration(env);
+  const networkFailures = [];
   const client = createClient(config.url, config.serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      fetch: async (...args) => {
+        try {
+          return await globalThis.fetch(...args);
+        } catch (error) {
+          const diagnostic = safeErrorDiagnostic(error);
+          if (diagnostic) networkFailures.push(diagnostic);
+          throw error;
+        }
+      },
+    },
   });
 
+  function beginOperation() {
+    networkFailures.length = 0;
+  }
+
   async function readStore() {
-    const results = await Promise.all([
-      client.from("users").select("*").is("deleted_at", null),
-      client.from("shops").select("*").is("deleted_at", null),
-      client.from("shop_settings").select("*"), client.from("shop_members").select("*").is("deleted_at", null),
-      client.from("services").select("*").is("deleted_at", null), client.from("provider_services").select("*"),
-      client.from("availability").select("*"), client.from("time_off").select("*"),
-      client.from("bookings").select("*"), client.from("email_outbox").select("*"),
-    ]);
-    results.forEach((result) => fail(result.error, "read"));
+    beginOperation();
+    const reads = [
+      ["read users", client.from("users").select("*").is("deleted_at", null)],
+      ["read shops", client.from("shops").select("*").is("deleted_at", null)],
+      ["read shop settings", client.from("shop_settings").select("*")],
+      ["read shop members", client.from("shop_members").select("*").is("deleted_at", null)],
+      ["read services", client.from("services").select("*").is("deleted_at", null)],
+      ["read provider services", client.from("provider_services").select("*")],
+      ["read availability", client.from("availability").select("*")],
+      ["read time off", client.from("time_off").select("*")],
+      ["read bookings", client.from("bookings").select("*")],
+      ["read email outbox", client.from("email_outbox").select("*")],
+    ];
+    const results = await Promise.all(reads.map(([, request]) => request));
+    results.forEach((result, index) => fail(result.error, reads[index][0], networkFailures));
     const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails] = results.map((result) => result.data ?? []);
     const usersById = new Map(users.map((row) => [row.id, row]));
     const membersById = new Map(members.map((row) => [row.id, row]));
@@ -88,26 +147,31 @@ export function createPostgresStore(env = process.env) {
   // The legacy routes save whole documents. Reconciliation must run in one
   // database RPC; it is never a browser call or a JSON fallback.
   async function writeStore(store) {
+    beginOperation();
     const { error } = await client.rpc("slotzy_storage_write_snapshot", { snapshot: normalizeStoreShape(store) });
-    fail(error, "write snapshot");
+    fail(error, "write snapshot", networkFailures);
   }
 
   async function appendOutboxEmail(email) {
+    beginOperation();
     const { error } = await client.from("email_outbox").insert({ recipient_email: email.to, subject: email.subject, template_type: email.tags?.[0] ?? null, payload: { html: email.html ?? "", text: email.text ?? "", tags: email.tags ?? [], meta: email.meta ?? {} }, delivery_status: "pending" });
-    fail(error, "append outbox email"); return email;
+    fail(error, "append outbox email", networkFailures); return email;
   }
   async function listOutboxEmails(limit = 50) {
+    beginOperation();
     const { data, error } = await client.from("email_outbox").select("*").order("created_at", { ascending: false }).limit(Math.max(0, Math.floor(Number(limit) || 0)));
-    fail(error, "list outbox emails"); return (data ?? []).map((row) => ({ id: row.id, createdAtISO: iso(row.created_at), to: row.recipient_email, subject: row.subject, html: row.payload?.html ?? "", text: row.payload?.text ?? "", tags: row.payload?.tags ?? [], meta: row.payload?.meta ?? {} }));
+    fail(error, "list outbox emails", networkFailures); return (data ?? []).map((row) => ({ id: row.id, createdAtISO: iso(row.created_at), to: row.recipient_email, subject: row.subject, html: row.payload?.html ?? "", text: row.payload?.text ?? "", tags: row.payload?.tags ?? [], meta: row.payload?.meta ?? {} }));
   }
   async function clearOutboxEmails() {
     // PostgREST rejects an unqualified DELETE. `id` is the non-null UUID primary
     // key, so this explicit predicate preserves the storage contract's clear-all
     // behavior without broadening permissions.
-    const { data, error } = await client.from("email_outbox").delete().not("id", "is", null).select("id"); fail(error, "clear outbox emails"); return { cleared: data?.length ?? 0 };
+    beginOperation();
+    const { data, error } = await client.from("email_outbox").delete().not("id", "is", null).select("id"); fail(error, "clear outbox emails", networkFailures); return { cleared: data?.length ?? 0 };
   }
   async function createBookingAtomically(payload) {
-    const { data, error } = await client.rpc("slotzy_create_booking", { payload }); fail(error, "create booking atomically"); return data;
+    beginOperation();
+    const { data, error } = await client.rpc("slotzy_create_booking", { payload }); fail(error, "create booking atomically", networkFailures); return data;
   }
   return { readStore, writeStore, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, cents };
 }

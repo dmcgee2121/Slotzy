@@ -1184,6 +1184,7 @@ app.post("/api/auth/register", async (req, res) => {
       storage: STORAGE_ADAPTER,
       code: String(error?.code ?? ""),
       message: String(error?.message ?? "unknown error"),
+      storageDiagnostic: error?.storageDiagnostic ?? null,
     });
     return res.status(500).json({ error: "internal server error" });
   }
