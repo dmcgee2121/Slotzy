@@ -4,7 +4,7 @@ Use only synthetic staging data. Record date, tester, browser/device, and any de
 
 ## Automated staging smoke
 
-Run `npm run test:staging` only with `SLOTZY_ALLOW_STAGING_E2E=true`, `SLOTZY_STAGING_FRONTEND_URL`, and `SLOTZY_STAGING_API_URL` explicitly set to HTTPS hosts containing `staging`. The suite warms `/api/health` for up to 150 seconds for Render cold starts and refuses all writes unless health reports staging plus Postgres. It creates unique `e2e-` synthetic records and has no cleanup API; remove those records manually with staging-only operational tooling if needed.
+Run `npm run test:staging` only with `SLOTZY_ALLOW_STAGING_E2E=true`, `SLOTZY_STAGING_FRONTEND_URL`, and `SLOTZY_STAGING_API_URL` explicitly set to HTTPS hosts containing `staging`. The suite warms `/api/health` for up to 150 seconds for Render cold starts and refuses all writes unless health reports staging plus Postgres. Each run uses an `e2e-` identity containing base-36 timestamp, process ID, and a 64-bit UUID suffix; its username stays short while its shop, slug, service, and client values share that identity. It has no cleanup API; remove only matching synthetic records manually with staging-only operational tooling if needed. A future cleanup helper must scope every deletion to one exact run prefix, never all `e2e-` data.
 
 Owner registration is verified by the post-registration authenticated UI (`userBadge` and the Dashboard control), then the suite clicks Dashboard and asserts navigation to `owner-setup.html` or `business-owner.html`. A same-page registration landing is not treated as success without that authenticated state and real setup/dashboard entry point.
 

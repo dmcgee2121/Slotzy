@@ -4,7 +4,18 @@ const { randomUUID } = require("crypto");
 const allow = process.env.SLOTZY_ALLOW_STAGING_E2E === "true";
 const frontendUrl = String(process.env.SLOTZY_STAGING_FRONTEND_URL || "").replace(/\/$/, "");
 const apiUrl = String(process.env.SLOTZY_STAGING_API_URL || "").replace(/\/$/, "");
-const runId = `e2e-${Date.now()}-${randomUUID().slice(0, 8)}`;
+
+function createSyntheticRunId() {
+  // This remains short enough for ordinary username limits while combining
+  // independent clock, worker, and cryptographic-random entropy. Do not use a
+  // timestamp alone: repeated/parallel hosted runs can share a millisecond.
+  const timestamp = Date.now().toString(36);
+  const worker = Math.max(0, Number(process.pid) || 0).toString(36);
+  const random = randomUUID().replace(/-/g, "").slice(0, 16);
+  return `e2e-${timestamp}-${worker}-${random}`;
+}
+
+const runId = createSyntheticRunId();
 const identity = {
   username: `${runId}-owner`, password: "Synthetic-E2E-Only-123!", email: `${runId}@example.test`,
   shopName: `E2E Synthetic Shop ${runId}`, slug: `${runId}-shop`, serviceName: `E2E Cut ${runId}`,
@@ -60,7 +71,11 @@ async function registrationOutcome(page, response, expectedUser, browserErrors) 
   let payload = {};
   try { payload = await response.json(); } catch { /* response diagnostics below remain safe */ }
   if (!response.ok()) {
-    throw new Error(`Synthetic owner registration failed with HTTP ${status}: ${String(payload?.error || payload?.message || "no safe error message")}`);
+    const safeError = String(payload?.error || payload?.message || "no safe error message");
+    if (/\b23505\b|duplicate key|username already exists/i.test(safeError)) {
+      throw new Error(`Synthetic fixture collision for ${expectedUser.username}: registration returned HTTP ${status} (${safeError}). Use a new e2e run identity; do not remove the database uniqueness constraint.`);
+    }
+    throw new Error(`Synthetic owner registration failed with HTTP ${status}: ${safeError}`);
   }
   const responseShape = {
     status,
