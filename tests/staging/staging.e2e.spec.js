@@ -12,6 +12,31 @@ const identity = {
 };
 
 function failGuard(message) { throw new Error(`Staging E2E safety guard: ${message}`); }
+async function registrationOutcome(page, response) {
+  const status = response.status();
+  let payload = {};
+  try { payload = await response.json(); } catch { /* response diagnostics below remain safe */ }
+  if (!response.ok()) {
+    throw new Error(`Synthetic owner registration failed with HTTP ${status}: ${String(payload?.error || payload?.message || "no safe error message")}`);
+  }
+
+  // Auth failures deliberately keep the modal open. Race the expected close
+  // against its inline error so a hosted failure reports the real cause rather
+  // than a generic 20-second aria-hidden timeout.
+  await page.waitForFunction(() => {
+    const modal = document.querySelector("#modal");
+    const error = document.querySelector("#auth-error");
+    return modal?.getAttribute("aria-hidden") === "true" || Boolean(error && !error.classList.contains("hidden") && error.textContent.trim());
+  }, undefined, { timeout: 5000 });
+  const authError = await page.locator("#auth-error").textContent();
+  const modalHidden = await page.locator("#modal").getAttribute("aria-hidden");
+  if (String(authError || "").trim()) {
+    throw new Error(`Synthetic owner registration returned HTTP ${status} but the UI kept the modal open: ${authError.trim()}`);
+  }
+  if (modalHidden !== "true") {
+    throw new Error(`Synthetic owner registration returned HTTP ${status}, but neither closed the modal nor showed #auth-error.`);
+  }
+}
 function requireStagingUrl(value, name) {
   if (!value) failGuard(`${name} is required.`);
   let parsed;
@@ -52,7 +77,11 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await page.fill("#auth-username", identity.username);
   await page.fill("#auth-password", identity.password);
   await page.selectOption("#auth-role", "owner");
+  const registrationResponse = page.waitForResponse((response) => (
+    response.request().method() === "POST" && new URL(response.url()).pathname.endsWith("/api/auth/register")
+  ));
   await page.getByRole("button", { name: "Continue" }).click();
+  await registrationOutcome(page, await registrationResponse);
   // Hosted registration can retain index.html while it applies authenticated
   // navigation state. Verify that state rather than treating any landing URL
   // as success, then use the real Dashboard entry point.

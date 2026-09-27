@@ -438,3 +438,8 @@ This is acceptable only for local development. It blocks real pilot and staging 
 
 - A hosted run completed registration but remained at `pages/index.html`, while the first E2E assertion assumed an immediate setup/dashboard URL. The corrected test first proves registration changed the real UI state: auth modal closes, the authenticated user badge contains the synthetic owner name, and the Dashboard control is visible. It then clicks that actual control and asserts `owner-setup.html` or `business-owner.html` navigation.
 - No application behavior, Supabase/Render configuration, schema, credentials, or deployment changed. This is a test correction that preserves owner setup coverage and fails if registration does not establish a usable authenticated UI state.
+
+## Staging E2E registration modal diagnostics (2026-09-27)
+
+- The hosted run showed the registration modal remained open after Continue. Source review confirms this only happens when `submitAuth` throws: successful server registration calls `setUser`, `hideModal`, and dashboard navigation. The form has no undisclosed required field beyond username/password/role.
+- The E2E now waits for the actual `POST /api/auth/register` response, fails immediately with its HTTP status and safe error message when unsuccessful, and races modal closure against visible `#auth-error` for a maximum of five seconds. If the API succeeds but neither condition follows, it reports a specific auth-UI defect. A new hosted run is needed to identify the exact response/error; no application code was changed.
