@@ -427,3 +427,9 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - Manual end-to-end checks passed for registration, authenticated owner dashboard, service creation, availability, refresh persistence, public booking link/booking, owner appointment visibility, manage link, cancellation, and rescheduling. This remains synthetic staging data only.
 - Added `docs/STAGING_QA_CHECKLIST.md` for repeatable infrastructure, auth, setup, booking, management, mobile, recovery, and data-safety testing, plus `docs/PILOT_READINESS.md` for the pilot, native, and production gates. No runtime, schema, database, deployment, or nested-project change was made.
 - Next recommended work: build a staging-only automated E2E smoke path with isolated synthetic data, then complete the remaining manual/mobile/recovery checklist cases before inviting real barbers.
+
+## Guarded staging E2E smoke suite (2026-09-27)
+
+- Added `tests/staging/staging.e2e.spec.js` and `npm run test:staging`. It refuses to run without the literal opt-in plus explicit HTTPS staging frontend/API URLs, requires hostnames containing `staging`, then polls health for up to 150 seconds and requires `ok=true`, `environment=staging`, and `storage=postgres` before any mutation.
+- The serial hosted flow uses unique `e2e-` owner/shop/service/client identities, covers registration through public booking, receipt/manage link, owner visibility, cancellation confirmation, persistence reloads, and invalid login/manage-link checks. It does not target production or use customer data.
+- No targeted staging cleanup API exists, so no cleanup endpoint or broad reset was added. Test records are intentionally left with the recognizable prefix for manual staging-only removal. Hosted execution remains outstanding until an operator runs the documented PowerShell command with environment values set.

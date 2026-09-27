@@ -73,6 +73,17 @@ Local development uses `cors({ origin: true })`. Staging and production require 
 
 The staging frontend and API are validated against the dedicated staging Postgres project. See `docs/STAGING_QA_CHECKLIST.md` for repeatable QA and `docs/PILOT_READINESS.md` for the gates before real-barber or production use. These documents do not authorize production deployment or real-data migration.
 
+To run the guarded hosted staging smoke suite from PowerShell:
+
+```powershell
+$env:SLOTZY_ALLOW_STAGING_E2E = "true"
+$env:SLOTZY_STAGING_FRONTEND_URL = "https://slotzy-staging.netlify.app"
+$env:SLOTZY_STAGING_API_URL = "https://slotzy-staging-api.onrender.com"
+npm run test:staging
+```
+
+It refuses non-staging URLs and requires `/api/health` to report staging/Postgres before creating unique `e2e-` synthetic data. It does not perform a database reset or cleanup.
+
 Pilot navigation notes:
 - Core owner/barber pages are `business-owner`, `manage-appointments`, `manage-services`, `manage-barbers`, and `settings`.
 - `pages/dev-emails.html` is a direct dev/QA route for the Dev Outbox and is not part of normal pilot navigation.

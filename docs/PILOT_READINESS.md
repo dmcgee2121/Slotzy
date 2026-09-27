@@ -13,6 +13,7 @@ Staging uses synthetic data, separate credentials, a separate database, and serv
 - Complete the remaining checklist cases, especially mobile visual QA, branding/settings, invalid manage links, team edits, status actions, and failure recovery.
 - Run the complete one-worker smoke suite in CI or a terminal without the local execution cap.
 - UX polish is intentionally deferred: no redesign, native shell, Play Store work, or broad flow changes are included in staging validation.
+- The staging E2E suite leaves uniquely prefixed synthetic records because no safe targeted cleanup endpoint exists. Broad database reset is intentionally prohibited in staging.
 
 ## Before inviting real barbers
 

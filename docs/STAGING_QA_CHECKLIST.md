@@ -2,6 +2,10 @@
 
 Use only synthetic staging data. Record date, tester, browser/device, and any defect links for each run.
 
+## Automated staging smoke
+
+Run `npm run test:staging` only with `SLOTZY_ALLOW_STAGING_E2E=true`, `SLOTZY_STAGING_FRONTEND_URL`, and `SLOTZY_STAGING_API_URL` explicitly set to HTTPS hosts containing `staging`. The suite warms `/api/health` for up to 150 seconds for Render cold starts and refuses all writes unless health reports staging plus Postgres. It creates unique `e2e-` synthetic records and has no cleanup API; remove those records manually with staging-only operational tooling if needed.
+
 ## 1. Infrastructure
 
 - [x] Netlify frontend: `https://slotzy-staging.netlify.app` reachable.
