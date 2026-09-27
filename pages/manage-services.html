@@ -32,7 +32,7 @@
     <section class="card dashboard-header section-stack">
       <div class="card-head">
         <h1>Service Editor</h1>
-        <p>Add, price, and organize the services clients can book.</p>
+          <p>Keep the client-facing booking menu clear, current, and easy to choose from.</p>
       </div>
     </section>
 
@@ -50,13 +50,13 @@
           </div>
 
           <div class="field">
-            <label for="servicePrice">Price</label>
-            <input id="servicePrice" type="number" placeholder="Price" />
+            <label for="servicePrice">Price (USD)</label>
+            <input id="servicePrice" type="number" min="0.01" step="0.01" placeholder="35.00" inputmode="decimal" />
           </div>
 
           <div class="field">
-            <label for="serviceDuration">Duration</label>
-            <input id="serviceDuration" type="number" placeholder="Minutes" />
+            <label for="serviceDuration">Duration (minutes)</label>
+            <input id="serviceDuration" type="number" min="10" max="240" step="5" placeholder="30" inputmode="numeric" />
           </div>
         </div>
 
@@ -68,7 +68,7 @@
       <section class="card owner-panel section-stack">
         <div class="card-head">
           <h2>Service List</h2>
-          <p>Review existing services and keep your booking menu up to date.</p>
+          <p>These services are shown to clients on your public booking page. Edit details or remove services you no longer offer.</p>
         </div>
         <div id="serviceList" class="grid"></div>
       </section>

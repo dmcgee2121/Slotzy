@@ -31,20 +31,28 @@
   <main class="container owner-dashboard owner-layout">
     <section class="card dashboard-header">
       <h1>Barber Manager</h1>
-      <p>Add, activate, or remove barbers for your shop.</p>
+      <p>Keep your shop provider list current. Review provider status alongside services and availability before sharing booking links.</p>
     </section>
 
-    <section class="card owner-panel">
-      <h2>Add Barber</h2>
-      <label for="barberName">Barber Name</label>
-      <input id="barberName" type="text" placeholder="e.g., Chris" />
-      <button id="addBarberBtn" class="btn btn-primary" type="button">Add Barber</button>
+    <section class="card owner-panel section-stack">
+      <div class="card-head">
+        <h2>Add Provider</h2>
+        <p class="small">Add a barber name for your shop team. You can deactivate it later without deleting the record.</p>
+      </div>
+      <div class="field">
+        <label for="barberName">Barber Name</label>
+        <input id="barberName" type="text" placeholder="e.g., Chris" autocomplete="name" />
+      </div>
+      <div class="cta-row"><button id="addBarberBtn" class="btn btn-primary" type="button">Add Barber</button></div>
       <p id="barberStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
 
-    <section class="card owner-panel">
-      <h2>Barber List</h2>
-      <div id="barberList"></div>
+    <section class="card owner-panel section-stack">
+      <div class="card-head">
+        <h2>Shop Providers</h2>
+        <p class="small">Active providers should have their services and availability configured before sharing booking links.</p>
+      </div>
+      <div id="barberList" class="grid"></div>
     </section>
   </main>
 

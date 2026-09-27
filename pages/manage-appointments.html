@@ -32,8 +32,8 @@
   <main class="container owner-dashboard owner-layout page-stack">
     <section class="card dashboard-header section-stack">
       <div class="card-head">
-        <h1>Appointment Manager</h1>
-        <p>View, filter, and manage upcoming bookings from one place.</p>
+          <h1>Appointment Manager</h1>
+        <p>Review your schedule, customer details, and appointment updates in one place.</p>
       </div>
       <div class="calendar-header card-head">
         <h2 id="calendar-month">November 2025</h2>
@@ -48,10 +48,10 @@
       <section class="card owner-panel appointments-filter-panel section-stack">
         <div class="card-head">
           <h2>Filters</h2>
-          <p>Switch views and narrow appointments by client or barber.</p>
+          <p>Choose a time period, then narrow by customer or provider.</p>
         </div>
         <section id="appointment-controls" class="appointment-controls form-stack">
-          <p class="small">View</p>
+          <p class="small">Show appointments</p>
           <div class="appointment-view-segments" role="group" aria-label="View appointments">
             <button type="button" class="btn btn-ghost segment-btn active" data-filter-value="today" aria-pressed="true">Today</button>
             <button type="button" class="btn btn-ghost segment-btn" data-filter-value="this_week" aria-pressed="false">This Week</button>
@@ -141,7 +141,7 @@
             </select>
           </div>
         </div>
-        <p id="reschedule-empty" class="small muted hidden">No available times for this date.</p>
+          <p id="reschedule-empty" class="small muted hidden">No available times for this date. Try another day or close this window to keep the current appointment.</p>
 
         <p id="reschedule-status" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
 

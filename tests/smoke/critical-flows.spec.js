@@ -321,7 +321,7 @@ test.describe("Slotzy critical smoke flows", () => {
     await page.fill("#auth-password", "pass1234");
     await page.getByRole("button", { name: "Continue" }).click();
 
-    await expect(page.locator("#auth-error")).toContainText("Customer logins are not enabled. Use your booking link instead.");
+    await expect(page.locator("#auth-error")).toContainText("Customer logins not enabled — use booking link");
     await expect(page).toHaveURL(/\/pages\/index\.html$/);
 
     const sessionUser = await page.evaluate(() => {
@@ -334,7 +334,7 @@ test.describe("Slotzy critical smoke flows", () => {
   test("retired customer dashboard redirects back to home", async ({ page }) => {
     await page.goto("/pages/customer-dashboard.html");
     await expect(page).toHaveURL(/\/index\.html$/, { timeout: 4000 });
-    await expect(page.getByText("Customer logins are not enabled. Use your booking link instead.")).toBeVisible();
+    await expect(page.getByText("Customer logins not enabled — use booking link")).toBeVisible();
   });
 
   test("owner can add a service from dashboard quick add", async ({ page }) => {
@@ -532,6 +532,18 @@ test.describe("Slotzy critical smoke flows", () => {
   });
 
   test("public booking can book an appointment", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__copiedReceiptSummary = "";
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (value) => {
+            window.__copiedReceiptSummary = String(value ?? "");
+          },
+        },
+      });
+    });
+
     const service = {
       id: SERVICE_ID,
       name: SERVICE_NAME,
@@ -568,18 +580,6 @@ test.describe("Slotzy critical smoke flows", () => {
 
     // Reload the page to pick up the localStorage
     await page.reload();
-
-    await page.addInitScript(() => {
-      window.__copiedReceiptSummary = "";
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value: {
-          writeText: async (value) => {
-            window.__copiedReceiptSummary = String(value ?? "");
-          },
-        },
-      });
-    });
 
     await page.selectOption("#barberSelect", OWNER_USERNAME);
     await page.selectOption("#serviceSelect", SERVICE_ID);
@@ -634,6 +634,7 @@ test.describe("Slotzy critical smoke flows", () => {
     await ownerPage.getByRole("button", { name: "All" }).click();
     await expect(ownerPage.locator("#appointment-list")).toContainText(SERVICE_NAME);
     await expect(ownerPage.locator("#appointment-list")).toContainText("customer-smoke@example.com");
+    await expect(ownerPage.locator("#appointment-list .badge").first()).toHaveAttribute("aria-label", "Status: Booked");
     await ownerPage.close();
   });
 

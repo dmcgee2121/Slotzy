@@ -111,6 +111,10 @@ import * as dataStore from "./dataStore.js";
   }
 
   function handleDeleteBarber(barberId) {
+    const barber = loadStaff().find((item) => String(item.id) === String(barberId));
+    if (!barber) return;
+    const confirmed = window.confirm(`Delete ${barber.name} from this shop's provider list? This cannot be undone.`);
+    if (!confirmed) return;
     const staff = loadStaff().filter((barber) => String(barber.id) !== String(barberId));
     saveStaff(staff);
     setStatus("Barber deleted.", true);
@@ -122,7 +126,7 @@ import * as dataStore from "./dataStore.js";
     const staff = loadStaff();
 
     if (staff.length === 0) {
-      barberList.innerHTML = '<p class="small">No barbers added yet.</p>';
+      barberList.innerHTML = '<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No additional providers yet</h3><p>Solo shops can keep taking bookings. Add a provider when you need another schedule.</p></section>';
       return;
     }
 
@@ -136,10 +140,11 @@ import * as dataStore from "./dataStore.js";
         : `<button type="button" class="btn btn-primary" data-action="activate" data-id="${escapeHtml(id)}">Activate</button>`;
 
       return `
-        <article class="card">
+        <article class="card owner-provider-card ${isActive ? "owner-provider-card-active" : "owner-provider-card-inactive"}">
           <h3>${name}</h3>
-          <p class="small"><strong>Status:</strong> ${statusText}</p>
-          <div class="actions">
+          <p class="small">Provider for this shop</p>
+          <span class="badge ${isActive ? "badge-success" : "badge-danger"}" aria-label="Provider status: ${statusText}">${statusText}</span>
+          <div class="actions owner-provider-actions">
             ${statusActionButton}
             <button type="button" class="btn btn-danger" data-action="delete" data-id="${escapeHtml(id)}">Delete</button>
           </div>

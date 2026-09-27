@@ -1,12 +1,12 @@
 ﻿import * as dataStore from "./dataStore.js";
 
-const API_BASE = "http://localhost:3001";
-const AUTH_PING_PATH = "/api/health";
+import { buildApiUrl, getApiOrigin } from "./api-config.js";
+
+const AUTH_PING_PATH = "health";
 const AUTH_MODE_TIMEOUT_MS = 1000;
 const AUTH_MODE_CACHE_MS = 5000;
 const AUTH_MODE_SERVER = "server";
 const AUTH_MODE_LOCAL = "local";
-const FRIENDLY_OFFLINE_ERROR = "Cannot reach the auth server. Start backend on http://localhost:3001 and try again.";
 const LOCAL_MODE_MESSAGE = "Backend offline — using local demo login.";
 const CUSTOMER_LOGIN_DISABLED_MESSAGE = "Customer logins not enabled — use booking link";
 
@@ -92,13 +92,17 @@ function syncAuthModeDocument() {
 }
 
 function isOfflineErrorMessage(message) {
-  return String(message ?? "").trim() === FRIENDLY_OFFLINE_ERROR;
+  return String(message ?? "").trim() === getFriendlyOfflineError();
+}
+
+function getFriendlyOfflineError() {
+  return `Cannot reach the auth server. Start backend on ${getApiOrigin()} and try again.`;
 }
 
 async function requestJson(path, { method = "GET", token = "", body } = {}) {
   let response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(buildApiUrl(path), {
       method,
       headers: {
         "Content-Type": "application/json",
@@ -107,7 +111,7 @@ async function requestJson(path, { method = "GET", token = "", body } = {}) {
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
   } catch {
-    throw new Error(FRIENDLY_OFFLINE_ERROR);
+    throw new Error(getFriendlyOfflineError());
   }
 
   let payload = null;
@@ -131,7 +135,7 @@ async function pingAuthServer() {
   }, AUTH_MODE_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${API_BASE}${AUTH_PING_PATH}`, {
+    const response = await fetch(buildApiUrl(AUTH_PING_PATH), {
       method: "GET",
       cache: "no-store",
       signal: controller?.signal,
@@ -181,7 +185,7 @@ async function resolveAuthMode({ refreshLocal = false } = {}) {
 }
 
 async function submitServerAuth({ username, password, role, isRegister }) {
-  const path = isRegister ? "/api/auth/register" : "/api/auth/login";
+  const path = isRegister ? "auth/register" : "auth/login";
   const payload = isRegister
     ? { username, password, role: normalizeRole(role) }
     : { username, password };
@@ -321,7 +325,7 @@ export async function restoreSessionFromApi({ setUser, clearUser } = {}) {
   }
 
   try {
-    const response = await requestJson("/api/auth/me", {
+    const response = await requestJson("auth/me", {
       method: "GET",
       token,
     });

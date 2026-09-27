@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:3001/api";
+import { API_BASE_URL } from "./api-config.js";
+
+const API_BASE = API_BASE_URL;
 const ADMIN_TOKEN_KEY = "Slotzy_admin_token";
 
 (function () {

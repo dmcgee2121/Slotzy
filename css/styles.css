@@ -588,6 +588,57 @@ textarea:focus-visible,
   gap: 10px;
 }
 
+.booking-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.booking-steps li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.booking-steps span {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.booking-contact-section {
+  padding-top: 4px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.booking-contact-heading {
+  margin-top: 8px;
+}
+
+.booking-contact-heading h3,
+.booking-contact-heading p {
+  margin: 0;
+}
+
 .booking-slot-select {
   width: 100%;
   min-height: 42px;
@@ -1488,6 +1539,10 @@ textarea:focus-visible,
     grid-template-columns: 1fr;
   }
 
+  .booking-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .toggle-row {
     align-items: flex-start;
   }
@@ -1505,6 +1560,10 @@ textarea:focus-visible,
   .booking-receipt-manage-link-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .booking-receipt-manage-link-row .btn {
+    min-height: 46px;
   }
 
   .booking-receipt-grid {
@@ -1566,6 +1625,12 @@ textarea:focus-visible,
 
   .public-shop-directory-card-action {
     width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .booking-steps {
+    grid-template-columns: 1fr;
   }
 }
 

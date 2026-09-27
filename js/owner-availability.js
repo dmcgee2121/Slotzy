@@ -195,7 +195,7 @@ function renderTimeOffList(timeOff) {
       <section class="empty-state">
         <span class="empty-state-icon" aria-hidden="true">S</span>
         <h3>No time off blocks</h3>
-        <p>Add planned time off to prevent slot generation.</p>
+        <p>Add planned time off, a break, or a blocked day to keep unavailable times out of public booking.</p>
       </section>
     `;
     return;
@@ -506,7 +506,7 @@ function handleTimeOffListClick(event) {
   const block = availability.timeOff.find((item) => item.id === id);
   if (!block) return;
 
-  const confirmed = window.confirm("Delete this time off block?");
+  const confirmed = window.confirm(`Delete this ${block.note || "time off"} block? Those times may become bookable again.`);
   if (!confirmed) return;
 
   availability.timeOff = availability.timeOff.filter((item) => item.id !== id);

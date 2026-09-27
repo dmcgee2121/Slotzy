@@ -42,6 +42,7 @@ import {
     main: document.getElementById("ownerSetupMain"),
     stepSummary: document.getElementById("setupStepSummary"),
     introText: document.getElementById("setupIntroText"),
+    progressDetail: document.getElementById("setupProgressDetail"),
     shopNameInput: document.getElementById("setupShopName"),
     shopLogoInput: document.getElementById("setupShopLogoInput"),
     shopLogoStatus: document.getElementById("setupShopLogoStatus"),
@@ -216,6 +217,7 @@ import {
 
     if (ui.stepSummary) ui.stepSummary.textContent = `Step ${nextStep} of 5`;
     if (ui.introText) ui.introText.textContent = getIntroText(nextStep);
+    if (ui.progressDetail) ui.progressDetail.textContent = getProgressDetail(nextStep);
     writeSetupProgress({ step: nextStep, shopId: state.shopId });
     if (nextStep === 5) {
       renderReadyQr();
@@ -229,6 +231,18 @@ import {
     if (step === 4) return "Set weekly hours and buffer time so Slotzy can generate valid booking slots.";
     if (step === 5) return "Your booking page is live. Copy the link, share the QR, and open the public page.";
     return "Set up your shop, team, services, and hours once, then start sharing your booking link.";
+  }
+
+  function getProgressDetail(step) {
+    const nextStep = Number(step || 1);
+    if (nextStep === 1) {
+      return "Start with the essentials. You can fine-tune advanced settings after your booking page is live.";
+    }
+    if (nextStep === 5) {
+      return "Everything needed for public booking is saved. Your next step is simply to share the link.";
+    }
+    const labels = { 2: "shop", 3: "shop and team", 4: "shop, team, and services" };
+    return `You're picking up where you left off. Your ${labels[nextStep] || "previous setup"} ${nextStep === 2 ? "is" : "are"} saved; finish this step to keep moving.`;
   }
 
   async function handleSaveShopStep() {
@@ -623,7 +637,7 @@ import {
     const staff = Array.isArray(state.setupStatus?.staff) ? state.setupStatus.staff : [];
     if (!ui.barberList) return;
     if (staff.length === 0) {
-      ui.barberList.innerHTML = `<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No booking team yet</h3><p>Your owner profile will appear here once the shop is saved.</p></section>`;
+      ui.barberList.innerHTML = `<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No booking team yet</h3><p>Save your shop details first. Your owner profile is then added automatically for solo booking.</p></section>`;
       return;
     }
     ui.barberList.innerHTML = `<ul class="availability-timeoff-items">${staff.map((staffUser) => `
@@ -638,7 +652,7 @@ import {
     const services = getScopedServices();
     if (!ui.serviceList) return;
     if (services.length === 0) {
-      ui.serviceList.innerHTML = `<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No services yet</h3><p>Add at least two services so clients have real options to book.</p></section>`;
+      ui.serviceList.innerHTML = `<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No services yet</h3><p>Start with your two most requested services. Clients need services before Slotzy can show them available times.</p></section>`;
       return;
     }
     const namesByUsername = new Map((state.setupStatus?.staff || []).map((staffUser) => [staffUser.username, staffUser.displayName]));

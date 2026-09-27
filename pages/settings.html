@@ -15,7 +15,7 @@
         <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
         <div class="owner-brand-copy">
           <h2>Settings</h2>
-          <p>Profile & account details</p>
+          <p>Shop branding and booking rules</p>
         </div>
       </div>
       <nav class="owner-header-actions">
@@ -94,17 +94,17 @@
           <section class="settings-subcard">
             <h4>Contact details</h4>
             <div class="field">
-              <label for="businessNameInput">Business Name</label>
+              <label for="businessNameInput">Business Name (required)</label>
               <input id="businessNameInput" type="text" placeholder="Your shop name" />
             </div>
 
             <div class="form-grid-2">
               <div class="field">
-                <label for="shopPhoneInput">Shop Phone</label>
+              <label for="shopPhoneInput">Shop Phone (optional)</label>
                 <input id="shopPhoneInput" type="tel" placeholder="(555) 123-4567" />
               </div>
               <div class="field">
-                <label for="shopEmailInput">Shop Email</label>
+              <label for="shopEmailInput">Shop Email (optional)</label>
                 <input id="shopEmailInput" type="email" placeholder="shop@example.com" />
               </div>
             </div>
@@ -143,7 +143,7 @@
             <p class="settings-kicker">Booking Rules</p>
             <h3>Appointment policies</h3>
           </div>
-          <p class="small">Set clear limits so clients know when they can book, reschedule, and arrive.</p>
+          <p class="small">These rules are shown or enforced on public booking and manage links. Keep them simple and consistent with what you tell clients.</p>
         </div>
         <div class="settings-policy-grid">
           <section class="settings-subcard">
@@ -164,10 +164,12 @@
               <div class="field">
                 <label for="cancelHoursInput">Cancellation Window (hours)</label>
                 <input id="cancelHoursInput" type="number" min="0" value="24" />
+                <p class="small settings-field-help">Clients can cancel or reschedule only before this window closes.</p>
               </div>
               <div class="field">
                 <label for="bufferMinutesInput">Buffer Between Bookings (minutes)</label>
                 <input id="bufferMinutesInput" type="number" min="0" value="0" />
+                <p class="small settings-field-help">This spaces public booking slots. Keep it aligned with each provider's availability buffer.</p>
               </div>
             </div>
 
@@ -179,6 +181,7 @@
               <div class="field">
                 <label for="noShowStrikeLimitInput">No-Show Strike Limit</label>
                 <input id="noShowStrikeLimitInput" type="number" min="0" value="2" />
+                <p class="small settings-field-help">Use 0 to disable the limit during a pilot.</p>
               </div>
             </div>
           </section>
@@ -243,7 +246,7 @@
             <p class="settings-kicker">Branding</p>
             <h3>Logo and cover image</h3>
           </div>
-          <p class="small">Preview how your brand assets will appear before clients visit the public booking page.</p>
+          <p class="small">Optional branding. Previews are constrained here and the same assets appear on your public booking page and QR printout.</p>
         </div>
         <div class="settings-branding-grid">
           <section class="settings-subcard">
@@ -298,7 +301,7 @@
             <p class="settings-kicker">Save Changes</p>
             <h3>Apply updates</h3>
           </div>
-          <p class="small">Save after updating your booking details, branding, policies, or team information.</p>
+          <p class="small">Save once after changing shop details, branding, or policies. Services, availability, and team records are managed on their own screens.</p>
         </div>
         <div class="cta-row settings-save-actions">
           <button id="saveShopBtn" class="btn btn-primary" type="button">Save Shop Settings</button>

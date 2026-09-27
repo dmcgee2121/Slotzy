@@ -2,7 +2,6 @@ const { test, expect } = require("@playwright/test");
 
 const SHOP_ID = "shop_owner_setup";
 const OWNER_USERNAME = "owner_setup";
-const ONE_PIXEL_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgwJ/l8RGoQAAAABJRU5ErkJggg==";
 
 function buildAvailability({ start = "09:00", end = "17:00" } = {}) {
   return {
@@ -86,30 +85,14 @@ async function seedStorage(page, seed) {
   }, seed);
 }
 
-test("fresh owner is guided through onboarding and gets a working public booking link", async ({ page }) => {
+test("owner resumes incomplete setup and gets a working public booking link", async ({ page }) => {
   await seedStorage(page, buildSeed());
 
   await page.goto("/pages/business-owner.html");
 
   await expect(page).toHaveURL(/\/pages\/owner-setup\.html$/);
-  await expect(page.locator("#setupStepSummary")).toHaveText("Step 1 of 5");
-  await expect(page.locator("h1")).toContainText("Get your shop live in a few minutes");
-
-  await page.setInputFiles("#setupShopLogoInput", {
-    name: "setup-logo.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(ONE_PIXEL_PNG_BASE64, "base64"),
-  });
-  await expect(page.locator("#setupShopLogoPreview")).toHaveAttribute("src", /data:image\/png;base64,/);
-
-  await page.fill("#setupShopName", "North Loop Cuts");
-  await page.getByRole("button", { name: "Save and Continue" }).click();
-
-  await expect(page.locator("#setupStepSummary")).toHaveText("Step 2 of 5");
-  await page.fill("#setupOwnerDisplayName", "Jordan Owner");
-  await page.getByRole("button", { name: "Continue" }).click();
-
   await expect(page.locator("#setupStepSummary")).toHaveText("Step 3 of 5");
+  await expect(page.locator("#setupProgressDetail")).toContainText("You're picking up where you left off.");
   await page.selectOption("#setupServiceBarber", OWNER_USERNAME);
   await page.fill("#setupServiceName", "Classic Cut");
   await page.fill("#setupServicePrice", "35");
@@ -129,9 +112,11 @@ test("fresh owner is guided through onboarding and gets a working public booking
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.locator("#setupStepSummary")).toHaveText("Step 5 of 5");
-  await expect(page.locator("#setupReadyShopName")).toHaveText("North Loop Cuts");
-  await expect(page.locator("#setupBookingLink")).toHaveValue(/\/pages\/book\.html\?shop=north-loop-cuts$/);
+  await expect(page.locator("#setupReadyShopName")).toHaveText("Fresh Start Studio");
+  await expect(page.locator("#setupBookingLink")).toHaveValue(/\/pages\/book\.html\?shop=fresh-start-studio$/);
   await expect(page.locator("#setupBookingQrImage")).toHaveAttribute("src", /data:image\/png;base64,/);
+  await expect(page.getByRole("button", { name: "Copy Booking Link" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Booking Page" })).toBeVisible();
 
   const setupState = await page.evaluate(() => ({
     step: sessionStorage.getItem("Slotzy_setupStep"),
@@ -148,9 +133,8 @@ test("fresh owner is guided through onboarding and gets a working public booking
   expect(Array.isArray(setupState.services)).toBeTruthy();
   expect(setupState.services).toHaveLength(2);
   expect(setupState.availability?.[OWNER_USERNAME]?.weekly?.mon?.enabled).toBeTruthy();
-  expect(setupState.shops[0]?.name).toBe("North Loop Cuts");
-  expect(setupState.shops[0]?.slug).toBe("north-loop-cuts");
-  expect(setupState.shops[0]?.logoDataUrl || "").toContain("data:image/png;base64,");
+  expect(setupState.shops[0]?.name).toBe("Fresh Start Studio");
+  expect(setupState.shops[0]?.slug).toBe("fresh-start-studio");
 
   const bookingLink = await page.locator("#setupBookingLink").inputValue();
   const storageSnapshot = await page.evaluate(() => ({
@@ -169,8 +153,7 @@ test("fresh owner is guided through onboarding and gets a working public booking
     });
   }, storageSnapshot);
   await publicPage.goto(bookingLink);
-  await expect(publicPage.locator("#publicShopName")).toHaveText("North Loop Cuts");
-  await expect(publicPage.locator("#publicShopLogo")).toHaveAttribute("src", /data:image\/png;base64,/);
+  await expect(publicPage.locator("#publicShopName")).toHaveText("Fresh Start Studio");
   await expect(publicPage.locator("#barberSelect")).toBeEnabled();
   await publicPage.close();
 });

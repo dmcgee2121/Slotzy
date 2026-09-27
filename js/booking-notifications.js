@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:3001/api";
+import { API_BASE_URL } from "./api-config.js";
+
+const API_BASE = API_BASE_URL;
 const NOTIFY_TIMEOUT_MS = 1400;
 
 const ENDPOINTS = {

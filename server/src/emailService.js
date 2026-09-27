@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { randomUUID } from "crypto";
-import { readDb, writeDb } from "./db.js";
+import { appendOutboxEmail, clearOutboxEmails, listOutboxEmails } from "./storage/index.js";
 
 let transportPromise = null;
 
@@ -70,11 +70,8 @@ function buildEmailRecord(payload) {
 }
 
 async function saveToOutbox(payload) {
-  const db = await readDb();
   const email = buildEmailRecord(payload);
-  db.emails.push(email);
-  await writeDb(db);
-  return email;
+  return appendOutboxEmail(email);
 }
 
 export function getEmailMode() {
@@ -122,17 +119,9 @@ export async function sendEmail({ to, subject, html, text, tags = [], meta = {} 
 }
 
 export async function getRecentEmails(limit = 50) {
-  const db = await readDb();
-  const safeLimit = Number.isFinite(Number(limit)) ? Math.max(0, Math.floor(Number(limit))) : 50;
-  return [...db.emails]
-    .sort((left, right) => String(right?.createdAtISO ?? "").localeCompare(String(left?.createdAtISO ?? "")))
-    .slice(0, safeLimit);
+  return listOutboxEmails(limit);
 }
 
 export async function clearEmails() {
-  const db = await readDb();
-  const cleared = Array.isArray(db.emails) ? db.emails.length : 0;
-  db.emails = [];
-  await writeDb(db);
-  return { cleared };
+  return clearOutboxEmails();
 }

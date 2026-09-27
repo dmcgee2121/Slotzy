@@ -33,8 +33,41 @@ Notes:
 
 Backend config notes:
 - Local development can run without `JWT_SECRET`; the API falls back to a development-only secret and prints a warning.
-- Pilot or production deployments must set `JWT_SECRET`. The server refuses to start with `NODE_ENV=production` if it is missing.
+- Staging and production deployments must set `JWT_SECRET` and `CORS_ALLOWED_ORIGINS`; the server refuses permissive startup in either environment if either is missing.
 - SMTP is optional. When SMTP variables are missing, Slotzy uses the Dev Outbox instead of sending real email.
+- `SLOTZY_STORAGE` defaults to `json` and persists to `server/src/db.json`. `postgres` is opt-in and requires server-only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; missing values fail startup and never fall back to JSON. See `docs/STAGING_CUTOVER.md` before any staging use.
+
+### Backend storage boundary
+
+`server/src/storage/index.js` is the canonical persistence entry point. Its JSON adapter (`server/src/storage/jsonStore.js`) provides snapshot read/write plus Dev Outbox append/list/clear operations. `server/src/storage/postgresStore.js` reserves the same named contract and validates server-only configuration, but deliberately has no SDK, database, SQL, or fallback implementation. Express route code imports the storage entry point rather than file persistence code. `server/src/db.js` remains a compatibility shim for older local imports.
+
+Run isolated JSON storage contract tests with `cd server && npm run test:storage`. They create only temporary OS files and must not alter `server/src/db.json`.
+
+A future Postgres/Supabase adapter belongs under `server/src/storage/` and must implement the same verified storage contract before it can be selectable. JSON remains the default local/development implementation until a separately approved migration task.
+
+## Frontend API configuration
+
+The static frontend uses one shared API configuration module: `js/api-config.js`. With no hosted configuration, it keeps the current local default of `http://localhost:3001/api`; local demo and local-storage smoke-test behavior are unchanged.
+
+For a separately hosted frontend, a build or release step may set the public `window.SLOTZY_CONFIG.apiBaseUrl` in `js/public-config.js`. It may be an API origin or a full `/api` URL; the shared module normalizes it to one canonical `/api` base URL.
+
+```js
+// Staging example: js/public-config.js
+window.SLOTZY_CONFIG = {
+  apiBaseUrl: "https://api-staging.example.com/api",
+};
+
+// Production example: js/public-config.js
+window.SLOTZY_CONFIG = {
+  apiBaseUrl: "https://api.example.com/api",
+};
+```
+
+`js/public-config.example.js` is a safe template. The URL is public configuration, but this file must never contain `JWT_SECRET`, database/Supabase credentials, SMTP credentials, service-role keys, admin secrets, or any customer data. Use the backend host's secret store for those values.
+
+### Hosted CORS checklist
+
+Local development uses `cors({ origin: true })`. Staging and production require an explicit comma-separated `CORS_ALLOWED_ORIGINS` allowlist, such as the exact Netlify staging origin. Keep staging and production lists separate; do not use `*` for authenticated API endpoints.
 
 Pilot navigation notes:
 - Core owner/barber pages are `business-owner`, `manage-appointments`, `manage-services`, `manage-barbers`, and `settings`.

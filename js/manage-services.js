@@ -121,7 +121,7 @@ import * as dataStore from "./dataStore.js";
     const service = allServices.find((item) => item.id === serviceId && isScopedService(item));
     if (!service) return;
 
-    const confirmed = window.confirm(`Delete "${service.name}"?`);
+    const confirmed = window.confirm(`Delete "${service.name}" from your public booking menu? Clients will no longer be able to select it. This cannot be undone.`);
     if (!confirmed) return;
 
     const remaining = allServices.filter((item) => item.id !== serviceId);
@@ -242,12 +242,15 @@ import * as dataStore from "./dataStore.js";
   }
 
   function renderServiceCard(service) {
+    const statusLabel = service.active === false ? "Inactive" : "Active";
+    const statusClass = service.active === false ? "badge-danger" : "badge-success";
     return `
       <article class="card owner-service-card">
         <div class="card-head">
           <h3>${escapeHtml(service.name)}</h3>
           <p>$${formatPrice(service.price)} | ${escapeHtml(service.durationMinutes)} minutes</p>
         </div>
+        <span class="badge ${statusClass}" aria-label="Service status: ${statusLabel}">${statusLabel}</span>
         <div class="owner-service-actions cta-row">
           <button class="btn btn-ghost" type="button" data-action="edit" data-id="${escapeHtml(service.id)}">Edit</button>
           <button class="btn btn-danger" type="button" data-action="delete" data-id="${escapeHtml(service.id)}">Delete</button>

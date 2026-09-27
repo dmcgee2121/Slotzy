@@ -1962,19 +1962,22 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     const noShowMeta = `No-shows: ${noShowCount}`;
 
     return `
-      <article class="appointment-row">
-        <div class="appointment-main">${escapeHtml(booking.serviceName)}</div>
+      <article class="appointment-row appointment-row--${escapeHtml(normalizeStatus(booking.status))}" data-status="${escapeHtml(normalizeStatus(booking.status))}">
+        <div class="appointment-main">
+          <span class="appointment-detail-label">Service</span>
+          <strong>${escapeHtml(booking.serviceName)}</strong>
+          <span class="small appointment-client-name">Customer: ${escapeHtml(booking.clientName || "Not provided")}</span>
+        </div>
         <div class="appointment-datetime">
           <span>${escapeHtml(dateText)}</span>
           <span>${escapeHtml(`${startText} - ${endText}`)}</span>
           ${barberMeta}
-          <span class="small">${escapeHtml(`Client: ${booking.clientName}`)}</span>
           <span class="small">${escapeHtml(`Contact: ${booking.clientContact || "N/A"}`)}</span>
           <span class="small">${escapeHtml(depositMeta)}</span>
           <span class="small">${escapeHtml(noShowMeta)}</span>
         </div>
         <div class="appointment-actions">
-          <span class="badge ${escapeHtml(statusBadge)}">${escapeHtml(statusLabel)}</span>
+          <span class="badge ${escapeHtml(statusBadge)}" aria-label="${escapeHtml(`Status: ${statusLabel}`)}">${escapeHtml(statusLabel)}</span>
           ${walkinBadgeMarkup}
           ${actionsMarkup}
         </div>
@@ -2176,7 +2179,8 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       setInlineStatus("Past appointments cannot be cancelled.", false);
       return;
     }
-    if (!window.confirm("Cancel this appointment?")) return;
+    const confirmation = `Cancel ${String(booking.serviceName ?? "this appointment")} for ${String(booking.clientName ?? "this customer")} on ${formatDateFriendly(booking.start)} at ${formatTimeLabel(booking.start)}? This cannot be undone.`;
+    if (!window.confirm(confirmation)) return;
     const result = applyBookingStatusUpdate(booking.id, "cancelled");
     if (!result.ok) {
       setInlineStatus("Could not cancel this appointment.", false);
@@ -2215,6 +2219,8 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       setInlineStatus("You can mark completed only after the appointment start time.", false);
       return;
     }
+    const confirmation = `Mark ${String(booking.serviceName ?? "this appointment")} for ${String(booking.clientName ?? "this customer")} as completed?`;
+    if (!window.confirm(confirmation)) return;
     const result = applyBookingStatusUpdate(booking.id, "completed");
     if (!result.ok) {
       setInlineStatus("Could not mark this appointment completed.", false);
@@ -2233,6 +2239,8 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       setInlineStatus("You can mark no-show only after the appointment start time.", false);
       return;
     }
+    const confirmation = `Mark ${String(booking.clientName ?? "this customer")} as a no-show for ${String(booking.serviceName ?? "this appointment")}?`;
+    if (!window.confirm(confirmation)) return;
     const result = applyBookingStatusUpdate(booking.id, "no-show");
     if (!result.ok) {
       setInlineStatus("Could not mark this appointment no-show.", false);

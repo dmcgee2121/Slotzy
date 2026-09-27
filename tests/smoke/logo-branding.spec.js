@@ -51,10 +51,30 @@ function buildSeed() {
           },
         },
       ],
-      Slotzy_services: [],
+      Slotzy_services: [
+        {
+          id: "svc_logo_1",
+          name: "Logo Test Cut",
+          price: 30,
+          durationMinutes: 30,
+          active: true,
+          shopId: "shop_logo_1",
+          barberUsername: "owner_logo",
+          ownerUsername: "owner_logo",
+        },
+      ],
       Slotzy_staff: [],
       Slotzy_bookings: [],
-      Slotzy_availability: {},
+      Slotzy_availability: {
+        owner_logo: {
+          timezone: "America/Chicago",
+          bufferMinutes: 0,
+          weekly: {
+            mon: { enabled: true, start: "09:00", end: "17:00" },
+          },
+          timeOff: [],
+        },
+      },
     },
     session: {
       Slotzy_user: {

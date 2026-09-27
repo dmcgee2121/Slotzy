@@ -1,3 +1,5 @@
+import { API_BASE_URL, normalizeApiBaseUrl } from "./api-config.js";
+
 export const KEYS = {
   SESSION_USER: "Slotzy_user",
   AUTH_TOKEN: "Slotzy_auth_token",
@@ -16,7 +18,7 @@ export const EVENTS = {
 };
 
 const API_MODE_KEY = "Slotzy_api_mode";
-const API_DEFAULT_BASE_URL = "http://localhost:3001/api";
+const API_DEFAULT_BASE_URL = API_BASE_URL;
 const DEMO_MODE_KEY = "Slotzy_demoMode";
 const DEMO_SEEDED_KEY = "Slotzy_demoSeeded";
 const LEGACY_DEMO_MODE_KEYS = ["Slotzy_demo_mode"];
@@ -90,12 +92,6 @@ const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const BUFFER_OPTIONS = new Set([0, 5, 10, 15]);
 const LEGACY_TOKEN_KEYS = ["Slotzy_token"];
 let didEnsureDataModel = false;
-
-function normalizeApiBaseUrl(value) {
-  const input = String(value ?? "").trim();
-  if (!input) return API_DEFAULT_BASE_URL;
-  return input.replace(/\/+$/, "");
-}
 
 function isApiModeEnabled() {
   return DATA_MODE === "api" && API_CONFIG.enabled;

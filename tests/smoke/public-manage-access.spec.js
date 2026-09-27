@@ -192,6 +192,7 @@ test("public booking receipt exposes a manage link and contact-based manage page
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
   await expect(page.locator("#bookingReceiptManageLink")).toBeVisible();
   const manageLink = String(await page.locator("#bookingReceiptManageLink").getAttribute("href") || "");
+  await expect(page.locator("#btn-receipt-open-manage-link")).toHaveAttribute("href", manageLink);
   expect(manageLink).toContain("/pages/manage.html?");
   expect(manageLink).toContain("shop=manage-test-shop");
   expect(manageLink).toContain("contact=555-1234");
@@ -229,10 +230,9 @@ test("public booking receipt exposes a manage link and contact-based manage page
     page.locator("#manageUpcomingList .client-manage-card").filter({ hasText: "Blocked Trim" })
   ).toContainText("Rescheduling must be at least 24 hours before.");
 
-  page.on("dialog", async (dialog) => {
-    await dialog.accept();
-  });
   await page.locator("button[data-action='cancel-appointment']").click();
+  await expect(page.locator("#manageStatus")).toContainText('Click "Confirm Cancel" to cancel this appointment.');
+  await page.locator("button[data-action='confirm-cancel-appointment']").click();
   await expect(page.locator("#manageStatus")).toContainText("Appointment cancelled.");
   await expect(page.locator("#toast")).toContainText("Appointment cancelled.");
   await expect(page.locator("#managePastList")).toContainText("Public Access Cut");

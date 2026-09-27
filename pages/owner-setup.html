@@ -32,6 +32,7 @@
         <p id="setupStepSummary" class="small owner-setup-step-summary">Step 1 of 5</p>
         <h1>Get your shop live in a few minutes</h1>
         <p id="setupIntroText">Set up your shop, team, services, and hours once, then start sharing your booking link.</p>
+        <p id="setupProgressDetail" class="small owner-setup-progress-detail" aria-live="polite">Start with the essentials. You can fine-tune advanced settings after your booking page is live.</p>
       </div>
       <ol class="setup-stepper" id="setupStepper">
         <li class="setup-step is-active" data-step="1">1. Shop</li>
@@ -44,7 +45,7 @@
 
     <section class="card owner-panel" data-step-panel="1">
       <h2>Step 1: Shop</h2>
-      <p class="small">Choose the shop name and branding clients will see on your booking page and QR handout.</p>
+      <p class="small">Choose the name clients will recognize. Your public booking link is created from this name, and branding is optional for now.</p>
 
       <div class="field">
         <label for="setupShopName">Shop Name</label>
@@ -76,7 +77,7 @@
 
     <section class="card owner-panel hidden" data-step-panel="2">
       <h2>Step 2: Team</h2>
-      <p class="small">Solo-first by default. Keep "I'm the only barber" on for the fastest launch, or turn it off if you want multiple schedules.</p>
+      <p class="small">Most pilot barbers can stay solo. Add team members only when you need separate schedules; you can always do this later.</p>
 
       <div class="toggle-row">
         <label for="setupOnlyBarberCheckbox">I'm the only barber</label>
@@ -134,7 +135,7 @@
 
     <section class="card owner-panel hidden" data-step-panel="3">
       <h2>Step 3: Add services</h2>
-      <p class="small">Create at least two bookable services before you share your public booking link.</p>
+      <p class="small">Add the two services clients ask for most. Clear names, prices, and durations let Slotzy offer accurate time slots.</p>
 
       <div class="setup-form-cluster">
         <div class="form-grid-2">
@@ -177,7 +178,7 @@
 
     <section class="card owner-panel hidden" data-step-panel="4">
       <h2>Step 4: Set weekly hours</h2>
-      <p class="small">Set weekly hours and booking buffer for each barber. Save at least one enabled day before continuing.</p>
+      <p class="small">Turn on the days you accept bookings and set your usual hours. A small buffer is optional; save at least one open day to continue.</p>
 
       <div class="form-grid-3">
         <div class="field">
@@ -232,7 +233,7 @@
     <section class="card owner-panel hidden" data-step-panel="5">
       <div class="setup-success-head">
         <h2>You're ready</h2>
-        <p class="small">Your booking page is live. Copy the link, print the QR, and start sharing it with clients.</p>
+        <p class="small">Your booking page is live. Copy the link first, then send it by text, add it to social profiles, or let clients scan the QR.</p>
       </div>
 
       <div class="setup-ready-grid">
@@ -246,10 +247,10 @@
       </div>
 
       <div class="public-booking-link-actions">
-        <button id="setupCopyBookingLink" class="btn btn-ghost" type="button">Copy Link</button>
+        <button id="setupCopyBookingLink" class="btn btn-primary" type="button">Copy Booking Link</button>
         <button id="setupPrintBookingQr" class="btn btn-ghost" type="button">Print QR</button>
         <button id="setupOpenBookingPage" class="btn btn-ghost" type="button">Open Booking Page</button>
-        <button id="setupGoDashboard" class="btn btn-primary" type="button">Go to Dashboard</button>
+        <button id="setupGoDashboard" class="btn btn-ghost" type="button">Go to Dashboard</button>
       </div>
 
       <div class="public-booking-qr-block setup-ready-qr-block">

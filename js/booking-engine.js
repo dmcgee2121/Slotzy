@@ -494,7 +494,8 @@ export function initBookingEngine(options = {}) {
               <h2>Manage your appointment</h2>
               <p class="small muted">Use this manage link to view upcoming appointments and cancel or reschedule within the allowed window.</p>
               <div class="booking-receipt-manage-link-row">
-                <a id="bookingReceiptManageLink" class="booking-receipt-manage-link" href="${escapeHtml(manageLinkUrl)}">${escapeHtml(manageLinkUrl)}</a>
+                <a id="bookingReceiptManageLink" class="booking-receipt-manage-link" href="${escapeHtml(manageLinkUrl)}" aria-label="Manage this appointment">${escapeHtml(manageLinkUrl)}</a>
+                <a id="btn-receipt-open-manage-link" class="btn btn-primary" href="${escapeHtml(manageLinkUrl)}">Open Manage Page</a>
                 <button type="button" class="btn btn-ghost" id="btn-receipt-copy-manage-link">Copy Link</button>
               </div>
             </section>

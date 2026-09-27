@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:3001/api";
+import { API_BASE_URL } from "./api-config.js";
+
+const API_BASE = API_BASE_URL;
 
 (function () {
   const listEl = document.getElementById("devEmailsList");

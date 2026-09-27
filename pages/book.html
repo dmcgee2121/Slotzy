@@ -51,8 +51,15 @@
     <section class="card owner-panel section-stack" id="bookingPanel">
       <div class="card-head">
         <h2>Book in 30 seconds</h2>
-        <p class="small">Pick your service, choose a time, and confirm your visit. Need to reschedule later? Use your manage link from the receipt.</p>
+        <p class="small">No account needed. Follow the steps below, then save the manage link from your receipt for changes later.</p>
       </div>
+
+      <ol class="booking-steps" aria-label="Booking steps">
+        <li><span>1</span> Choose barber</li>
+        <li><span>2</span> Choose service</li>
+        <li><span>3</span> Choose date and time</li>
+        <li><span>4</span> Add your details</li>
+      </ol>
 
       <label for="shopSelect" class="small hidden">Shop</label>
       <select id="shopSelect" class="hidden" aria-hidden="true">
@@ -98,15 +105,19 @@
         <a id="changeBarberLink" href="#barberSelect">Change barber</a>
       </p>
 
-      <div class="form-stack">
+      <div class="form-stack booking-contact-section">
+        <div class="card-head booking-contact-heading">
+          <h3>Your details</h3>
+          <p class="small">We use these details to identify your appointment from the manage link.</p>
+        </div>
         <div class="field">
           <label for="clientName">Your Name</label>
-          <input type="text" id="clientName" placeholder="Enter your full name" />
+          <input type="text" id="clientName" placeholder="Enter your full name" autocomplete="name" />
         </div>
 
         <div class="field">
           <label for="clientContact">Contact (phone or email)</label>
-          <input type="text" id="clientContact" placeholder="Enter phone or email" />
+          <input type="text" id="clientContact" placeholder="Enter phone or email" autocomplete="tel" inputmode="tel" />
         </div>
       </div>
       <p class="small muted">Need to reschedule? Use your manage link from the booking receipt. No account needed.</p>

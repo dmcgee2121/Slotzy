@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { randomUUID } from "crypto";
-import { readDb, writeDb } from "./db.js";
+import { STORAGE_ADAPTER, readStore, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 
 dotenv.config();
@@ -12,7 +12,8 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const ADMIN_SECRET = String(process.env.ADMIN_SECRET || "").trim();
-const IS_PRODUCTION = String(process.env.NODE_ENV || "").trim().toLowerCase() === "production";
+const RUNTIME_ENVIRONMENT = String(process.env.NODE_ENV || "development").trim().toLowerCase() || "development";
+const IS_PRODUCTION_LIKE = RUNTIME_ENVIRONMENT === "production" || RUNTIME_ENVIRONMENT === "staging";
 const DEV_JWT_FALLBACK = "dev-secret-change-me";
 const JWT_SECRET = resolveJwtSecret();
 
@@ -70,9 +71,9 @@ function resolveJwtSecret() {
     return configuredSecret;
   }
 
-  if (IS_PRODUCTION) {
+  if (IS_PRODUCTION_LIKE) {
     throw new Error(
-      "Missing JWT_SECRET. Refusing to start in production without an explicit JWT secret."
+      "Missing JWT_SECRET. Refusing to start in staging or production without an explicit JWT secret."
     );
   }
 
@@ -82,11 +83,25 @@ function resolveJwtSecret() {
   return DEV_JWT_FALLBACK;
 }
 
+function getCorsOptions() {
+  const allowedOrigins = String(process.env.CORS_ALLOWED_ORIGINS ?? "").split(",").map((origin) => origin.trim()).filter(Boolean);
+  if (!IS_PRODUCTION_LIKE) return { origin: true };
+  if (!allowedOrigins.length) throw new Error("Missing CORS_ALLOWED_ORIGINS. Refusing to start staging or production with permissive CORS.");
+  return {
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("CORS origin is not allowed"));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  };
+}
+
 app.use(express.json({ limit: "5mb" }));
-app.use(cors({ origin: true }));
+app.use(cors(getCorsOptions()));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "slotzy-api" });
+  res.json({ ok: true, service: "slotzy-api", storage: STORAGE_ADAPTER, environment: RUNTIME_ENVIRONMENT });
 });
 
 app.get("/api/admin/status", (_req, res) => {
@@ -940,7 +955,7 @@ async function requireAuth(req, res, next) {
       return res.status(401).json({ error: "invalid token payload" });
     }
 
-    const db = await readDb();
+    const db = await readStore();
     const user = findUserByUsername(db, username);
     if (!user) {
       return res.status(401).json({ error: "user not found for token" });
@@ -974,7 +989,7 @@ async function requireAdmin(req, res, next) {
       return res.status(401).json({ error: "invalid admin token" });
     }
 
-    req.db = await readDb();
+    req.db = await readStore();
     return next();
   } catch {
     return res.status(401).json({ error: "invalid or expired admin token" });
@@ -1051,7 +1066,7 @@ function buildAdminShopSummary(db, shop) {
 }
 
 async function seedAdminDemoShop() {
-  const db = await readDb();
+  const db = await readStore();
   const now = new Date();
   const createdAt = now.toISOString();
   const suffix = String(now.getTime()).slice(-6);
@@ -1106,7 +1121,7 @@ async function seedAdminDemoShop() {
   db.availability[ownerUsername] = createDefaultAvailability();
   db.availability[barberUsername] = createDefaultAvailability();
 
-  await writeDb(db);
+  await writeStore(db);
   return findShopById(db, shopId);
 }
 
@@ -1132,7 +1147,7 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ error: "role must be owner, barber, or customer" });
     }
 
-    const db = await readDb();
+    const db = await readStore();
     const exists = Boolean(findUserByUsername(db, username));
     if (exists) {
       return res.status(409).json({ error: "username already exists" });
@@ -1158,7 +1173,7 @@ app.post("/api/auth/register", async (req, res) => {
     };
 
     db.users.push(user);
-    await writeDb(db);
+    await writeStore(db);
 
     const token = signToken(user);
     return res.status(201).json({ token, user: buildAuthUser(user) });
@@ -1176,7 +1191,7 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ error: "username and password are required" });
     }
 
-    const db = await readDb();
+    const db = await readStore();
     const user = findUserByUsername(db, username);
     if (!user) {
       return res.status(401).json({ error: "invalid credentials" });
@@ -1264,7 +1279,7 @@ app.post("/api/shops", requireAuth, async (req, res) => {
       ownerRecord.shopId = shop.id;
     }
 
-    await writeDb(db);
+    await writeStore(db);
     return res.status(201).json({ shop });
   } catch {
     return res.status(500).json({ error: "internal server error" });
@@ -1328,7 +1343,7 @@ app.patch("/api/shops/:shopId", requireAuth, async (req, res) => {
 
     next.updatedAtISO = new Date().toISOString();
     db.shops[index] = next;
-    await writeDb(db);
+    await writeStore(db);
 
     return res.json({ shop: next });
   } catch {
@@ -1448,7 +1463,7 @@ app.post("/api/services", requireAuth, async (req, res) => {
     };
 
     db.services.push(service);
-    await writeDb(db);
+    await writeStore(db);
     return res.status(201).json({ service });
   } catch {
     return res.status(500).json({ error: "internal server error" });
@@ -1567,7 +1582,7 @@ app.patch("/api/services/:serviceId", requireAuth, async (req, res) => {
     next.updatedAtISO = new Date().toISOString();
 
     db.services[index] = next;
-    await writeDb(db);
+    await writeStore(db);
 
     return res.json({ service: next });
   } catch {
@@ -1598,7 +1613,7 @@ app.delete("/api/services/:serviceId", requireAuth, async (req, res) => {
     }
 
     db.services.splice(index, 1);
-    await writeDb(db);
+    await writeStore(db);
     return res.status(204).send();
   } catch {
     return res.status(500).json({ error: "internal server error" });
@@ -1699,7 +1714,7 @@ app.put("/api/availability", requireAuth, async (req, res) => {
     const payload = req.body?.availability !== undefined ? req.body.availability : req.body;
     const availability = normalizeAvailabilityEntry(payload);
     db.availability[targetUsername] = availability;
-    await writeDb(db);
+    await writeStore(db);
 
     return res.json({
       barberUsername: targetUsername,
@@ -1837,7 +1852,7 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
     if (!booking.serviceTitle && booking.serviceName) booking.serviceTitle = String(booking.serviceName);
 
     db.bookings.push(booking);
-    await writeDb(db);
+    await writeStore(db);
     if (!shouldSkipRouteBookingNotify(req)) {
       await sendBookingNotifications(db, {
         type: "booking_created",
@@ -1966,7 +1981,7 @@ app.patch("/api/bookings/:bookingId", requireAuth, async (req, res) => {
     next.updatedAtISO = new Date().toISOString();
 
     db.bookings[index] = next;
-    await writeDb(db);
+    await writeStore(db);
 
     const currentStatus = normalizeBookingStatus(current?.status);
     const nextStatus = normalizeBookingStatus(next?.status);
@@ -2047,7 +2062,7 @@ app.post("/api/admin/shops/:shopId/reset", requireAdmin, async (req, res) => {
       }
     });
 
-    await writeDb(db);
+    await writeStore(db);
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ error: "internal server error" });
@@ -2069,7 +2084,7 @@ app.post("/api/admin/clear-all", requireAdmin, async (_req, res) => {
   }
 
   try {
-    await writeDb(EMPTY_DB);
+    await writeStore(EMPTY_DB);
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ error: "internal server error" });
