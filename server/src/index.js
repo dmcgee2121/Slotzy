@@ -1177,7 +1177,14 @@ app.post("/api/auth/register", async (req, res) => {
 
     const token = signToken(user);
     return res.status(201).json({ token, user: buildAuthUser(user) });
-  } catch {
+  } catch (error) {
+    // Keep the browser response generic, but make hosted diagnostics actionable.
+    // Never log request bodies: they contain passwords and may later contain PII.
+    console.error("[Slotzy:auth] POST /api/auth/register failed", {
+      storage: STORAGE_ADAPTER,
+      code: String(error?.code ?? ""),
+      message: String(error?.message ?? "unknown error"),
+    });
     return res.status(500).json({ error: "internal server error" });
   }
 });

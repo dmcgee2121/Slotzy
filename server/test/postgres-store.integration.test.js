@@ -67,9 +67,13 @@ function postgresTest(name, fn) {
 }
 
 postgresTest("Postgres user create/read contract", async () => {
-  await store.writeStore(baseState({ shops: [], services: [], availability: {} }));
-  const state = await store.readStore();
-  assert.equal(state.users.length, 1); assert.equal(state.users[0].username, "fixture-owner");
+  const state = baseState({ shops: [], services: [], availability: {} });
+  // Owners may register before shop setup. A missing shop relationship must not
+  // create an invalid shop_members row or prevent independent user persistence.
+  state.users[0].shopId = null;
+  await store.writeStore(state);
+  const read = await store.readStore();
+  assert.equal(read.users.length, 1); assert.equal(read.users[0].username, "fixture-owner"); assert.equal(read.users[0].shopId, null);
 });
 
 postgresTest("Postgres shop create/read/update contract", async () => {

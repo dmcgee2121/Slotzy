@@ -443,3 +443,9 @@ This is acceptable only for local development. It blocks real pilot and staging 
 
 - The hosted run showed the registration modal remained open after Continue. Source review confirms this only happens when `submitAuth` throws: successful server registration calls `setUser`, `hideModal`, and dashboard navigation. The form has no undisclosed required field beyond username/password/role.
 - The E2E now waits for the actual `POST /api/auth/register` response, fails immediately with its HTTP status and safe error message when unsuccessful, and races modal closure against visible `#auth-error` for a maximum of five seconds. If the API succeeds but neither condition follows, it reports a specific auth-UI defect. A new hosted run is needed to identify the exact response/error; no application code was changed.
+
+## Staging registration HTTP 500 diagnostic hardening (2026-09-27)
+
+- The E2E registration payload is only `username`, `password`, and `role`: a unique 32-character lower-case/hyphen `e2e-...-owner` username, bcrypt-safe synthetic password, and `owner`. Its generated email is not sent. The route accepts these values; existing Postgres test identifiers already exercise hyphens.
+- The route's generic catch previously discarded the only server-side error. It now logs a safe route/storage/error-code/message diagnostic to Render while preserving the browser's generic `internal server error` response and never logging request bodies, passwords, JWTs, or credentials.
+- Added Postgres regression coverage for an owner with `shopId: null`, matching registration before shop setup. The snapshot RPC is transactional, so a failed write rolls back its user and legacy-source-ID writes rather than leaving a partial relational record. No SQL patch is required by this code review; Render logs from the next guarded run are required to identify any stale-schema or hosted-only error precisely.

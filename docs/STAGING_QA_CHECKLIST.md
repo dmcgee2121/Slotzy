@@ -10,6 +10,8 @@ Owner registration is verified by the post-registration authenticated UI (`userB
 
 If registration remains open, the E2E first reports the `/api/auth/register` HTTP status and safe response error, then checks visible `#auth-error`; it does not wait for a generic modal timeout. A successful API response without a modal close or inline error is reported as an auth-UI defect.
 
+For a staging registration HTTP 500, inspect the Render server log entry `[Slotzy:auth] POST /api/auth/register failed`. It includes only the active storage adapter and safe error code/message; it deliberately excludes username, password, request body, JWT, and Supabase credentials.
+
 ## 1. Infrastructure
 
 - [x] Netlify frontend: `https://slotzy-staging.netlify.app` reachable.
