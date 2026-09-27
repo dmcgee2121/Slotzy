@@ -53,11 +53,20 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await page.fill("#auth-password", identity.password);
   await page.selectOption("#auth-role", "owner");
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page).toHaveURL(/owner-setup|business-owner/);
+  // Hosted registration can retain index.html while it applies authenticated
+  // navigation state. Verify that state rather than treating any landing URL
+  // as success, then use the real Dashboard entry point.
+  await expect(page.locator("#modal")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#userBadge")).toContainText(identity.username);
+  await expect(page.locator("#btn-dashboard")).toBeVisible();
+  await page.locator("#btn-dashboard").click();
+  await expect(page).toHaveURL(/\/pages\/(owner-setup|business-owner)\.html/);
 
   // Complete the minimum owner configuration through the hosted UI.
-  if (await page.locator("#shopName").count()) await page.fill("#shopName", identity.shopName);
-  if (await page.getByRole("button", { name: /continue|save/i }).count()) await page.getByRole("button", { name: /continue|save/i }).first().click();
+  if (await page.locator("#setupShopName").count()) {
+    await page.fill("#setupShopName", identity.shopName);
+    await page.locator("#setupStep1Next").click();
+  }
   await page.goto(`${frontendUrl}/pages/manage-services.html`);
   await page.fill("#serviceName", identity.serviceName);
   await page.fill("#servicePrice", "30");

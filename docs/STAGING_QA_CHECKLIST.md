@@ -6,6 +6,8 @@ Use only synthetic staging data. Record date, tester, browser/device, and any de
 
 Run `npm run test:staging` only with `SLOTZY_ALLOW_STAGING_E2E=true`, `SLOTZY_STAGING_FRONTEND_URL`, and `SLOTZY_STAGING_API_URL` explicitly set to HTTPS hosts containing `staging`. The suite warms `/api/health` for up to 150 seconds for Render cold starts and refuses all writes unless health reports staging plus Postgres. It creates unique `e2e-` synthetic records and has no cleanup API; remove those records manually with staging-only operational tooling if needed.
 
+Owner registration is verified by the post-registration authenticated UI (`userBadge` and the Dashboard control), then the suite clicks Dashboard and asserts navigation to `owner-setup.html` or `business-owner.html`. A same-page registration landing is not treated as success without that authenticated state and real setup/dashboard entry point.
+
 ## 1. Infrastructure
 
 - [x] Netlify frontend: `https://slotzy-staging.netlify.app` reachable.
