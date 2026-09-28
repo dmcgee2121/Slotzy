@@ -124,6 +124,30 @@ postgresTest("Postgres repeated snapshot write is idempotent contract", async ()
   assert.equal(data.length, 1); assert.equal((await store.readStore()).services.length, 1);
 });
 
+postgresTest("Postgres non-empty shop snapshot preserves service scope while adding a service", async () => {
+  await seedBase();
+  const snapshot = await store.readStore();
+  assert.equal(snapshot.users[0].shopId, "shop-fixture");
+  assert.equal(snapshot.shops[0].id, "shop-fixture");
+  assert.equal(snapshot.services[0].id, "service-cut");
+  assert.equal(snapshot.services[0].shopId, "shop-fixture");
+
+  snapshot.services.push({ id: "service-finish", shopId: "shop-fixture", name: "Fixture Finish", price: 20, durationMinutes: 20, barberUsername: "fixture-owner", active: true });
+  await store.writeStore(snapshot);
+  const afterService = await store.readStore();
+  assert.deepEqual(afterService.services.map((service) => service.name).sort(), ["Fixture Cut", "Fixture Finish"]);
+  assert.ok(afterService.services.every((service) => service.shopId === "shop-fixture"));
+
+  afterService.availability["fixture-owner"].weekly.tue = { enabled: true, start: "10:00", end: "16:00" };
+  await store.writeStore(afterService);
+  const afterSetupWrite = await store.readStore();
+  assert.equal(afterSetupWrite.services.length, 2);
+  assert.ok(afterSetupWrite.services.every((service) => service.shopId === afterSetupWrite.users[0].shopId));
+  const { data: relationalShops, error: shopsError } = await client.from("shops").select("id"); assert.ifError(shopsError);
+  const { data: relationalServices, error: servicesError } = await client.from("services").select("id").is("deleted_at", null); assert.ifError(servicesError);
+  assert.equal(relationalShops.length, 1); assert.equal(relationalServices.length, 2);
+});
+
 postgresTest("Postgres non-empty user snapshot preserves source identity while adding a user", async () => {
   await seedBase();
   const snapshot = await store.readStore();

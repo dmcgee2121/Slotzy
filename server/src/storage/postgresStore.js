@@ -116,19 +116,20 @@ export function createPostgresStore(env = process.env) {
       ["read time off", client.from("time_off").select("*")],
       ["read bookings", client.from("bookings").select("*")],
       ["read email outbox", client.from("email_outbox").select("*")],
-      ["read canonical user identity mappings", client.from("legacy_source_ids").select("source_id,target_id").eq("entity_type", "user").eq("is_canonical", true)],
+      ["read canonical identity mappings", client.from("legacy_source_ids").select("entity_type,source_id,target_id").eq("is_canonical", true)],
     ];
     const results = await Promise.all(reads.map(([, request]) => request));
     results.forEach((result, index) => fail(result.error, reads[index][0], networkFailures));
-    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails, canonicalUserMappings] = results.map((result) => result.data ?? []);
-    const canonicalUserSourceByTarget = new Map(canonicalUserMappings.map((row) => [row.target_id, row.source_id]));
+    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails, canonicalMappings] = results.map((result) => result.data ?? []);
+    const canonicalSourceByTarget = new Map(canonicalMappings.map((row) => [`${row.entity_type}:${row.target_id}`, row.source_id]));
+    const sourceId = (entityType, targetId) => canonicalSourceByTarget.get(`${entityType}:${targetId}`) ?? targetId;
     const usersById = new Map(users.map((row) => [row.id, row]));
     const membersById = new Map(members.map((row) => [row.id, row]));
     const shopByUser = new Map(); members.forEach((row) => { if (!shopByUser.has(row.user_id)) shopByUser.set(row.user_id, row.shop_id); });
     const settingsByShop = new Map(settings.map((row) => [row.shop_id, row]));
     const offByMember = new Map(); timeOffRows.forEach((row) => {
       const value = offByMember.get(row.provider_member_id) ?? [];
-      value.push({ id: row.id, startISO: iso(row.starts_at), endISO: iso(row.ends_at), note: row.note ?? "" }); offByMember.set(row.provider_member_id, value);
+      value.push({ id: sourceId("time_off", row.id), startISO: iso(row.starts_at), endISO: iso(row.ends_at), note: row.note ?? "" }); offByMember.set(row.provider_member_id, value);
     });
     const scheduleByMember = new Map(); availabilityRows.forEach((row) => {
       const value = scheduleByMember.get(row.provider_member_id) ?? []; value.push(row); scheduleByMember.set(row.provider_member_id, value);
@@ -145,11 +146,11 @@ export function createPostgresStore(env = process.env) {
       const user = usersById.get(membersById.get(row.provider_member_id)?.user_id); if (user && !providerByService.has(row.service_id)) providerByService.set(row.service_id, user.username);
     });
     return normalizeStoreShape({
-      users: users.map((row) => ({ id: canonicalUserSourceByTarget.get(row.id) ?? row.id, username: row.username, displayName: row.display_name, passwordHash: row.password_hash, role: row.role, email: row.email, phone: row.phone, shopId: shopByUser.get(row.id) ?? null, createdAt: iso(row.created_at) })),
-      shops: shops.map((row) => ({ id: row.id, name: row.name, businessName: row.name, slug: row.slug, ownerUsername: usersById.get(row.owner_user_id)?.username ?? "", shopPhone: row.phone ?? "", shopEmail: row.email ?? "", logo: row.logo_url ?? "", cover: row.cover_url ?? "", createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at), bookingPolicy: legacyPolicy(settingsByShop.get(row.id)) })),
-      services: services.map((row) => { const provider = providerByService.get(row.id) ?? ""; return { id: row.id, name: row.name, title: row.name, price: dollars(row.price_cents), durationMinutes: row.duration_minutes, duration: row.duration_minutes, shopId: row.shop_id, barberUsername: provider, ownerUsername: provider, active: row.is_active, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at) }; }),
+      users: users.map((row) => ({ id: sourceId("user", row.id), username: row.username, displayName: row.display_name, passwordHash: row.password_hash, role: row.role, email: row.email, phone: row.phone, shopId: shopByUser.has(row.id) ? sourceId("shop", shopByUser.get(row.id)) : null, createdAt: iso(row.created_at) })),
+      shops: shops.map((row) => ({ id: sourceId("shop", row.id), name: row.name, businessName: row.name, slug: row.slug, ownerUsername: usersById.get(row.owner_user_id)?.username ?? "", shopPhone: row.phone ?? "", shopEmail: row.email ?? "", logo: row.logo_url ?? "", cover: row.cover_url ?? "", createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at), bookingPolicy: legacyPolicy(settingsByShop.get(row.id)) })),
+      services: services.map((row) => { const provider = providerByService.get(row.id) ?? ""; return { id: sourceId("service", row.id), name: row.name, title: row.name, price: dollars(row.price_cents), durationMinutes: row.duration_minutes, duration: row.duration_minutes, shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, active: row.is_active, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at) }; }),
       availability,
-      bookings: bookings.map((row) => { const provider = usersById.get(membersById.get(row.provider_member_id)?.user_id)?.username ?? ""; return { id: row.id, shopId: row.shop_id, barberUsername: provider, ownerUsername: provider, serviceName: row.service_snapshot?.name ?? "Service", serviceTitle: row.service_snapshot?.name ?? "Service", clientName: row.client_name, clientContact: row.client_contact, clientEmail: row.client_email, clientPhone: row.client_phone, startISO: iso(row.start_at), endISO: iso(row.end_at), durationMinutes: row.duration_minutes, status: row.status, confirmationCode: row.confirmation_code, depositRequired: row.deposit_required, depositAmount: dollars(row.deposit_amount_cents), depositStatus: row.deposit_status, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at) }; }),
+      bookings: bookings.map((row) => { const provider = usersById.get(membersById.get(row.provider_member_id)?.user_id)?.username ?? ""; return { id: sourceId("booking", row.id), shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, serviceName: row.service_snapshot?.name ?? "Service", serviceTitle: row.service_snapshot?.name ?? "Service", clientName: row.client_name, clientContact: row.client_contact, clientEmail: row.client_email, clientPhone: row.client_phone, startISO: iso(row.start_at), endISO: iso(row.end_at), durationMinutes: row.duration_minutes, status: row.status, confirmationCode: row.confirmation_code, depositRequired: row.deposit_required, depositAmount: dollars(row.deposit_amount_cents), depositStatus: row.deposit_status, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at) }; }),
       emails: emails.map((row) => ({ id: row.id, createdAtISO: iso(row.created_at), to: row.recipient_email, subject: row.subject, html: row.payload?.html ?? "", text: row.payload?.text ?? "", tags: row.payload?.tags ?? [], meta: row.payload?.meta ?? {} })),
     });
   }

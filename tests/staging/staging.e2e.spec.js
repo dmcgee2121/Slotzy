@@ -138,6 +138,25 @@ async function visibleSyntheticServiceTexts(page) {
     .catch(() => []);
 }
 
+async function serviceCreateResponseState(response, expectedName, inputState) {
+  let payload = null;
+  let responseJsonParsed = false;
+  try {
+    payload = await response.json();
+    responseJsonParsed = Boolean(payload && typeof payload === "object");
+  } catch { /* service creation does not navigate; report shape safely below */ }
+  const createdName = String(payload?.service?.name ?? payload?.service?.title ?? "").trim();
+  return {
+    inputsFilled: Boolean(inputState?.name && inputState?.price && inputState?.duration),
+    saveActionClicked: true,
+    endpointPath: new URL(response.url()).pathname,
+    status: response.status(),
+    responseJsonParsed,
+    hasCreatedService: Boolean(payload?.service && typeof payload.service === "object"),
+    createdSyntheticServiceMatches: createdName === expectedName,
+  };
+}
+
 async function registrationOutcome(page, response, expectedUser, browserErrors, expectedApiOrigin) {
   const responseMetadata = safeRegistrationResponseMetadata(response, expectedApiOrigin);
   if (responseMetadata.requestMethod !== "POST" || responseMetadata.responsePathname !== "/api/auth/register" || !responseMetadata.responseOriginMatchesStagingApi) {
@@ -286,6 +305,11 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       await page.fill("#setupServiceName", service.name);
       await page.fill("#setupServicePrice", service.price);
       await page.fill("#setupServiceDuration", service.duration);
+      const inputState = {
+        name: await page.locator("#setupServiceName").inputValue() === service.name,
+        price: await page.locator("#setupServicePrice").inputValue() === service.price,
+        duration: await page.locator("#setupServiceDuration").inputValue() === service.duration,
+      };
       const serviceSaveResponse = page.waitForResponse((response) => (
         response.request().method() === "POST"
         && new URL(response.url()).origin === expectedApiOrigin
@@ -293,13 +317,14 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       ));
       await page.locator("#setupAddServiceBtn").click();
       const serviceSave = await serviceSaveResponse;
-      if (serviceSave.status() !== 201) {
-        throw new Error(`Owner setup service save failed: ${JSON.stringify({ status: serviceSave.status(), endpointPath: new URL(serviceSave.url()).pathname })}`);
+      const serviceCreation = await serviceCreateResponseState(serviceSave, service.name, inputState);
+      if (serviceCreation.status !== 201 || !serviceCreation.hasCreatedService || !serviceCreation.createdSyntheticServiceMatches) {
+        throw new Error(`Owner setup service save failed: ${JSON.stringify(serviceCreation)}`);
       }
       await expect(page.locator("#setupServiceList")).toContainText(service.name);
       const persisted = await servicesApiState(request, authToken, service.name);
       if (persisted.status !== 200 || !persisted.hasExpectedService) {
-        throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify(persisted)}`);
+        throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify({ ...serviceCreation, ...persisted, currentPath: new URL(page.url()).pathname })}`);
       }
     }
     await page.locator("#setupStep3Next").click();
