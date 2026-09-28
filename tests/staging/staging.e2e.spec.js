@@ -66,10 +66,45 @@ async function registrationUiState(page) {
   };
 }
 
-async function registrationOutcome(page, response, expectedUser, browserErrors) {
+function objectKeys(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
+}
+
+function safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed) {
+  const responseUrl = new URL(response.url());
+  const data = payload?.data && typeof payload.data === "object" ? payload.data : null;
+  const user = payload?.user && typeof payload.user === "object" ? payload.user : null;
+  const dataUser = data?.user && typeof data.user === "object" ? data.user : null;
+  const authUser = user || dataUser;
+  return {
+    status: response.status(),
+    requestMethod: response.request().method(),
+    responsePathname: responseUrl.pathname,
+    responseOriginMatchesStagingApi: responseUrl.origin === expectedApiOrigin,
+    contentType: String(response.headers()["content-type"] ?? "").split(";")[0],
+    jsonParsed,
+    keys: objectKeys(payload),
+    userKeys: objectKeys(user),
+    dataKeys: objectKeys(data),
+    dataUserKeys: objectKeys(dataUser),
+    hasToken: Boolean(String(payload?.token ?? "").trim()),
+    hasDataToken: Boolean(String(data?.token ?? "").trim()),
+    hasUser: Boolean(user),
+    hasDataUser: Boolean(dataUser),
+    username: String(authUser?.username ?? "").trim(),
+    role: String(authUser?.role ?? "").trim(),
+  };
+}
+
+async function registrationOutcome(page, response, expectedUser, browserErrors, expectedApiOrigin) {
   const status = response.status();
   let payload = {};
-  try { payload = await response.json(); } catch { /* response diagnostics below remain safe */ }
+  let jsonParsed = false;
+  try { payload = await response.json(); jsonParsed = true; } catch { /* response diagnostics below remain safe */ }
+  const responseShape = safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed);
+  if (responseShape.requestMethod !== "POST" || responseShape.responsePathname !== "/api/auth/register" || !responseShape.responseOriginMatchesStagingApi) {
+    throw new Error(`Staging E2E captured an unexpected registration response: ${JSON.stringify(responseShape)}`);
+  }
   if (!response.ok()) {
     const safeError = String(payload?.error || payload?.message || "no safe error message");
     if (/\b23505\b|duplicate key|username already exists/i.test(safeError)) {
@@ -77,13 +112,6 @@ async function registrationOutcome(page, response, expectedUser, browserErrors) 
     }
     throw new Error(`Synthetic owner registration failed with HTTP ${status}: ${safeError}`);
   }
-  const responseShape = {
-    status,
-    hasUser: Boolean(payload?.user && typeof payload.user === "object"),
-    hasToken: Boolean(String(payload?.token ?? "").trim()),
-    username: String(payload?.user?.username ?? "").trim(),
-    role: String(payload?.user?.role ?? "").trim(),
-  };
   if (!responseShape.hasUser || !responseShape.hasToken || responseShape.username !== expectedUser.username || responseShape.role !== "owner") {
     throw new Error(`Synthetic owner registration returned an invalid success shape: ${JSON.stringify(responseShape)}`);
   }
@@ -158,11 +186,14 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await page.fill("#auth-username", identity.username);
   await page.fill("#auth-password", identity.password);
   await page.selectOption("#auth-role", "owner");
+  const expectedApiOrigin = requireStagingUrl(apiUrl, "SLOTZY_STAGING_API_URL").origin;
   const registrationResponse = page.waitForResponse((response) => (
-    response.request().method() === "POST" && new URL(response.url()).pathname.endsWith("/api/auth/register")
+    response.request().method() === "POST"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && new URL(response.url()).pathname === "/api/auth/register"
   ));
   await page.getByRole("button", { name: "Continue" }).click();
-  const registration = await registrationOutcome(page, await registrationResponse, identity, browserErrors);
+  const registration = await registrationOutcome(page, await registrationResponse, identity, browserErrors, expectedApiOrigin);
   // Hosted registration can retain index.html while it applies authenticated
   // navigation state. Verify that state rather than treating any landing URL
   // as success, then use the real Dashboard entry point.

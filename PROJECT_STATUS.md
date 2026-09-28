@@ -484,3 +484,8 @@ This is acceptable only for local development. It blocks real pilot and staging 
 
 - `#setupGoDashboard` is intentionally inside the hidden fifth (Ready) wizard panel; it is not a post-registration navigation control. A new owner must save a shop name and owner profile, keep a solo team or add a barber, add at least two services, and save availability with at least one enabled day before it becomes visible.
 - The staging E2E now follows those real steps with synthetic data, waits for the Ready panel's visible button, clicks it, and verifies the owner dashboard. If setup has already been completed and the route is directly `business-owner.html`, it verifies the dashboard instead. Authentication, user-badge, session, persistence, and booking coverage remain required. No application code changed.
+
+## Hosted registration 201 response-shape diagnostics (2026-09-27)
+
+- The checked-in Express success contract is `201` with top-level `{ token, user: buildAuthUser(user) }`; `user` contains `username`, `role`, `shopId`, and `displayName`. `js/auth.js` requires the same top-level token and user username/role, so a `201` with no top-level fields is invalid and must not be accepted.
+- The staging E2E now captures only a `POST` to the configured staging API origin at exact pathname `/api/auth/register`. If the response shape is invalid, it prints only safe method/path/origin-match/content-type/JSON-parse/key-presence diagnostics, including nested `data` keys where relevant; it never prints JWT values. A hosted rerun is required to determine whether the prior empty response was a stale deployment, proxy/wrapper response, or an incorrectly captured response. No application code changed.
