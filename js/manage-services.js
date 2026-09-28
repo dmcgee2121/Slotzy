@@ -18,19 +18,27 @@ import * as dataStore from "./dataStore.js";
   let editDraft = null;
   let editErrors = [];
 
-  init();
+  init().catch((error) => {
+    console.error("[Slotzy:services] Could not load services.", error);
+    renderOwnerServices();
+  });
 
-  function init() {
+  async function init() {
     if (!isStaffUser || !currentUsername) {
       renderStaffOnlyState();
       return;
     }
 
     ensureAddErrorContainer();
-    renderOwnerServices();
     addServiceBtn?.addEventListener("click", handleAddService);
     serviceList?.addEventListener("click", handleServiceListClick);
     serviceList?.addEventListener("input", handleServiceListInput);
+
+    // In server mode the persisted service list is authoritative. Hydrate the
+    // local compatibility cache before rendering instead of relying on data
+    // left behind by a previous page in this browser.
+    await dataStore.getServicesAsync();
+    renderOwnerServices();
   }
 
   function resolveCurrentShopId() {

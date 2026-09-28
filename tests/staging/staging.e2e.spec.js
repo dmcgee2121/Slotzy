@@ -98,6 +98,42 @@ async function browserAuthState(page) {
   });
 }
 
+async function servicesApiState(page, expectedName) {
+  return page.evaluate(async ({ baseUrl, serviceName }) => {
+    const token = String(localStorage.getItem("Slotzy_auth_token") ?? "").trim();
+    const endpoint = new URL("/api/services", baseUrl);
+    try {
+      const response = await fetch(endpoint.toString(), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      let payload = null;
+      try { payload = await response.json(); } catch { /* safe shape below */ }
+      const services = Array.isArray(payload?.services) ? payload.services : [];
+      return {
+        status: response.status,
+        endpointPath: endpoint.pathname,
+        serviceCount: services.length,
+        hasExpectedService: services.some((service) => String(service?.name ?? service?.title ?? "").trim() === serviceName),
+      };
+    } catch (error) {
+      return {
+        status: 0,
+        endpointPath: endpoint.pathname,
+        serviceCount: 0,
+        hasExpectedService: false,
+        errorName: String(error?.name ?? "Error"),
+        errorMessage: String(error?.message ?? "service read failed").slice(0, 160),
+      };
+    }
+  }, { baseUrl: apiUrl, serviceName: expectedName });
+}
+
+async function visibleSyntheticServiceTexts(page) {
+  return page.locator("#serviceList .owner-service-card h3").allTextContents()
+    .then((values) => values.map((value) => String(value).trim()).filter((value) => /^E2E /i.test(value)))
+    .catch(() => []);
+}
+
 async function registrationOutcome(page, response, expectedUser, browserErrors, expectedApiOrigin) {
   const responseMetadata = safeRegistrationResponseMetadata(response, expectedApiOrigin);
   if (responseMetadata.requestMethod !== "POST" || responseMetadata.responsePathname !== "/api/auth/register" || !responseMetadata.responseOriginMatchesStagingApi) {
@@ -241,8 +277,21 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       await page.fill("#setupServiceName", service.name);
       await page.fill("#setupServicePrice", service.price);
       await page.fill("#setupServiceDuration", service.duration);
+      const serviceSaveResponse = page.waitForResponse((response) => (
+        response.request().method() === "POST"
+        && new URL(response.url()).origin === expectedApiOrigin
+        && new URL(response.url()).pathname === "/api/services"
+      ));
       await page.locator("#setupAddServiceBtn").click();
+      const serviceSave = await serviceSaveResponse;
+      if (serviceSave.status() !== 201) {
+        throw new Error(`Owner setup service save failed: ${JSON.stringify({ status: serviceSave.status(), endpointPath: new URL(serviceSave.url()).pathname })}`);
+      }
       await expect(page.locator("#setupServiceList")).toContainText(service.name);
+      const persisted = await servicesApiState(page, service.name);
+      if (persisted.status !== 200 || !persisted.hasExpectedService) {
+        throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify(persisted)}`);
+      }
     }
     await page.locator("#setupStep3Next").click();
     await expect(page.locator("#setupStep4Next")).toBeVisible();
@@ -261,8 +310,22 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
 
   await page.goto(`${frontendUrl}/pages/manage-services.html`);
+  const serviceReloadResponse = page.waitForResponse((response) => (
+    response.request().method() === "GET"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && new URL(response.url()).pathname === "/api/services"
+  ));
   await page.reload();
-  await expect(page.getByText(identity.serviceName)).toBeVisible();
+  const serviceReload = await serviceReloadResponse;
+  const persistedAfterReload = await servicesApiState(page, identity.serviceName);
+  if (serviceReload.status() !== 200 || persistedAfterReload.status !== 200 || !persistedAfterReload.hasExpectedService) {
+    throw new Error(`Persisted service was unavailable after manage-services reload: ${JSON.stringify({ loadStatus: serviceReload.status(), ...persistedAfterReload, currentPath: new URL(page.url()).pathname, visibleSyntheticServices: await visibleSyntheticServiceTexts(page) })}`);
+  }
+  try {
+    await expect(page.getByRole("heading", { name: identity.serviceName, exact: true })).toBeVisible();
+  } catch {
+    throw new Error(`Persisted service was returned by the API but not rendered after reload: ${JSON.stringify({ ...persistedAfterReload, currentPath: new URL(page.url()).pathname, visibleSyntheticServices: await visibleSyntheticServiceTexts(page) })}`);
+  }
 
   await page.goto(`${frontendUrl}/pages/business-owner.html`);
 
