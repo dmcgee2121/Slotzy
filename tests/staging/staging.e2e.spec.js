@@ -66,81 +66,63 @@ async function registrationUiState(page) {
   };
 }
 
-function objectKeys(value) {
-  return value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
-}
-
-function safeResponseBodyDiagnostic(body, parseError = "") {
-  const text = String(body ?? "");
-  const trimmed = text.trim();
-  const firstCharacter = trimmed.slice(0, 1);
-  const shape = !trimmed ? "empty"
-    : firstCharacter === "{" ? "object-like"
-      : firstCharacter === "[" ? "array-like"
-        : firstCharacter === "<" ? "html-like"
-          : `other:${safeDiagnosticText(trimmed.slice(0, 12))}`;
-  return {
-    bodyLength: text.length,
-    bodyIsEmpty: trimmed.length === 0,
-    bodyShape: shape,
-    jsonParseError: safeDiagnosticText(parseError),
-  };
-}
-
-function safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed, bodyDiagnostic) {
+function safeRegistrationResponseMetadata(response, expectedApiOrigin) {
   const responseUrl = new URL(response.url());
-  const data = payload?.data && typeof payload.data === "object" ? payload.data : null;
-  const user = payload?.user && typeof payload.user === "object" ? payload.user : null;
-  const dataUser = data?.user && typeof data.user === "object" ? data.user : null;
-  const authUser = user || dataUser;
   return {
     status: response.status(),
+    statusText: response.statusText(),
     requestMethod: response.request().method(),
     responsePathname: responseUrl.pathname,
     responseOriginMatchesStagingApi: responseUrl.origin === expectedApiOrigin,
     contentType: String(response.headers()["content-type"] ?? "").split(";")[0],
-    jsonParsed,
-    ...bodyDiagnostic,
-    keys: objectKeys(payload),
-    userKeys: objectKeys(user),
-    dataKeys: objectKeys(data),
-    dataUserKeys: objectKeys(dataUser),
-    hasToken: Boolean(String(payload?.token ?? "").trim()),
-    hasDataToken: Boolean(String(data?.token ?? "").trim()),
-    hasUser: Boolean(user),
-    hasDataUser: Boolean(dataUser),
-    username: String(authUser?.username ?? "").trim(),
-    role: String(authUser?.role ?? "").trim(),
   };
 }
 
+async function browserAuthState(page) {
+  return page.evaluate(() => {
+    const token = String(localStorage.getItem("Slotzy_auth_token") ?? "").trim();
+    const rawUser = String(sessionStorage.getItem("Slotzy_user") ?? "").trim();
+    let user = null;
+    let userJsonValid = false;
+    try {
+      user = rawUser ? JSON.parse(rawUser) : null;
+      userJsonValid = Boolean(user && typeof user === "object");
+    } catch { /* report only safe absence/validity below */ }
+    return {
+      hasToken: Boolean(token),
+      hasUser: Boolean(rawUser),
+      userJsonValid,
+      username: String(user?.username ?? "").trim(),
+      role: String(user?.role ?? "").trim(),
+    };
+  });
+}
+
 async function registrationOutcome(page, response, expectedUser, browserErrors, expectedApiOrigin) {
-  const status = response.status();
-  let payload = {};
-  let jsonParsed = false;
-  let bodyDiagnostic = {};
+  const responseMetadata = safeRegistrationResponseMetadata(response, expectedApiOrigin);
+  if (responseMetadata.requestMethod !== "POST" || responseMetadata.responsePathname !== "/api/auth/register" || !responseMetadata.responseOriginMatchesStagingApi) {
+    throw new Error(`Staging E2E captured an unexpected registration response: ${JSON.stringify(responseMetadata)}`);
+  }
+  if (responseMetadata.status !== 201) {
+    await page.locator("#auth-error").waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
+    const ui = await registrationUiState(page);
+    throw new Error(`Synthetic owner registration returned HTTP ${responseMetadata.status} (${responseMetadata.statusText}). response=${JSON.stringify(responseMetadata)} authError=${safeDiagnosticText(ui.authError?.text)} browserErrors=${JSON.stringify(browserErrors)}`);
+  }
   try {
-    payload = await response.json();
-    jsonParsed = true;
-  } catch (error) {
-    let body = "";
-    let textError = "";
-    try { body = await response.text(); } catch (readError) { textError = `${readError?.name ?? "Error"}: ${readError?.message ?? "response text unavailable"}`; }
-    bodyDiagnostic = safeResponseBodyDiagnostic(body, `${error?.name ?? "Error"}: ${error?.message ?? "invalid JSON"}${textError ? `; ${textError}` : ""}`);
-  }
-  const responseShape = safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed, bodyDiagnostic);
-  if (responseShape.requestMethod !== "POST" || responseShape.responsePathname !== "/api/auth/register" || !responseShape.responseOriginMatchesStagingApi) {
-    throw new Error(`Staging E2E captured an unexpected registration response: ${JSON.stringify(responseShape)}`);
-  }
-  if (!response.ok()) {
-    const safeError = String(payload?.error || payload?.message || "no safe error message");
-    if (/\b23505\b|duplicate key|username already exists/i.test(safeError)) {
-      throw new Error(`Synthetic fixture collision for ${expectedUser.username}: registration returned HTTP ${status} (${safeError}). Use a new e2e run identity; do not remove the database uniqueness constraint.`);
-    }
-    throw new Error(`Synthetic owner registration failed with HTTP ${status}: ${safeError}`);
-  }
-  if (!responseShape.hasUser || !responseShape.hasToken || responseShape.username !== expectedUser.username || responseShape.role !== "owner") {
-    throw new Error(`Synthetic owner registration returned an invalid success shape: ${JSON.stringify(responseShape)}`);
+    await page.waitForFunction((username) => {
+      const token = String(localStorage.getItem("Slotzy_auth_token") ?? "").trim();
+      const rawUser = String(sessionStorage.getItem("Slotzy_user") ?? "").trim();
+      try {
+        const user = rawUser ? JSON.parse(rawUser) : null;
+        return Boolean(token) && user?.username === username && user?.role === "owner";
+      } catch {
+        return false;
+      }
+    }, expectedUser.username, { timeout: 5000 });
+  } catch {
+    const authState = await browserAuthState(page);
+    const ui = await registrationUiState(page);
+    throw new Error(`Synthetic owner registration returned HTTP 201, but frontend auth state was not established. authState=${JSON.stringify(authState)} path=${ui.path} userBadge=${safeDiagnosticText(ui.userBadge?.text)} browserErrors=${JSON.stringify(browserErrors)}`);
   }
 
   // `hideModal` completes after its transition, while `goToDashboard` changes
@@ -156,7 +138,7 @@ async function registrationOutcome(page, response, expectedUser, browserErrors, 
     }, undefined, { timeout: 5000 });
   } catch {
     const ui = await registrationUiState(page);
-    throw new Error(`Synthetic owner registration returned ${JSON.stringify(responseShape)}, but the authenticated UI did not transition within 5 seconds. state=${JSON.stringify(ui)} browserErrors=${JSON.stringify(browserErrors)}`);
+    throw new Error(`Synthetic owner registration established session state, but the authenticated UI did not transition within 5 seconds. state=${JSON.stringify(ui)} browserErrors=${JSON.stringify(browserErrors)}`);
   }
   const ui = await registrationUiState(page);
   const authError = String(ui.authError?.text ?? "").trim();
