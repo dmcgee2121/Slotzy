@@ -149,6 +149,8 @@ test.beforeAll(async () => {
 
 test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context }) => {
   const browserErrors = collectBrowserDiagnostics(page);
+  const tomorrow = new Date(Date.now() + 86400000);
+  const bookingDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][tomorrow.getDay()];
   // The health guard above completes before this test can write any data.
   await page.goto(`${frontendUrl}/pages/index.html`);
   await page.locator("#btn-login").click();
@@ -172,33 +174,57 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
   await expect(page).toHaveURL(/\/pages\/(owner-setup|business-owner)\.html/);
   await expect(page.locator("#userBadge")).toContainText(identity.username);
-  await expect(page.locator('a[href="business-owner.html"], #setupGoDashboard').first()).toBeVisible();
   const sessionUser = await page.evaluate(() => {
     const raw = sessionStorage.getItem("Slotzy_user");
     return raw ? JSON.parse(raw) : null;
   });
   expect(sessionUser).toMatchObject({ username: identity.username, role: "owner" });
 
-  // Complete the minimum owner configuration through the hosted UI.
+  // A newly registered owner remains in the wizard until every required setup
+  // step is complete. The ready-step Dashboard control is intentionally hidden
+  // before then, so follow the real UI rather than accepting the hidden link.
   if (await page.locator("#setupShopName").count()) {
     await page.fill("#setupShopName", identity.shopName);
     await page.locator("#setupStep1Next").click();
+    await expect(page.locator("#setupStep2Next")).toBeVisible();
+
+    await page.fill("#setupOwnerDisplayName", identity.username);
+    await page.locator("#setupStep2Next").click();
+    await expect(page.locator("#setupServiceName")).toBeVisible();
+
+    const setupServices = [
+      { name: identity.serviceName, price: "30", duration: "30" },
+      { name: `E2E Finish ${runId}`, price: "20", duration: "20" },
+    ];
+    for (const service of setupServices) {
+      await expect(page.locator("#setupServiceBarber")).not.toHaveValue("");
+      await page.fill("#setupServiceName", service.name);
+      await page.fill("#setupServicePrice", service.price);
+      await page.fill("#setupServiceDuration", service.duration);
+      await page.locator("#setupAddServiceBtn").click();
+      await expect(page.locator("#setupServiceList")).toContainText(service.name);
+    }
+    await page.locator("#setupStep3Next").click();
+    await expect(page.locator("#setupStep4Next")).toBeVisible();
+
+    const bookingDayEnabled = page.locator(`input[data-day="${bookingDay}"][data-field="enabled"]`);
+    if (!await bookingDayEnabled.isChecked()) await bookingDayEnabled.check();
+    await page.fill(`input[data-day="${bookingDay}"][data-field="start"]`, "09:00");
+    await page.fill(`input[data-day="${bookingDay}"][data-field="end"]`, "17:00");
+    await page.locator("#setupStep4Next").click();
+    await expect(page.locator("#setupGoDashboard")).toBeVisible();
+    await page.locator("#setupGoDashboard").click();
+    await expect(page).toHaveURL(/\/pages\/business-owner\.html/);
+  } else {
+    await expect(page).toHaveURL(/\/pages\/business-owner\.html/);
+    await expect(page.getByRole("heading", { name: /owner dashboard/i })).toBeVisible();
   }
+
   await page.goto(`${frontendUrl}/pages/manage-services.html`);
-  await page.fill("#serviceName", identity.serviceName);
-  await page.fill("#servicePrice", "30");
-  await page.fill("#serviceDuration", "30");
-  await page.getByRole("button", { name: /add|create/i }).click();
   await page.reload();
   await expect(page.getByText(identity.serviceName)).toBeVisible();
 
   await page.goto(`${frontendUrl}/pages/business-owner.html`);
-  const tomorrow = new Date(Date.now() + 86400000);
-  const day = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][tomorrow.getDay()];
-  await page.fill(`input[data-day="${day}"][data-field="start"]`, "09:00");
-  await page.fill(`input[data-day="${day}"][data-field="end"]`, "17:00");
-  await page.locator("#availability-save-weekly").click();
-  await page.reload();
 
   const bookingLink = await page.locator("a[href*='book.html']").first().getAttribute("href");
   expect(bookingLink).toBeTruthy();
