@@ -447,7 +447,10 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     await expect(page.locator("#btn-dashboard")).toBeVisible();
     await page.locator("#btn-dashboard").click();
   }
-  await expect(page).toHaveURL(/\/pages\/(owner-setup|business-owner)\.html/);
+  // Registration first sends staff to business-owner.html. Its asynchronous
+  // setup guard must then route this brand-new owner to owner-setup.html. Do
+  // not inspect the transient dashboard and accidentally skip the wizard.
+  await expect(page).toHaveURL(/\/pages\/owner-setup\.html/);
   await expect(page.locator("#userBadge")).toContainText(identity.username);
   const sessionUser = await page.evaluate(() => {
     const raw = sessionStorage.getItem("Slotzy_user");
@@ -463,7 +466,8 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   // A newly registered owner remains in the wizard until every required setup
   // step is complete. The ready-step Dashboard control is intentionally hidden
   // before then, so follow the real UI rather than accepting the hidden link.
-  if (await page.locator("#setupShopName").count()) {
+  await expect(page.locator("#setupShopName")).toBeVisible();
+  {
     await page.fill("#setupShopName", identity.shopName);
     const shopInputState = {
       shopName: await page.locator("#setupShopName").inputValue() === identity.shopName,
@@ -527,15 +531,29 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     if (!await bookingDayEnabled.isChecked()) await bookingDayEnabled.check();
     await page.fill(`input[data-day="${bookingDay}"][data-field="start"]`, "09:00");
     await page.fill(`input[data-day="${bookingDay}"][data-field="end"]`, "17:00");
+    const availabilitySaveResponse = page.waitForResponse((response) => (
+      response.request().method() === "PUT"
+      && new URL(response.url()).origin === expectedApiOrigin
+      && new URL(response.url()).pathname === "/api/availability"
+    ));
     await page.locator("#setupStep4Next").click();
+    const availabilitySave = await availabilitySaveResponse;
+    let availabilityPayload = null;
+    try { availabilityPayload = await availabilitySave.json(); } catch { /* safe shape below */ }
+    const availabilityDiagnostic = {
+      endpointPath: new URL(availabilitySave.url()).pathname,
+      method: availabilitySave.request().method(),
+      status: availabilitySave.status(),
+      responseKeys: availabilityPayload && typeof availabilityPayload === "object" ? Object.keys(availabilityPayload).sort() : [],
+    };
+    if (availabilitySave.status() !== 200) {
+      throw new Error(`Owner setup availability save failed: ${JSON.stringify({ ...availabilityDiagnostic, currentPath: new URL(page.url()).pathname })}`);
+    }
     await expect(page.locator("#setupGoDashboard")).toBeVisible();
     await requireSetupServices(request, authToken, setupServiceNames, "after-availability-and-setup-completion", page);
     await page.locator("#setupGoDashboard").click();
     await expect(page).toHaveURL(/\/pages\/business-owner\.html/);
     await requireSetupServices(request, authToken, setupServiceNames, "after-dashboard-navigation", page);
-  } else {
-    await expect(page).toHaveURL(/\/pages\/business-owner\.html/);
-    await expect(page.getByRole("heading", { name: /owner dashboard/i })).toBeVisible();
   }
 
   await page.goto(`${frontendUrl}/pages/manage-services.html`);
