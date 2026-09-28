@@ -1401,6 +1401,10 @@ function logStagingServiceContract(marker, fields) {
   console.info(`[Slotzy:services] ${marker}`, fields);
 }
 
+function isUuidShaped(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value ?? ""));
+}
+
 app.get("/api/services", requireAuth, (req, res) => {
   const db = req.db;
   const user = req.user;
@@ -1411,6 +1415,10 @@ app.get("/api/services", requireAuth, (req, res) => {
   const allServices = [...db.services];
   let services = allServices;
   let resolvedShopId = "";
+  const authUserShopId = normalizeUsername(user?.shopId);
+  const ownerShops = isOwner(user)
+    ? db.shops.filter((shop) => usernamesEqual(shop?.ownerUsername, user?.username))
+    : [];
 
   if (isOwner(user)) {
     const ownerShopId = getUserShopId(db, user);
@@ -1438,7 +1446,12 @@ app.get("/api/services", requireAuth, (req, res) => {
     status: 200,
     storage: STORAGE_ADAPTER,
     hasAuthUser: Boolean(user?.username),
+    authUserHasShopId: Boolean(authUserShopId),
+    authUserShopIdIsUuidShaped: isUuidShaped(authUserShopId),
     hasResolvedShop: Boolean(resolvedShopId),
+    resolvedShopIdIsUuidShaped: isUuidShaped(resolvedShopId),
+    ownerShopCount: ownerShops.length,
+    anyE2EShopExists: db.shops.some((shop) => /^e2e[ -]/i.test(String(shop?.name ?? shop?.businessName ?? ""))),
     totalServiceCount: allServices.length,
     returnedServiceCount: services.length,
     hasE2EServiceBeforeScope: allServices.some((service) => /^e2e[ -]/i.test(String(service?.name ?? service?.title ?? ""))),

@@ -133,9 +133,19 @@ postgresTest("Postgres non-empty shop snapshot preserves service scope while add
   }));
   const { error: mappingInsertError } = await client.from("legacy_source_ids").insert(unrelatedMappings);
   assert.ifError(mappingInsertError);
+  const unrelatedUsers = Array.from({ length: 1005 }, (_, index) => ({
+    username: `bulk-user-${String(index).padStart(4, "0")}`,
+    display_name: `Bulk User ${index}`,
+    password_hash: "not-a-real-password",
+    role: "customer",
+  }));
+  const { error: userInsertError } = await client.from("users").insert(unrelatedUsers);
+  assert.ifError(userInsertError);
   await seedBase();
   const snapshot = await store.readStore();
-  assert.equal(snapshot.users[0].shopId, "shop-fixture");
+  const fixtureOwner = snapshot.users.find((user) => user.username === "fixture-owner");
+  assert.equal(snapshot.users.length, 1006);
+  assert.equal(fixtureOwner.shopId, "shop-fixture");
   assert.equal(snapshot.shops[0].id, "shop-fixture");
   assert.equal(snapshot.services[0].id, "service-cut");
   assert.equal(snapshot.services[0].shopId, "shop-fixture");
@@ -150,7 +160,8 @@ postgresTest("Postgres non-empty shop snapshot preserves service scope while add
   await store.writeStore(afterService);
   const afterSetupWrite = await store.readStore();
   assert.equal(afterSetupWrite.services.length, 2);
-  assert.ok(afterSetupWrite.services.every((service) => service.shopId === afterSetupWrite.users[0].shopId));
+  const ownerAfterSetup = afterSetupWrite.users.find((user) => user.username === "fixture-owner");
+  assert.ok(afterSetupWrite.services.every((service) => service.shopId === ownerAfterSetup.shopId));
   const { data: relationalShops, error: shopsError } = await client.from("shops").select("id"); assert.ifError(shopsError);
   const { data: relationalServices, error: servicesError } = await client.from("services").select("id").is("deleted_at", null); assert.ifError(servicesError);
   assert.equal(relationalShops.length, 1); assert.equal(relationalServices.length, 2);

@@ -103,43 +103,36 @@ export function createPostgresStore(env = process.env) {
     networkFailures.length = 0;
   }
 
-  async function readCanonicalIdentityMappings() {
+  async function readAllRows(operation, buildQuery) {
     const pageSize = 500;
-    const mappings = [];
+    const rows = [];
     for (let from = 0; ; from += pageSize) {
-      const { data, error } = await client.from("legacy_source_ids")
-        .select("entity_type,source_id,target_id")
-        .eq("is_canonical", true)
-        .order("entity_type", { ascending: true })
-        .order("source_id", { ascending: true })
-        .range(from, from + pageSize - 1);
-      fail(error, "read canonical identity mappings", networkFailures);
+      const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+      fail(error, operation, networkFailures);
       const page = data ?? [];
-      mappings.push(...page);
-      if (page.length < pageSize) return mappings;
+      rows.push(...page);
+      if (page.length < pageSize) return rows;
     }
   }
 
   async function readStore() {
     beginOperation();
     const reads = [
-      ["read users", client.from("users").select("*").is("deleted_at", null)],
-      ["read shops", client.from("shops").select("*").is("deleted_at", null)],
-      ["read shop settings", client.from("shop_settings").select("*")],
-      ["read shop members", client.from("shop_members").select("*").is("deleted_at", null)],
-      ["read services", client.from("services").select("*").is("deleted_at", null)],
-      ["read provider services", client.from("provider_services").select("*")],
-      ["read availability", client.from("availability").select("*")],
-      ["read time off", client.from("time_off").select("*")],
-      ["read bookings", client.from("bookings").select("*")],
-      ["read email outbox", client.from("email_outbox").select("*")],
+      ["read users", () => client.from("users").select("*").is("deleted_at", null).order("id")],
+      ["read shops", () => client.from("shops").select("*").is("deleted_at", null).order("id")],
+      ["read shop settings", () => client.from("shop_settings").select("*").order("shop_id")],
+      ["read shop members", () => client.from("shop_members").select("*").is("deleted_at", null).order("id")],
+      ["read services", () => client.from("services").select("*").is("deleted_at", null).order("id")],
+      ["read provider services", () => client.from("provider_services").select("*").order("provider_member_id").order("service_id")],
+      ["read availability", () => client.from("availability").select("*").order("id")],
+      ["read time off", () => client.from("time_off").select("*").order("id")],
+      ["read bookings", () => client.from("bookings").select("*").order("id")],
+      ["read email outbox", () => client.from("email_outbox").select("*").order("id")],
+      ["read canonical identity mappings", () => client.from("legacy_source_ids").select("entity_type,source_id,target_id").eq("is_canonical", true).order("entity_type").order("source_id")],
     ];
-    const [results, canonicalMappings] = await Promise.all([
-      Promise.all(reads.map(([, request]) => request)),
-      readCanonicalIdentityMappings(),
-    ]);
-    results.forEach((result, index) => fail(result.error, reads[index][0], networkFailures));
-    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails] = results.map((result) => result.data ?? []);
+    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails, canonicalMappings] = await Promise.all(
+      reads.map(([operation, buildQuery]) => readAllRows(operation, buildQuery))
+    );
     const canonicalSourceByTarget = new Map(canonicalMappings.map((row) => [`${row.entity_type}:${row.target_id}`, row.source_id]));
     const sourceId = (entityType, targetId) => canonicalSourceByTarget.get(`${entityType}:${targetId}`) ?? targetId;
     const usersById = new Map(users.map((row) => [row.id, row]));
