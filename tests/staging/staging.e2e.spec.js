@@ -98,34 +98,38 @@ async function browserAuthState(page) {
   });
 }
 
-async function servicesApiState(page, expectedName) {
-  return page.evaluate(async ({ baseUrl, serviceName }) => {
-    const token = String(localStorage.getItem("Slotzy_auth_token") ?? "").trim();
-    const endpoint = new URL("/api/services", baseUrl);
-    try {
-      const response = await fetch(endpoint.toString(), {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      let payload = null;
-      try { payload = await response.json(); } catch { /* safe shape below */ }
-      const services = Array.isArray(payload?.services) ? payload.services : [];
-      return {
-        status: response.status,
-        endpointPath: endpoint.pathname,
-        serviceCount: services.length,
-        hasExpectedService: services.some((service) => String(service?.name ?? service?.title ?? "").trim() === serviceName),
-      };
-    } catch (error) {
-      return {
-        status: 0,
-        endpointPath: endpoint.pathname,
-        serviceCount: 0,
-        hasExpectedService: false,
-        errorName: String(error?.name ?? "Error"),
-        errorMessage: String(error?.message ?? "service read failed").slice(0, 160),
-      };
-    }
-  }, { baseUrl: apiUrl, serviceName: expectedName });
+async function servicesApiState(request, authToken, expectedName) {
+  const endpoint = new URL("/api/services", apiUrl);
+  const token = String(authToken ?? "").trim();
+  const safeState = {
+    status: 0,
+    endpointPath: endpoint.pathname,
+    serviceCount: 0,
+    hasExpectedService: false,
+    hasToken: Boolean(token),
+  };
+  if (!token) return safeState;
+
+  try {
+    const response = await request.get(endpoint.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    let payload = null;
+    try { payload = await response.json(); } catch { /* safe shape below */ }
+    const services = Array.isArray(payload?.services) ? payload.services : [];
+    return {
+      ...safeState,
+      status: response.status(),
+      serviceCount: services.length,
+      hasExpectedService: services.some((service) => String(service?.name ?? service?.title ?? "").trim() === expectedName),
+    };
+  } catch (error) {
+    return {
+      ...safeState,
+      errorName: String(error?.name ?? "Error"),
+      errorMessage: safeDiagnosticText(error?.message ?? "service read failed"),
+    };
+  }
 }
 
 async function visibleSyntheticServiceTexts(page) {
@@ -220,7 +224,7 @@ test.beforeAll(async () => {
   await warmHealth();
 });
 
-test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context }) => {
+test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context, request }) => {
   const browserErrors = collectBrowserDiagnostics(page);
   const tomorrow = new Date(Date.now() + 86400000);
   const bookingDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][tomorrow.getDay()];
@@ -255,6 +259,11 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     return raw ? JSON.parse(raw) : null;
   });
   expect(sessionUser).toMatchObject({ username: identity.username, role: "owner" });
+  // Read the token once while the authenticated owner page is stable. All
+  // service contract checks then run in Playwright's request context, so a UI
+  // redirect/reload cannot destroy their JavaScript execution context.
+  const authToken = await page.evaluate(() => String(localStorage.getItem("Slotzy_auth_token") ?? "").trim());
+  expect(Boolean(authToken)).toBe(true);
 
   // A newly registered owner remains in the wizard until every required setup
   // step is complete. The ready-step Dashboard control is intentionally hidden
@@ -288,7 +297,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
         throw new Error(`Owner setup service save failed: ${JSON.stringify({ status: serviceSave.status(), endpointPath: new URL(serviceSave.url()).pathname })}`);
       }
       await expect(page.locator("#setupServiceList")).toContainText(service.name);
-      const persisted = await servicesApiState(page, service.name);
+      const persisted = await servicesApiState(request, authToken, service.name);
       if (persisted.status !== 200 || !persisted.hasExpectedService) {
         throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify(persisted)}`);
       }
@@ -317,7 +326,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   ));
   await page.reload();
   const serviceReload = await serviceReloadResponse;
-  const persistedAfterReload = await servicesApiState(page, identity.serviceName);
+  const persistedAfterReload = await servicesApiState(request, authToken, identity.serviceName);
   if (serviceReload.status() !== 200 || persistedAfterReload.status !== 200 || !persistedAfterReload.hasExpectedService) {
     throw new Error(`Persisted service was unavailable after manage-services reload: ${JSON.stringify({ loadStatus: serviceReload.status(), ...persistedAfterReload, currentPath: new URL(page.url()).pathname, visibleSyntheticServices: await visibleSyntheticServiceTexts(page) })}`);
   }
