@@ -21,6 +21,14 @@ const identity = {
   shopName: `E2E Synthetic Shop ${runId}`, slug: `${runId}-shop`, serviceName: `E2E Cut ${runId}`,
   clientName: `E2E Client ${runId}`, clientEmail: `${runId}-client@example.test`, clientPhone: "555-010-2026",
 };
+const apiRunId = createSyntheticRunId();
+const apiIdentity = {
+  username: `${apiRunId}-owner`,
+  password: "Synthetic-E2E-API-Only-123!",
+  shopName: `E2E API Shop ${apiRunId}`,
+  slug: `${apiRunId}-api-shop`,
+  serviceNames: [`E2E API Cut ${apiRunId}`, `E2E API Finish ${apiRunId}`],
+};
 
 function failGuard(message) { throw new Error(`Staging E2E safety guard: ${message}`); }
 function safeDiagnosticText(value) {
@@ -294,6 +302,121 @@ test.beforeAll(async () => {
   if (!allow) failGuard('set SLOTZY_ALLOW_STAGING_E2E=true to permit staging mutation.');
   requireStagingUrl(frontendUrl, "SLOTZY_STAGING_FRONTEND_URL");
   await warmHealth();
+});
+
+test("focused staging owner setup API chain", async ({ request }) => {
+  const endpoint = (path) => new URL(path, apiUrl).toString();
+  const safeResponse = (response, payload = null) => ({
+    endpointPath: new URL(response.url()).pathname,
+    status: response.status(),
+    responseKeys: payload && typeof payload === "object" ? Object.keys(payload).sort() : [],
+  });
+  const readJson = async (response) => {
+    try { return await response.json(); } catch { return null; }
+  };
+  const failStage = (stage, message, diagnostic) => {
+    throw new Error(`Focused staging owner setup API chain ${stage}: ${message}. ${JSON.stringify(diagnostic)}`);
+  };
+
+  // A. Registration establishes the bearer credential used only in request
+  // headers below. Its value is never included in diagnostics or assertions.
+  const registerResponse = await request.post(endpoint("/api/auth/register"), {
+    data: { username: apiIdentity.username, password: apiIdentity.password, role: "owner" },
+  });
+  const registerPayload = await readJson(registerResponse);
+  const token = String(registerPayload?.token ?? "").trim();
+  const registerDiagnostic = {
+    ...safeResponse(registerResponse, registerPayload),
+    hasToken: Boolean(token),
+    hasUser: Boolean(registerPayload?.user),
+    usernameMatches: registerPayload?.user?.username === apiIdentity.username,
+    roleIsOwner: registerPayload?.user?.role === "owner",
+  };
+  if (registerResponse.status() !== 201 || !token || !registerDiagnostic.usernameMatches || !registerDiagnostic.roleIsOwner) {
+    failStage("A", "registration failed", registerDiagnostic);
+  }
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // B. Match the authoritative payload emitted by owner setup's shop
+  // collection helper (the client-only id is intentionally not sent).
+  const shopResponse = await request.post(endpoint("/api/shops"), {
+    headers,
+    data: {
+      name: apiIdentity.shopName,
+      businessName: apiIdentity.shopName,
+      slug: apiIdentity.slug,
+      logoDataUrl: null,
+      bookingPolicy: { allowSameDay: true, maxDaysAdvance: 30, cancelHours: 24, bufferMinutes: 0, requireDeposit: false, depositAmount: 0, lateGraceMinutes: 10, noShowStrikeLimit: 2, reminder24Hours: true, reminder2Hours: true, reminderCustomEnabled: false, reminderCustomMinutes: 60 },
+    },
+  });
+  const shopPayload = await readJson(shopResponse);
+  const shopId = String(shopPayload?.shop?.id ?? "").trim();
+  const shopDiagnostic = {
+    ...safeResponse(shopResponse, shopPayload),
+    shopKeys: shopPayload?.shop && typeof shopPayload.shop === "object" ? Object.keys(shopPayload.shop).sort() : [],
+    hasShop: Boolean(shopPayload?.shop), hasShopId: Boolean(shopId),
+    syntheticNameMatches: shopPayload?.shop?.name === apiIdentity.shopName,
+  };
+  if (shopResponse.status() !== 201 || !shopId || !shopDiagnostic.syntheticNameMatches) {
+    failStage("B", "shop create/link failed", shopDiagnostic);
+  }
+
+  // C. Re-read through auth middleware rather than trusting the create body.
+  const meResponse = await request.get(endpoint("/api/auth/me"), { headers });
+  const mePayload = await readJson(meResponse);
+  const meDiagnostic = {
+    ...safeResponse(meResponse, mePayload),
+    hasUser: Boolean(mePayload?.user),
+    userHasShopId: Boolean(String(mePayload?.user?.shopId ?? "").trim()),
+  };
+  if (meResponse.status() !== 200 || !meDiagnostic.hasUser || !meDiagnostic.userHasShopId) {
+    failStage("C", "auth/me lacks shop linkage", meDiagnostic);
+  }
+
+  // D. Create both services independently, preserving the route contract.
+  for (const [index, serviceName] of apiIdentity.serviceNames.entries()) {
+    const serviceResponse = await request.post(endpoint("/api/services"), {
+      headers,
+      data: { name: serviceName, title: serviceName, price: index === 0 ? 30 : 20, durationMinutes: index === 0 ? 30 : 20, duration: index === 0 ? 30 : 20, active: true, shopId, barberUsername: apiIdentity.username, ownerUsername: apiIdentity.username },
+    });
+    const servicePayload = await readJson(serviceResponse);
+    const serviceDiagnostic = {
+      ...safeResponse(serviceResponse, servicePayload),
+      serviceKeys: servicePayload?.service && typeof servicePayload.service === "object" ? Object.keys(servicePayload.service).sort() : [],
+      hasServiceId: Boolean(String(servicePayload?.service?.id ?? "").trim()),
+      syntheticNameMatches: servicePayload?.service?.name === serviceName,
+    };
+    if (serviceResponse.status() !== 201 || !serviceDiagnostic.hasServiceId || !serviceDiagnostic.syntheticNameMatches) {
+      failStage("D", "service POST failed", { serviceNumber: index + 1, ...serviceDiagnostic });
+    }
+  }
+
+  const readServices = async (stage) => {
+    const response = await request.get(endpoint("/api/services"), { headers });
+    const payload = await readJson(response);
+    const services = Array.isArray(payload?.services) ? payload.services : [];
+    const diagnostic = {
+      ...safeResponse(response, payload), serviceCount: services.length,
+      expectedServicesPresent: apiIdentity.serviceNames.map((name) => ({ name, present: services.some((service) => service?.name === name) })),
+    };
+    if (response.status() !== 200 || services.length < 2 || diagnostic.expectedServicesPresent.some((entry) => !entry.present)) {
+      failStage(stage, stage === "E" ? "services created but GET /api/services did not return both" : "availability/setup snapshot detached services", diagnostic);
+    }
+  };
+  await readServices("E");
+
+  // F. Match the minimal availability write performed by owner setup.
+  const weekly = Object.fromEntries(["sun", "mon", "tue", "wed", "thu", "fri", "sat"].map((day, index) => [day, { enabled: index === 1, start: "09:00", end: "17:00" }]));
+  const availabilityResponse = await request.put(endpoint("/api/availability"), {
+    headers,
+    data: { barberUsername: apiIdentity.username, availability: { timezone: "America/Chicago", bufferMinutes: 0, weekly, timeOff: [] } },
+  });
+  if (availabilityResponse.status() !== 200) {
+    failStage("F", "availability/setup write failed", safeResponse(availabilityResponse, await readJson(availabilityResponse)));
+  }
+  await readServices("F");
+  // Reaching here classifies the authoritative API chain as G; the browser
+  // lifecycle test that follows remains responsible for the real wizard/UI.
 });
 
 test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context, request }) => {

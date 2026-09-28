@@ -1254,6 +1254,17 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
+  const ownerShopId = isOwner(req.user) ? getUserShopId(req.db, req.user) : "";
+  logStagingAuthContract("GET /api/auth/me succeeded", {
+    status: 200,
+    storage: STORAGE_ADAPTER,
+    hasAuthUser: Boolean(req.user?.username),
+    authUserHasShopId: Boolean(req.user?.shopId),
+    hasResolvedShop: Boolean(ownerShopId),
+    ownerShopCount: isOwner(req.user)
+      ? req.db.shops.filter((shop) => usernamesEqual(shop?.ownerUsername, req.user.username)).length
+      : 0,
+  });
   return res.json({ user: buildAuthUser(req.user) });
 });
 
@@ -1441,6 +1452,12 @@ function logStagingShopContract(marker, fields) {
   const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
   if (environment !== "staging" && environment !== "development") return;
   console.info(`[Slotzy:shops] ${marker}`, fields);
+}
+
+function logStagingAuthContract(marker, fields) {
+  const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  if (environment !== "staging" && environment !== "development") return;
+  console.info(`[Slotzy:auth] ${marker}`, fields);
 }
 
 function isUuidShaped(value) {
