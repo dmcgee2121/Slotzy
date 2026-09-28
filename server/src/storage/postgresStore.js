@@ -103,6 +103,23 @@ export function createPostgresStore(env = process.env) {
     networkFailures.length = 0;
   }
 
+  async function readCanonicalIdentityMappings() {
+    const pageSize = 500;
+    const mappings = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await client.from("legacy_source_ids")
+        .select("entity_type,source_id,target_id")
+        .eq("is_canonical", true)
+        .order("entity_type", { ascending: true })
+        .order("source_id", { ascending: true })
+        .range(from, from + pageSize - 1);
+      fail(error, "read canonical identity mappings", networkFailures);
+      const page = data ?? [];
+      mappings.push(...page);
+      if (page.length < pageSize) return mappings;
+    }
+  }
+
   async function readStore() {
     beginOperation();
     const reads = [
@@ -116,11 +133,13 @@ export function createPostgresStore(env = process.env) {
       ["read time off", client.from("time_off").select("*")],
       ["read bookings", client.from("bookings").select("*")],
       ["read email outbox", client.from("email_outbox").select("*")],
-      ["read canonical identity mappings", client.from("legacy_source_ids").select("entity_type,source_id,target_id").eq("is_canonical", true)],
     ];
-    const results = await Promise.all(reads.map(([, request]) => request));
+    const [results, canonicalMappings] = await Promise.all([
+      Promise.all(reads.map(([, request]) => request)),
+      readCanonicalIdentityMappings(),
+    ]);
     results.forEach((result, index) => fail(result.error, reads[index][0], networkFailures));
-    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails, canonicalMappings] = results.map((result) => result.data ?? []);
+    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails] = results.map((result) => result.data ?? []);
     const canonicalSourceByTarget = new Map(canonicalMappings.map((row) => [`${row.entity_type}:${row.target_id}`, row.source_id]));
     const sourceId = (entityType, targetId) => canonicalSourceByTarget.get(`${entityType}:${targetId}`) ?? targetId;
     const usersById = new Map(users.map((row) => [row.id, row]));

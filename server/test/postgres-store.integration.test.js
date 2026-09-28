@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import { createPostgresStore } from "../src/storage/postgresStore.js";
@@ -125,6 +125,14 @@ postgresTest("Postgres repeated snapshot write is idempotent contract", async ()
 });
 
 postgresTest("Postgres non-empty shop snapshot preserves service scope while adding a service", async () => {
+  // A long-lived staging project can exceed PostgREST's configured per-request
+  // row cap. Relevant canonical mappings must still be read beyond page one.
+  const unrelatedMappings = Array.from({ length: 1005 }, (_, index) => ({
+    entity_type: "email", source_id: `bulk-${String(index).padStart(4, "0")}`,
+    target_id: randomUUID(), is_canonical: true,
+  }));
+  const { error: mappingInsertError } = await client.from("legacy_source_ids").insert(unrelatedMappings);
+  assert.ifError(mappingInsertError);
   await seedBase();
   const snapshot = await store.readStore();
   assert.equal(snapshot.users[0].shopId, "shop-fixture");

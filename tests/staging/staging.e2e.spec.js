@@ -152,9 +152,23 @@ async function serviceCreateResponseState(response, expectedName, inputState) {
     endpointPath: new URL(response.url()).pathname,
     status: response.status(),
     responseJsonParsed,
+    responseKeys: responseJsonParsed ? Object.keys(payload).sort() : [],
+    serviceKeys: payload?.service && typeof payload.service === "object" ? Object.keys(payload.service).sort() : [],
     hasCreatedService: Boolean(payload?.service && typeof payload.service === "object"),
+    createdServiceIdPresent: Boolean(String(payload?.service?.id ?? "").trim()),
     createdSyntheticServiceMatches: createdName === expectedName,
   };
+}
+
+async function requireSetupServices(request, authToken, expectedNames, checkpoint, page) {
+  const states = [];
+  for (const name of expectedNames) states.push(await servicesApiState(request, authToken, name));
+  const first = states[0] ?? { status: 0, serviceCount: 0, hasToken: Boolean(authToken) };
+  const allPresent = states.length === expectedNames.length && states.every((state) => state.status === 200 && state.hasExpectedService);
+  if (!allPresent || first.serviceCount < expectedNames.length) {
+    throw new Error(`Owner setup services failed persistence checkpoint: ${JSON.stringify({ checkpoint, endpointPath: first.endpointPath, status: first.status, serviceCount: first.serviceCount, hasToken: first.hasToken, expectedSyntheticServices: expectedNames, expectedServicesPresent: states.map((state, index) => ({ name: expectedNames[index], present: state.hasExpectedService })), currentPath: new URL(page.url()).pathname })}`);
+  }
+  return { status: first.status, serviceCount: first.serviceCount, hasToken: first.hasToken };
 }
 
 async function registrationOutcome(page, response, expectedUser, browserErrors, expectedApiOrigin) {
@@ -327,6 +341,8 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
         throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify({ ...serviceCreation, ...persisted, currentPath: new URL(page.url()).pathname })}`);
       }
     }
+    const setupServiceNames = setupServices.map((service) => service.name);
+    await requireSetupServices(request, authToken, setupServiceNames, "after-both-service-saves", page);
     await page.locator("#setupStep3Next").click();
     await expect(page.locator("#setupStep4Next")).toBeVisible();
 
@@ -336,8 +352,10 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     await page.fill(`input[data-day="${bookingDay}"][data-field="end"]`, "17:00");
     await page.locator("#setupStep4Next").click();
     await expect(page.locator("#setupGoDashboard")).toBeVisible();
+    await requireSetupServices(request, authToken, setupServiceNames, "after-availability-and-setup-completion", page);
     await page.locator("#setupGoDashboard").click();
     await expect(page).toHaveURL(/\/pages\/business-owner\.html/);
+    await requireSetupServices(request, authToken, setupServiceNames, "after-dashboard-navigation", page);
   } else {
     await expect(page).toHaveURL(/\/pages\/business-owner\.html/);
     await expect(page.getByRole("heading", { name: /owner dashboard/i })).toBeVisible();

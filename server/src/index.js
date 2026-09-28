@@ -1395,6 +1395,12 @@ app.patch("/api/shops/:shopId", requireAuth, async (req, res) => {
   }
 });
 
+function logStagingServiceContract(marker, fields) {
+  const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  if (environment !== "staging" && environment !== "development") return;
+  console.info(`[Slotzy:services] ${marker}`, fields);
+}
+
 app.get("/api/services", requireAuth, (req, res) => {
   const db = req.db;
   const user = req.user;
@@ -1402,12 +1408,16 @@ app.get("/api/services", requireAuth, (req, res) => {
   const queryBarberUsername = normalizeUsername(req.query.barberUsername);
   const queryActive = String(req.query.active ?? "").trim().toLowerCase();
 
-  let services = [...db.services];
+  const allServices = [...db.services];
+  let services = allServices;
+  let resolvedShopId = "";
 
   if (isOwner(user)) {
     const ownerShopId = getUserShopId(db, user);
+    resolvedShopId = ownerShopId;
     services = services.filter((service) => normalizeUsername(service?.shopId) === ownerShopId);
   } else if (isBarber(user)) {
+    resolvedShopId = getUserShopId(db, user);
     services = services.filter((service) => canBarberManageService(user, service));
   }
 
@@ -1424,6 +1434,17 @@ app.get("/api/services", requireAuth, (req, res) => {
     services = services.filter((service) => Boolean(service?.active !== false) === active);
   }
 
+  logStagingServiceContract("GET /api/services succeeded", {
+    status: 200,
+    storage: STORAGE_ADAPTER,
+    hasAuthUser: Boolean(user?.username),
+    hasResolvedShop: Boolean(resolvedShopId),
+    totalServiceCount: allServices.length,
+    returnedServiceCount: services.length,
+    hasE2EServiceBeforeScope: allServices.some((service) => /^e2e[ -]/i.test(String(service?.name ?? service?.title ?? ""))),
+    hasE2EServiceAfterScope: services.some((service) => /^e2e[ -]/i.test(String(service?.name ?? service?.title ?? ""))),
+    allReturnedServicesMatchResolvedShop: Boolean(resolvedShopId) && services.every((service) => normalizeUsername(service?.shopId) === resolvedShopId),
+  });
   return res.json({ services });
 });
 
@@ -1508,6 +1529,18 @@ app.post("/api/services", requireAuth, async (req, res) => {
 
     db.services.push(service);
     await writeStore(db);
+    logStagingServiceContract("POST /api/services succeeded", {
+      status: 201,
+      storage: STORAGE_ADAPTER,
+      hasAuthUser: Boolean(user?.username),
+      hasResolvedShop: Boolean(getUserShopId(db, user)),
+      responseKeys: ["service"],
+      serviceHasId: Boolean(service.id),
+      serviceHasName: Boolean(service.name),
+      serviceHasShopId: Boolean(service.shopId),
+      serviceNameIsE2E: /^e2e[ -]/i.test(service.name),
+      serviceShopMatchesResolvedShop: Boolean(service.shopId) && service.shopId === getUserShopId(db, user),
+    });
     return res.status(201).json({ service });
   } catch {
     return res.status(500).json({ error: "internal server error" });
