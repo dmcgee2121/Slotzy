@@ -1202,7 +1202,17 @@ app.post("/api/auth/register", async (req, res) => {
     await writeStore(db);
 
     const token = signToken(user);
-    return res.status(201).json({ token, user: buildAuthUser(user) });
+    const authUser = buildAuthUser(user);
+    // A staging-safe contract signal: never log the token, username, request
+    // body, or user object values. Its absence after a 201 indicates a stale
+    // deployment or response layer rather than this checked-in route.
+    console.info("[Slotzy:auth] POST /api/auth/register succeeded", {
+      storage: STORAGE_ADAPTER,
+      status: 201,
+      responseKeys: ["token", "user"],
+      userKeys: Object.keys(authUser).sort(),
+    });
+    return res.status(201).json({ token, user: authUser });
   } catch (error) {
     // Keep the browser response generic, but make hosted diagnostics actionable.
     // Never log request bodies: they contain passwords and may later contain PII.

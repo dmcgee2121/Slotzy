@@ -70,7 +70,24 @@ function objectKeys(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).sort() : [];
 }
 
-function safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed) {
+function safeResponseBodyDiagnostic(body, parseError = "") {
+  const text = String(body ?? "");
+  const trimmed = text.trim();
+  const firstCharacter = trimmed.slice(0, 1);
+  const shape = !trimmed ? "empty"
+    : firstCharacter === "{" ? "object-like"
+      : firstCharacter === "[" ? "array-like"
+        : firstCharacter === "<" ? "html-like"
+          : `other:${safeDiagnosticText(trimmed.slice(0, 12))}`;
+  return {
+    bodyLength: text.length,
+    bodyIsEmpty: trimmed.length === 0,
+    bodyShape: shape,
+    jsonParseError: safeDiagnosticText(parseError),
+  };
+}
+
+function safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed, bodyDiagnostic) {
   const responseUrl = new URL(response.url());
   const data = payload?.data && typeof payload.data === "object" ? payload.data : null;
   const user = payload?.user && typeof payload.user === "object" ? payload.user : null;
@@ -83,6 +100,7 @@ function safeRegistrationResponseShape(response, payload, expectedApiOrigin, jso
     responseOriginMatchesStagingApi: responseUrl.origin === expectedApiOrigin,
     contentType: String(response.headers()["content-type"] ?? "").split(";")[0],
     jsonParsed,
+    ...bodyDiagnostic,
     keys: objectKeys(payload),
     userKeys: objectKeys(user),
     dataKeys: objectKeys(data),
@@ -100,8 +118,17 @@ async function registrationOutcome(page, response, expectedUser, browserErrors, 
   const status = response.status();
   let payload = {};
   let jsonParsed = false;
-  try { payload = await response.json(); jsonParsed = true; } catch { /* response diagnostics below remain safe */ }
-  const responseShape = safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed);
+  let bodyDiagnostic = {};
+  try {
+    payload = await response.json();
+    jsonParsed = true;
+  } catch (error) {
+    let body = "";
+    let textError = "";
+    try { body = await response.text(); } catch (readError) { textError = `${readError?.name ?? "Error"}: ${readError?.message ?? "response text unavailable"}`; }
+    bodyDiagnostic = safeResponseBodyDiagnostic(body, `${error?.name ?? "Error"}: ${error?.message ?? "invalid JSON"}${textError ? `; ${textError}` : ""}`);
+  }
+  const responseShape = safeRegistrationResponseShape(response, payload, expectedApiOrigin, jsonParsed, bodyDiagnostic);
   if (responseShape.requestMethod !== "POST" || responseShape.responsePathname !== "/api/auth/register" || !responseShape.responseOriginMatchesStagingApi) {
     throw new Error(`Staging E2E captured an unexpected registration response: ${JSON.stringify(responseShape)}`);
   }
