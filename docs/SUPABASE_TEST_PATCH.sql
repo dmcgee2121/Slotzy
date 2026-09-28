@@ -4,6 +4,28 @@ begin;
 
 -- The original RPC reused generic record names and unqualified identifiers.
 -- Reinstall the corrected definition from the reviewed canonical schema.
+create or replace function public.slotzy_legacy_target_id(p_entity_type text, p_source_id text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare target uuid;
+begin
+  if coalesce(btrim(p_source_id), '') = '' then raise exception 'legacy source id is required for %', p_entity_type; end if;
+  select target_id into target from public.legacy_source_ids where entity_type = p_entity_type and source_id = p_source_id;
+  if target is null and p_entity_type = 'user' then
+    select u.id into target from public.users u where u.id::text = p_source_id;
+    if target is not null then
+      insert into public.legacy_source_ids (entity_type, source_id, target_id, is_canonical)
+      values ('user', p_source_id, target, not exists (select 1 from public.legacy_source_ids l where l.entity_type = 'user' and l.target_id = target and l.is_canonical))
+      on conflict (entity_type, source_id) do update set target_id = excluded.target_id;
+    end if;
+  end if;
+  if target is null then
+    target := gen_random_uuid();
+    insert into public.legacy_source_ids (entity_type, source_id, target_id) values (p_entity_type, p_source_id, target);
+  end if;
+  return target;
+end;
+$$;
+
 create or replace function public.slotzy_storage_write_snapshot(snapshot jsonb)
 returns void language plpgsql security definer set search_path = public as $$
 declare

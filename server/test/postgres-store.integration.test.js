@@ -124,6 +124,33 @@ postgresTest("Postgres repeated snapshot write is idempotent contract", async ()
   assert.equal(data.length, 1); assert.equal((await store.readStore()).services.length, 1);
 });
 
+postgresTest("Postgres non-empty user snapshot preserves source identity while adding a user", async () => {
+  await seedBase();
+  const snapshot = await store.readStore();
+  snapshot.users.push({ id: "user-second", username: "fixture-second", displayName: "Fixture Second", passwordHash: "not-a-real-password", role: "owner", email: "fixture-second@example.test", shopId: null });
+  await store.writeStore(snapshot);
+  const { data, error } = await client.from("users").select("username").order("username"); assert.ifError(error);
+  assert.deepEqual(data.map((row) => row.username), ["fixture-owner", "fixture-second"]);
+});
+
+postgresTest("Postgres snapshot safely repairs a pre-existing user with no source mapping", async () => {
+  const { data: existing, error: insertError } = await client.from("users")
+    .insert({ username: "relational-existing", display_name: "Relational Existing", password_hash: "not-a-real-password", role: "owner" })
+    .select("id").single();
+  assert.ifError(insertError);
+  const { data: beforeMappings, error: beforeMappingError } = await client.from("legacy_source_ids")
+    .select("source_id").eq("entity_type", "user").eq("target_id", existing.id);
+  assert.ifError(beforeMappingError); assert.equal(beforeMappings.length, 0);
+  const snapshot = await store.readStore();
+  snapshot.users.push({ id: "user-added-after-relational", username: "relational-added", displayName: "Relational Added", passwordHash: "not-a-real-password", role: "owner", shopId: null });
+  await store.writeStore(snapshot);
+  const { data: users, error: usersError } = await client.from("users").select("id,username").order("username"); assert.ifError(usersError);
+  assert.deepEqual(users.map((row) => row.username), ["relational-added", "relational-existing"]);
+  const { data: repairedMapping, error: repairedMappingError } = await client.from("legacy_source_ids")
+    .select("target_id").eq("entity_type", "user").eq("source_id", existing.id).single();
+  assert.ifError(repairedMappingError); assert.equal(repairedMapping.target_id, existing.id);
+});
+
 postgresTest("Postgres outbox contract", async () => {
   await store.appendOutboxEmail({ to: "older@example.test", subject: "Older", html: "<p>old</p>", text: "old", tags: ["fixture"], meta: { order: 1 } });
   await store.appendOutboxEmail({ to: "newer@example.test", subject: "Newer", html: "<p>new</p>", text: "new", tags: ["fixture"], meta: { order: 2 } });

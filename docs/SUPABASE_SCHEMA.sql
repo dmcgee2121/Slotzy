@@ -285,6 +285,21 @@ begin
   end if;
   select target_id into target from public.legacy_source_ids
     where entity_type = p_entity_type and source_id = p_source_id;
+  -- readStore returns a user's canonical legacy source when present. Historical
+  -- relational users may predate that map, however, and are read with their
+  -- relational UUID as a safe fallback. Reuse that UUID rather than generating
+  -- a second target which would collide on users.username during upsert.
+  if target is null and p_entity_type = 'user' then
+    select u.id into target from public.users u where u.id::text = p_source_id;
+    if target is not null then
+      insert into public.legacy_source_ids (entity_type, source_id, target_id, is_canonical)
+      values ('user', p_source_id, target, not exists (
+        select 1 from public.legacy_source_ids l
+        where l.entity_type = 'user' and l.target_id = target and l.is_canonical
+      ))
+      on conflict (entity_type, source_id) do update set target_id = excluded.target_id;
+    end if;
+  end if;
   if target is null then
     target := gen_random_uuid();
     insert into public.legacy_source_ids (entity_type, source_id, target_id)

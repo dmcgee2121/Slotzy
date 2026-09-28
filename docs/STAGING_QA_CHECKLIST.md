@@ -12,6 +12,8 @@ If registration remains open, the E2E first reports the `/api/auth/register` HTT
 
 For a staging registration HTTP 500, inspect the Render server log entry `[Slotzy:auth] POST /api/auth/register failed`. Its storage diagnostic uses flat fields such as `networkCode`, `networkHostname`, `networkCauseCode`, and `networkCauseHostname`, so Render will not collapse an underlying fetch cause as `[Object]`. On staging/Postgres startup, also inspect the non-blocking `[Slotzy:storage] staging Supabase DNS probe ...` entry. URLs are redacted; logs deliberately exclude username, password, request body, JWT, Authorization headers, and Supabase credentials.
 
+If staging reports a `23505` during `write snapshot` after registration reaches the database, treat it as snapshot identity reconciliation rather than a reason to remove the username uniqueness constraint. Review and, when needed, run `docs/SUPABASE_STAGING_REPAIR.sql` in the staging SQL editor. It only backfills missing user source mappings and is safe to rerun; do not use the disposable reset RPC or delete staging users.
+
 ## 1. Infrastructure
 
 - [x] Netlify frontend: `https://slotzy-staging.netlify.app` reachable.
