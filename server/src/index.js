@@ -1324,8 +1324,25 @@ app.post("/api/shops", requireAuth, async (req, res) => {
     }
 
     await writeStore(db);
+    logStagingShopContract("POST /api/shops succeeded", {
+      status: 201,
+      storage: STORAGE_ADAPTER,
+      hasAuthUser: Boolean(user?.username),
+      incomingShopNameIsE2E: /^e2e[ -]/i.test(name),
+      createdShop: Boolean(shop?.id),
+      userLinkedToShop: Boolean(ownerRecord?.shopId && ownerRecord.shopId === shop.id),
+      ownerShopCountAfterSave: db.shops.filter((entry) => usernamesEqual(entry?.ownerUsername, user.username)).length,
+      userHasShopIdAfterSave: Boolean(ownerRecord?.shopId),
+    });
     return res.status(201).json({ shop });
-  } catch {
+  } catch (error) {
+    logStagingShopContract("POST /api/shops failed", {
+      status: 500,
+      storage: STORAGE_ADAPTER,
+      code: String(error?.code ?? ""),
+      message: String(error?.message ?? "unknown error"),
+      storageDiagnostic: error?.storageDiagnostic ?? null,
+    });
     return res.status(500).json({ error: "internal server error" });
   }
 });
@@ -1389,8 +1406,27 @@ app.patch("/api/shops/:shopId", requireAuth, async (req, res) => {
     db.shops[index] = next;
     await writeStore(db);
 
+    const linkedOwner = findUserByUsername(db, user.username);
+    logStagingShopContract("PATCH /api/shops/:shopId succeeded", {
+      status: 200,
+      storage: STORAGE_ADAPTER,
+      hasAuthUser: Boolean(user?.username),
+      incomingShopNameIsE2E: /^e2e[ -]/i.test(String(req.body?.name ?? req.body?.businessName ?? "")),
+      updatedShop: Boolean(next?.id),
+      userLinkedToShop: Boolean(linkedOwner?.shopId && linkedOwner.shopId === next.id),
+      ownerShopCountAfterSave: db.shops.filter((entry) => usernamesEqual(entry?.ownerUsername, user.username)).length,
+      userHasShopIdAfterSave: Boolean(linkedOwner?.shopId),
+    });
+
     return res.json({ shop: next });
-  } catch {
+  } catch (error) {
+    logStagingShopContract("PATCH /api/shops/:shopId failed", {
+      status: 500,
+      storage: STORAGE_ADAPTER,
+      code: String(error?.code ?? ""),
+      message: String(error?.message ?? "unknown error"),
+      storageDiagnostic: error?.storageDiagnostic ?? null,
+    });
     return res.status(500).json({ error: "internal server error" });
   }
 });
@@ -1399,6 +1435,12 @@ function logStagingServiceContract(marker, fields) {
   const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
   if (environment !== "staging" && environment !== "development") return;
   console.info(`[Slotzy:services] ${marker}`, fields);
+}
+
+function logStagingShopContract(marker, fields) {
+  const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  if (environment !== "staging" && environment !== "development") return;
+  console.info(`[Slotzy:shops] ${marker}`, fields);
 }
 
 function isUuidShaped(value) {

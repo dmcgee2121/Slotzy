@@ -153,6 +153,9 @@ function runAsync(localFn, options = {}) {
   return Promise.resolve()
     .then(() => apiFn())
     .catch((error) => {
+      if (options && typeof options === "object" && options.fallbackOnError === false) {
+        throw error;
+      }
       warnApiFallback(label, error);
       return localTask();
     });
@@ -1301,10 +1304,10 @@ export function getShopsAsync() {
   );
 }
 
-export function saveShopsAsync(shops) {
+export function saveShopsAsync(shops, options = {}) {
   return runAsync(
     () => saveShops(shops),
-    { apiFn: () => apiSaveShops(shops), label: "shops write" }
+    { apiFn: () => apiSaveShops(shops), label: "shops write", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 
@@ -1326,10 +1329,10 @@ export function getServicesAsync() {
   );
 }
 
-export function saveServicesAsync(arr) {
+export function saveServicesAsync(arr, options = {}) {
   return runAsync(
     () => saveServices(arr),
-    { apiFn: () => apiSaveServices(arr), label: "services write" }
+    { apiFn: () => apiSaveServices(arr), label: "services write", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 
@@ -1432,10 +1435,10 @@ export function getAvailabilityForBarberAsync(username) {
   );
 }
 
-export function saveAvailabilityForBarberAsync(username, availability) {
+export function saveAvailabilityForBarberAsync(username, availability, options = {}) {
   return runAsync(
     () => saveAvailabilityForBarber(username, availability),
-    { apiFn: () => apiSaveAvailabilityForBarber(username, availability), label: "availability barber write" }
+    { apiFn: () => apiSaveAvailabilityForBarber(username, availability), label: "availability barber write", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 

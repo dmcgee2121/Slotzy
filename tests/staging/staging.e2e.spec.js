@@ -132,6 +132,45 @@ async function servicesApiState(request, authToken, expectedName) {
   }
 }
 
+async function ownerShopApiState(request, authToken, expectedShopName) {
+  const token = String(authToken ?? "").trim();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const [meResponse, shopsResponse] = await Promise.all([
+    request.get(new URL("/api/auth/me", apiUrl).toString(), { headers }),
+    request.get(new URL("/api/shops", apiUrl).toString(), { headers }),
+  ]);
+  let mePayload = null;
+  let shopsPayload = null;
+  try { mePayload = await meResponse.json(); } catch { /* safe shape below */ }
+  try { shopsPayload = await shopsResponse.json(); } catch { /* safe shape below */ }
+  const shops = Array.isArray(shopsPayload?.shops) ? shopsPayload.shops : [];
+  return {
+    hasToken: Boolean(token), authStatus: meResponse.status(), shopsStatus: shopsResponse.status(),
+    authUserExists: Boolean(mePayload?.user),
+    userHasShopId: Boolean(String(mePayload?.user?.shopId ?? "").trim()),
+    ownerShopCount: shops.length,
+    anySyntheticShopExists: shops.some((shop) => String(shop?.name ?? shop?.businessName ?? "").trim() === expectedShopName),
+  };
+}
+
+async function shopSaveResponseState(response, expectedShopName, inputState) {
+  let payload = null;
+  try { payload = await response.json(); } catch { /* safe shape below */ }
+  const shop = payload?.shop && typeof payload.shop === "object" ? payload.shop : null;
+  return {
+    shopNameInputFilled: Boolean(inputState?.shopName),
+    ownerProfileFieldPresent: Boolean(inputState?.ownerProfileFieldPresent),
+    ownerProfileFilled: Boolean(inputState?.ownerProfileFilled),
+    saveActionClicked: true,
+    endpointPath: new URL(response.url()).pathname,
+    status: response.status(),
+    responseKeys: payload && typeof payload === "object" ? Object.keys(payload).sort() : [],
+    shopKeys: shop ? Object.keys(shop).sort() : [],
+    shopPresent: Boolean(shop), shopIdPresent: Boolean(String(shop?.id ?? "").trim()),
+    syntheticShopNameMatches: String(shop?.name ?? shop?.businessName ?? "").trim() === expectedShopName,
+  };
+}
+
 async function visibleSyntheticServiceTexts(page) {
   return page.locator("#serviceList .owner-service-card h3").allTextContents()
     .then((values) => values.map((value) => String(value).trim()).filter((value) => /^E2E /i.test(value)))
@@ -303,7 +342,22 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   // before then, so follow the real UI rather than accepting the hidden link.
   if (await page.locator("#setupShopName").count()) {
     await page.fill("#setupShopName", identity.shopName);
+    const shopInputState = {
+      shopName: await page.locator("#setupShopName").inputValue() === identity.shopName,
+      ownerProfileFieldPresent: Boolean(await page.locator("#setupOwnerDisplayName").count()),
+      ownerProfileFilled: Boolean(String(await page.locator("#setupOwnerDisplayName").inputValue().catch(() => "")).trim()),
+    };
+    const shopSaveResponse = page.waitForResponse((response) => (
+      response.request().method() === "POST"
+      && new URL(response.url()).origin === expectedApiOrigin
+      && new URL(response.url()).pathname === "/api/shops"
+    ));
     await page.locator("#setupStep1Next").click();
+    const shopCreation = await shopSaveResponseState(await shopSaveResponse, identity.shopName, shopInputState);
+    const ownerShopState = await ownerShopApiState(request, authToken, identity.shopName);
+    if (shopCreation.status !== 201 || !shopCreation.shopPresent || !shopCreation.shopIdPresent || !shopCreation.syntheticShopNameMatches || ownerShopState.authStatus !== 200 || ownerShopState.shopsStatus !== 200 || !ownerShopState.authUserExists || !ownerShopState.userHasShopId || ownerShopState.ownerShopCount < 1 || !ownerShopState.anySyntheticShopExists) {
+      throw new Error(`Owner setup Step 1 did not create and link the synthetic shop: ${JSON.stringify({ ...shopCreation, ...ownerShopState, currentPath: new URL(page.url()).pathname })}`);
+    }
     await expect(page.locator("#setupStep2Next")).toBeVisible();
 
     await page.fill("#setupOwnerDisplayName", identity.username);

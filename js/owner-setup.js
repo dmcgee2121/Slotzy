@@ -365,7 +365,7 @@ import {
       barberUsername,
       ownerUsername: barberUsername,
     });
-    await dataStore.saveServicesAsync(nextServices);
+    await dataStore.saveServicesAsync(nextServices, { fallbackOnError: false });
 
     if (ui.serviceNameInput) ui.serviceNameInput.value = "";
     if (ui.servicePriceInput) ui.servicePriceInput.value = "";
@@ -385,7 +385,7 @@ import {
 
     const services = await dataStore.getServicesAsync();
     const nextServices = (Array.isArray(services) ? services : []).filter((service) => String(service?.id ?? "").trim() !== serviceId);
-    await dataStore.saveServicesAsync(nextServices);
+    await dataStore.saveServicesAsync(nextServices, { fallbackOnError: false });
     await refreshSetupStatus();
     applySetupStatus();
     setStatus(ui.serviceStatus, "Service removed.", true);
@@ -445,7 +445,7 @@ import {
       bufferMinutes: sanitizeBufferMinutes(ui.bufferMinutesSelect?.value),
       weekly,
       timeOff: Array.isArray(existing?.timeOff) ? existing.timeOff : [],
-    });
+    }, { fallbackOnError: false });
 
     if (showSuccess) {
       setStatus(ui.availabilityStatus, "Availability saved.", true);
@@ -590,19 +590,21 @@ import {
       shopId,
     };
 
-    await Promise.all([
-      dataStore.saveUsersAsync(nextUsers),
-      dataStore.saveShopsAsync(nextShops),
-      dataStore.saveShopAsync({
-        ...legacyShop,
-        businessName: shopName,
-        name: shopName,
-        logoDataUrl: String(state.shopLogoDataUrl ?? "").trim() || null,
-        shopId,
-        bookingPolicy,
-        updatedAt: new Date().toISOString(),
-      }),
-    ]);
+    // The shop collection API is the authoritative server write. The previous
+    // concurrent legacy single-shop PATCH used the not-yet-persisted local ID
+    // and could fail while the generic data-store fallback still let setup
+    // advance. Require this one create/update to finish before leaving Step 1.
+    await dataStore.saveShopsAsync(nextShops, { fallbackOnError: false });
+    dataStore.saveUsers(nextUsers);
+    dataStore.saveShop({
+      ...legacyShop,
+      businessName: shopName,
+      name: shopName,
+      logoDataUrl: String(state.shopLogoDataUrl ?? "").trim() || null,
+      shopId,
+      bookingPolicy,
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   async function saveOwnerRecord(displayName) {
