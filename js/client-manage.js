@@ -41,6 +41,22 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   let rescheduleLoadToken = 0;
   let pendingCancelBookingId = "";
 
+  function markCancelStage(stage, details = {}) {
+    const root = document.documentElement;
+    if (!root) return;
+    const runtime = details.runtime || {};
+    root.dataset.manageCancelStage = String(stage || "");
+    root.dataset.manageCancelApiMode = String(runtime.mode || "");
+    root.dataset.manageCancelApiEnabled = String(Boolean(runtime.apiEnabled));
+    root.dataset.manageCancelApiBasePresent = String(Boolean(runtime.apiBaseUrlPresent));
+    root.dataset.manageCancelAuthTokenPresent = String(Boolean(runtime.authTokenPresent));
+    root.dataset.manageCancelRequireApi = String(Boolean(details.requireApi));
+    root.dataset.manageCancelIdPresent = String(Boolean(details.bookingId));
+    root.dataset.manageCancelIdUuidLike = String(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(details.bookingId || "")));
+    root.dataset.manageCancelIntendedMethod = String(runtime.bookingUpdateMethod || "PATCH");
+    root.dataset.manageCancelIntendedPath = String(runtime.bookingUpdatePath || "/api/bookings/:bookingId");
+  }
+
   document.addEventListener("DOMContentLoaded", initClientManagePage);
 
   function initClientManagePage() {
@@ -299,9 +315,17 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   }
 
   async function handleCancelAppointment(bookingId) {
-    const currentRows = await dataStore.getBookingsAsync();
+    const runtime = dataStore.getApiRuntimeState();
+    const requireApi = runtime.apiEnabled || runtime.authTokenPresent;
+    markCancelStage("confirm-handler-entered", { bookingId, runtime, requireApi });
+    // The visible card was just built from the authoritative manage-page read,
+    // which also hydrated this compatibility cache. Do not place another GET
+    // (and a possible pre-fetch rejection) between Confirm and the PATCH.
+    const currentRows = dataStore.getBookings();
+    markCancelStage("booking-cache-read", { bookingId, runtime, requireApi });
     const targetBooking = findAccessibleBooking(currentRows, bookingId);
     if (!targetBooking) {
+      markCancelStage("booking-not-found", { bookingId, runtime, requireApi });
       pendingCancelBookingId = "";
       await renderClientManagePage();
       setStatus("Appointment not found.", false);
@@ -310,6 +334,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
 
     const cancellation = getCancellationState(targetBooking, currentShop);
     if (!cancellation.canCancel) {
+      markCancelStage("cancellation-policy-blocked", { bookingId, runtime, requireApi });
       pendingCancelBookingId = "";
       await renderClientManagePage();
       setStatus(cancellation.message, false);
@@ -325,13 +350,16 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     };
 
     try {
+      markCancelStage("authoritative-update-called", { bookingId, runtime, requireApi });
       const nextBooking = await dataStore.updateBookingAsync(bookingId, cancellationPatch, {
         manualNotify: true,
         fallbackOnError: false,
+        requireApi,
       });
       if (!nextBooking || normalizeStatus(nextBooking.status) !== "cancelled") {
         throw new Error("Cancellation update did not return a cancelled booking");
       }
+      markCancelStage("authoritative-update-succeeded", { bookingId, runtime, requireApi });
       pendingCancelBookingId = "";
       // The booking write is authoritative. Refresh the card immediately so a
       // slow optional notification cannot leave the customer seeing Booked.
@@ -346,6 +374,9 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       setStatus(statusMessage, true);
       showToast?.("Appointment cancelled.", "success", 2000);
     } catch (error) {
+      markCancelStage("authoritative-update-failed", { bookingId, runtime, requireApi });
+      pendingCancelBookingId = "";
+      await renderClientManagePage().catch(() => {});
       console.error("[Slotzy:client-manage] Could not cancel appointment.", error);
       setStatus("Could not cancel this appointment. Please try again.", false);
     }

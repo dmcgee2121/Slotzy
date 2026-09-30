@@ -52,6 +52,83 @@ function collectBrowserDiagnostics(page) {
   return errors;
 }
 
+function safeBookingRequestPath(value) {
+  try {
+    return new URL(value).pathname.replace(
+      /\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(?=\/|$)/gi,
+      "/:bookingId"
+    );
+  } catch {
+    return "";
+  }
+}
+
+function collectBookingNetworkDiagnostics(page) {
+  const events = [];
+  const describe = (request) => {
+    try {
+      const rawPath = new URL(request.url()).pathname;
+      if (!rawPath.includes("/bookings")) return null;
+      return {
+        method: request.method(),
+        path: safeBookingRequestPath(request.url()),
+        includesBookingsPath: rawPath.includes("/api/bookings"),
+        includesUuidShape: /\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(?:\/|$)/i.test(rawPath),
+      };
+    } catch {
+      return null;
+    }
+  };
+  const add = (entry) => {
+    if (entry && events.length < 30) events.push(entry);
+  };
+  const onRequest = (request) => {
+    const entry = describe(request);
+    add(entry ? { type: "request", ...entry } : null);
+  };
+  const onResponse = (response) => {
+    const entry = describe(response.request());
+    add(entry ? { type: "response", ...entry, status: response.status() } : null);
+  };
+  const onRequestFailed = (request) => {
+    const entry = describe(request);
+    add(entry ? { type: "requestfailed", ...entry, failure: safeDiagnosticText(request.failure()?.errorText) } : null);
+  };
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+  page.on("requestfailed", onRequestFailed);
+  return {
+    snapshot: () => events.map((entry) => ({ ...entry })),
+    stop: () => {
+      page.off("request", onRequest);
+      page.off("response", onResponse);
+      page.off("requestfailed", onRequestFailed);
+    },
+  };
+}
+
+async function manageCancelRuntimeDiagnostics(page) {
+  if (page.isClosed()) return { pageClosed: true };
+  return page.evaluate(() => {
+    const data = document.documentElement?.dataset || {};
+    return {
+      stage: String(data.manageCancelStage || ""),
+      apiMode: String(data.manageCancelApiMode || ""),
+      apiEnabled: data.manageCancelApiEnabled === "true",
+      apiBaseUrlPresent: data.manageCancelApiBasePresent === "true",
+      authTokenPresent: data.manageCancelAuthTokenPresent === "true",
+      requireApi: data.manageCancelRequireApi === "true",
+      authoritativeIdPresent: data.manageCancelIdPresent === "true",
+      authoritativeIdUuidLike: data.manageCancelIdUuidLike === "true",
+      intendedMethod: String(data.manageCancelIntendedMethod || ""),
+      intendedPath: String(data.manageCancelIntendedPath || ""),
+    };
+  }).catch((error) => ({
+    pageClosed: page.isClosed(),
+    diagnosticError: safeDiagnosticText(error?.message),
+  }));
+}
+
 async function registrationUiState(page) {
   const inspect = async (selector) => {
     const locator = page.locator(selector);
@@ -884,6 +961,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await page.goto(`${frontendUrl}/pages/manage-appointments.html`);
   await expect(page.getByText(identity.clientName)).toBeVisible();
   const managePage = await context.newPage();
+  const manageBrowserErrors = collectBrowserDiagnostics(managePage);
   const manageBookingsResponse = managePage.waitForResponse((response) => (
     response.request().method() === "GET"
     && new URL(response.url()).origin === expectedApiOrigin
@@ -910,17 +988,18 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const cardBadgeBeforeConfirm = await managedCard.locator(".appointment-actions .badge").allTextContents()
     .then((values) => values.map((value) => String(value).trim())).catch(() => []);
   await managedCancelButton.click();
+  const cancelNetwork = collectBookingNetworkDiagnostics(managePage);
   const cancelUpdateResponse = managePage.waitForResponse((response) => (
     response.request().method() === "PATCH"
     && new URL(response.url()).origin === expectedApiOrigin
     && /^\/api\/bookings\/[^/]+$/.test(new URL(response.url()).pathname)
-  ), { timeout: 15000 });
+  ), { timeout: 15000 }).then((response) => ({ response }), (error) => ({ error }));
   const confirmCancelButton = managePage.getByRole("button", { name: /^Confirm Cancel$/i });
   await confirmCancelButton.click();
-  let cancelUpdate;
-  try {
-    cancelUpdate = await cancelUpdateResponse;
-  } catch (error) {
+  const cancelUpdateResult = await cancelUpdateResponse;
+  if (cancelUpdateResult.error) {
+    const networkEvents = cancelNetwork.snapshot();
+    cancelNetwork.stop();
     throw new Error(`Cancel PATCH not observed: ${JSON.stringify({
       cancelButtonClicked: true,
       confirmCancelButtonClicked: true,
@@ -931,23 +1010,30 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       status: 0,
       responseKeys: [],
       bookingStatusAfterResponse: "",
+      runtime: await manageCancelRuntimeDiagnostics(managePage),
+      bookingNetworkEvents: networkEvents,
       manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
-      browserErrors: browserErrors.map((message) => safeDiagnosticText(message)),
-      waitError: safeDiagnosticText(error?.message),
+      browserErrors: manageBrowserErrors.map((message) => safeDiagnosticText(message)),
+      waitError: safeDiagnosticText(cancelUpdateResult.error?.message),
     })}`);
   }
+  const cancelUpdate = cancelUpdateResult.response;
+  const cancelNetworkEvents = cancelNetwork.snapshot();
+  cancelNetwork.stop();
   let cancelUpdatePayload = null;
   try { cancelUpdatePayload = await cancelUpdate.json(); } catch { /* safe response shape below */ }
   const cancelDiagnostic = {
     cancelButtonClicked: true,
     confirmCancelButtonClicked: true,
-    endpointPath: new URL(cancelUpdate.url()).pathname,
+    endpointPath: safeBookingRequestPath(cancelUpdate.url()),
     method: cancelUpdate.request().method(),
     status: cancelUpdate.status(),
     responseKeys: cancelUpdatePayload && typeof cancelUpdatePayload === "object" ? Object.keys(cancelUpdatePayload).sort() : [],
     bookingStatusAfterResponse: String(cancelUpdatePayload?.booking?.status ?? "").trim(),
     ...managedBookingIdShape,
     cardBadgeBeforeConfirm,
+    runtime: await manageCancelRuntimeDiagnostics(managePage),
+    bookingNetworkEvents: cancelNetworkEvents,
     cardBadgeAfterPatch: await managedCard.locator(".appointment-actions .badge").allTextContents()
       .then((values) => values.map((value) => String(value).trim())).catch(() => []),
   };

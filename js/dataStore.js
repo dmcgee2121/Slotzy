@@ -97,6 +97,23 @@ function isApiModeEnabled() {
   return DATA_MODE === "api" && API_CONFIG.enabled;
 }
 
+export function getApiRuntimeState() {
+  let bookingUpdatePath = "/api/bookings/:bookingId";
+  try {
+    bookingUpdatePath = new URL(buildApiUrl("/bookings/:bookingId"), window.location.origin).pathname;
+  } catch {
+    // Keep the safe route template when URL parsing is unavailable.
+  }
+  return {
+    mode: DATA_MODE,
+    apiEnabled: isApiModeEnabled(),
+    apiBaseUrlPresent: Boolean(normalizeApiBaseUrl(API_CONFIG.baseUrl)),
+    authTokenPresent: Boolean(getAuthToken()),
+    bookingUpdateMethod: "PATCH",
+    bookingUpdatePath,
+  };
+}
+
 export function setApiEnabled(enabled) {
   const next = Boolean(enabled);
   API_CONFIG.enabled = next;
@@ -1415,6 +1432,11 @@ export function updateBookingAsync(bookingId, bookingPatch, options = {}) {
     saveBookings(next);
     return next.find((booking) => toRecordId(booking?.id) === id) || null;
   };
+  // Authenticated manage actions must not be diverted to localStorage merely
+  // because the generic data-mode flag was not initialized in this document.
+  if (options.requireApi === true) {
+    return apiUpdateBooking(id, bookingPatch, options);
+  }
   return runAsync(
     applyLocalUpdate,
     { apiFn: () => apiUpdateBooking(id, bookingPatch, options), label: "booking update", fallbackOnError: options.fallbackOnError !== false }
