@@ -313,16 +313,16 @@ export function initBookingEngine(options = {}) {
 
   function saveBookingsSource(bookings) {
     if (typeof bookingContext?.saveBookings === "function") {
-      bookingContext.saveBookings(bookings);
+      const result = bookingContext.saveBookings(bookings);
       if (Array.isArray(bookingContext.bookings)) {
         bookingContext.bookings = bookings;
       }
-      return;
+      return result;
     }
     if (Array.isArray(bookingContext?.bookings)) {
       bookingContext.bookings = bookings;
     }
-    dataStore.saveBookings(bookings);
+    return dataStore.saveBookings(bookings);
   }
 
   function getAvailabilityForBarberSource(username) {
@@ -1759,7 +1759,7 @@ export function initBookingEngine(options = {}) {
   }
 
   function saveBookings(bookings) {
-    saveBookingsSource(bookings);
+    return saveBookingsSource(bookings);
   }
 
   function bindBookingSyncListeners() {
@@ -2227,7 +2227,7 @@ export function initBookingEngine(options = {}) {
     return windows.some((window) => start < window.end && end > window.start);
   }
 
-  function handleBook() {
+  async function handleBook() {
     clearStatus();
     const shop = getSelectedShop();
     const barber = getSelectedBarber();
@@ -2338,7 +2338,12 @@ export function initBookingEngine(options = {}) {
 
     const bookings = getBookings();
     bookings.push(booking);
-    saveBookings(bookings);
+    try {
+      await Promise.resolve(saveBookings(bookings));
+    } catch {
+      setStatus("Could not save your appointment right now. Please try again.", false);
+      return;
+    }
     setLastBookingId(booking.id);
 
     showToast?.("Booked!", "success");

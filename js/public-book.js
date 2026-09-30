@@ -20,6 +20,9 @@ initBookingEngine({
     getBarbersForShop: (shopId, options) => dataStore.getBarbersForShop(shopId, options),
     getAvailabilityForBarber: (username) => dataStore.getAvailabilityForBarber(username),
     getBookings: () => dataStore.getBookings(),
-    saveBookings: (bookings) => dataStore.saveBookings(bookings),
+    // Public booking must use the same authoritative persistence path that
+    // manage links read. Local storage alone makes a receipt appear without a
+    // server booking for the later manage-page lookup.
+    saveBookings: (bookings) => dataStore.saveBookingsAsync(bookings, { fallbackOnError: false }),
   }),
 });

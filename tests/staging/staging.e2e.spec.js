@@ -375,6 +375,40 @@ async function selectSyntheticService(publicPage, expectedServiceName) {
   await expect(serviceSelect).toHaveValue(matchingOption.value);
 }
 
+async function managePageDiagnostics(managePage, expectedClientName, expectedServiceName, bookingsResponse) {
+  let responsePayload = null;
+  try { responsePayload = bookingsResponse ? await bookingsResponse.json() : null; } catch { /* keys remain unavailable */ }
+  return managePage.evaluate(({ clientName, serviceName, api }) => {
+    const url = new URL(window.location.href);
+    const visibleText = Array.from(document.querySelectorAll("body *"))
+      .filter((element) => element.children.length === 0 && Boolean(element.getClientRects().length))
+      .map((element) => String(element.textContent || "").trim())
+      .filter((text) => /^e2e /i.test(text));
+    const text = String(document.body?.textContent || "");
+    return {
+      managePath: url.pathname,
+      manageQueryKeys: Array.from(url.searchParams.keys()).sort(),
+      visibleHeadings: Array.from(document.querySelectorAll("h1, h2, h3"))
+        .filter((heading) => Boolean(heading.getClientRects().length))
+        .map((heading) => String(heading.textContent || "").trim())
+        .filter((heading) => ["Manage Appointments", "My Appointments", "Upcoming", "Past"].includes(heading)),
+      visibleSyntheticE2EText: visibleText,
+      clientNameAppearsInText: text.includes(clientName),
+      serviceNameAppearsInText: text.includes(serviceName),
+      dateTimeAppears: Boolean(document.querySelector(".appointment-datetime span")),
+      cancelButtonExists: Boolean(Array.from(document.querySelectorAll("button")).find((button) => /^Cancel$/i.test(String(button.textContent || "").trim()))),
+      manageBookingsApi: api,
+    };
+  }, {
+    clientName: expectedClientName,
+    serviceName: expectedServiceName,
+    api: bookingsResponse ? {
+      status: bookingsResponse.status(),
+      responseKeys: responsePayload && typeof responsePayload === "object" ? Object.keys(responsePayload).sort() : [],
+    } : { status: 0, responseKeys: [] },
+  });
+}
+
 async function visibleSyntheticServiceTexts(page) {
   return page.locator("#serviceList .owner-service-card h3").allTextContents()
     .then((values) => values.map((value) => String(value).trim()).filter((value) => /^E2E /i.test(value)))
@@ -803,15 +837,49 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await publicPage.selectOption("#time-slot-select", await slot.getAttribute("value"));
   await publicPage.fill("#clientName", identity.clientName);
   await publicPage.fill("#clientContact", identity.clientEmail);
+  const bookingSaveResponse = publicPage.waitForResponse((response) => (
+    response.request().method() === "POST"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && new URL(response.url()).pathname === "/api/bookings"
+  ));
   await publicPage.getByRole("button", { name: /book|confirm/i }).click();
+  const bookingSave = await bookingSaveResponse;
+  let bookingPayload = null;
+  try { bookingPayload = await bookingSave.json(); } catch { /* safe response shape below */ }
+  const bookingReceipt = publicPage.locator("#bookingReceiptTitle");
+  await expect(bookingReceipt).toBeVisible();
   const manageLink = await publicPage.locator("#bookingReceiptManageLink").getAttribute("href");
-  expect(manageLink).toBeTruthy();
+  const receiptState = {
+    bookingStatus: bookingSave.status(),
+    bookingResponseKeys: bookingPayload && typeof bookingPayload === "object" ? Object.keys(bookingPayload).sort() : [],
+    receiptDisplayed: await bookingReceipt.isVisible(),
+    manageLinkExists: Boolean(manageLink),
+    manageLinkPath: (() => { try { return new URL(String(manageLink || ""), publicPage.url()).pathname; } catch { return ""; } })(),
+    manageLinkQueryKeys: (() => { try { return Array.from(new URL(String(manageLink || ""), publicPage.url()).searchParams.keys()).sort(); } catch { return []; } })(),
+    syntheticClientVisibleOnReceipt: await publicPage.getByText(identity.clientName, { exact: true }).isVisible().catch(() => false),
+    syntheticServiceVisibleOnReceipt: await publicPage.getByText(identity.serviceName, { exact: true }).isVisible().catch(() => false),
+  };
+  if (bookingSave.status() !== 201 || !receiptState.manageLinkExists || !receiptState.syntheticClientVisibleOnReceipt || !receiptState.syntheticServiceVisibleOnReceipt) {
+    throw new Error(`Public booking did not create a verifiable receipt/manage link: ${JSON.stringify(receiptState)}`);
+  }
 
   await page.goto(`${frontendUrl}/pages/manage-appointments.html`);
   await expect(page.getByText(identity.clientName)).toBeVisible();
   const managePage = await context.newPage();
+  const manageBookingsResponse = managePage.waitForResponse((response) => (
+    response.request().method() === "GET"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && new URL(response.url()).pathname === "/api/bookings"
+  ));
   await managePage.goto(new URL(manageLink, frontendUrl).toString());
-  await expect(managePage.getByText(identity.clientName)).toBeVisible();
+  const manageBookings = await manageBookingsResponse;
+  try {
+    await expect(managePage.getByText(identity.serviceName, { exact: true })).toBeVisible();
+    await expect(managePage.locator(".appointment-datetime span").first()).toBeVisible();
+    await expect(managePage.getByRole("button", { name: /^Cancel$/i })).toBeVisible();
+  } catch (error) {
+    throw new Error(`Manage link did not render the booked appointment: ${JSON.stringify({ receiptState, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, manageBookings), assertionError: safeDiagnosticText(error?.message) })}`);
+  }
   await managePage.getByRole("button", { name: /^Cancel$/i }).click();
   await managePage.getByRole("button", { name: /confirm cancel/i }).click();
   await managePage.reload();
