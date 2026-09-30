@@ -563,3 +563,9 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - The browser E2E now requires that real input to be visible and contain `/pages/book.html?shop=…`, then requires both dashboard controls before opening the exact input value in the public browser page. It still completes customer booking, owner appointment visibility, manage/cancel flow, and negative checks.
 - Before asserting the control, diagnostics safely record dashboard path/load state, synthetic-only badge text, anchor count and booking-related paths, booking/share controls, local/API slug-presence booleans, public-link shape booleans, and allowlisted visible headings. No credential, request body, token, real user, or real shop value is emitted.
 - This is test-only; no dashboard or setup behavior changed. Hosted confirmation remains required.
+
+## Staging public-booking barber selection correction (2026-09-29)
+
+- The public-booking page and its provider data were reached successfully. The failure was a Playwright API misuse: `selectOption({ label: new RegExp(...) })` is invalid because `label` must be a string, value, or index—not a regular expression.
+- The E2E now waits for the enabled provider select, reads its option labels/values, finds the non-empty option whose label contains the synthetic owner username case-insensitively, asserts that it exists, and selects by its exact value. Service, date/slot, receipt/manage link, owner appointment, cancellation, and negative coverage remain unchanged.
+- A missing synthetic provider reports only option count, match boolean, E2E-prefixed option labels, and the synthetic public booking URL. This is test-only; no public booking application behavior changed. Hosted confirmation remains required.

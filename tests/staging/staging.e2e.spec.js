@@ -264,6 +264,28 @@ async function dashboardBookingLinkDiagnostics(page, request, authToken) {
   };
 }
 
+async function selectSyntheticBarber(publicPage, syntheticUsername) {
+  const barberSelect = publicPage.locator("#barberSelect");
+  await expect(barberSelect).not.toBeDisabled();
+  const options = await barberSelect.locator("option").evaluateAll((elements) => elements.map((option) => ({
+    value: String(option.value || ""),
+    label: String(option.textContent || "").trim(),
+  })));
+  const target = String(syntheticUsername ?? "").trim().toLowerCase();
+  const matchingOption = options.find((option) => option.value && option.label.toLowerCase().includes(target));
+  if (!matchingOption) {
+    const url = new URL(publicPage.url());
+    const isSyntheticBookingUrl = /^e2e-/i.test(String(url.searchParams.get("shop") || ""));
+    throw new Error(`Public booking synthetic barber option was not found: ${JSON.stringify({
+      optionCount: options.length,
+      syntheticMatchFound: false,
+      visibleSyntheticOptionLabels: options.map((option) => option.label).filter((label) => /^e2e-/i.test(label)),
+      currentPublicBookingUrl: isSyntheticBookingUrl ? publicPage.url() : "[non-synthetic-or-unavailable]",
+    })}`);
+  }
+  await barberSelect.selectOption(matchingOption.value);
+}
+
 async function visibleSyntheticServiceTexts(page) {
   return page.locator("#serviceList .owner-service-card h3").allTextContents()
     .then((values) => values.map((value) => String(value).trim()).filter((value) => /^E2E /i.test(value)))
@@ -684,7 +706,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const bookingLink = await bookingLinkInput.inputValue();
   const publicPage = await context.newPage();
   await publicPage.goto(bookingLink);
-  await publicPage.selectOption("#barberSelect", { label: new RegExp(identity.username, "i") });
+  await selectSyntheticBarber(publicPage, identity.username);
   await publicPage.selectOption("#serviceSelect", { label: identity.serviceName });
   await publicPage.locator("#bookingDate").fill(tomorrow.toISOString().slice(0, 10));
   const slot = publicPage.locator("#time-slot-select option[value]:not([value=''])").first();
