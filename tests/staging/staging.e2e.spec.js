@@ -397,6 +397,12 @@ async function managePageDiagnostics(managePage, expectedClientName, expectedSer
       serviceNameAppearsInText: text.includes(serviceName),
       dateTimeAppears: Boolean(document.querySelector(".appointment-datetime span")),
       cancelButtonExists: Boolean(Array.from(document.querySelectorAll("button")).find((button) => /^Cancel$/i.test(String(button.textContent || "").trim()))),
+      appointmentCardCount: document.querySelectorAll(".client-manage-card").length,
+      statusBadgeTexts: Array.from(document.querySelectorAll(".client-manage-card .appointment-actions .badge"))
+        .map((badge) => String(badge.textContent || "").trim()),
+      cancelButtons: Array.from(document.querySelectorAll(".client-manage-card button"))
+        .filter((button) => /^Cancel$/i.test(String(button.textContent || "").trim()))
+        .map((button) => ({ visible: Boolean(button.getClientRects().length), enabled: !button.disabled })),
       manageBookingsApi: api,
     };
   }, {
@@ -882,8 +888,27 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
   await managePage.getByRole("button", { name: /^Cancel$/i }).click();
   await managePage.getByRole("button", { name: /confirm cancel/i }).click();
+  const cancelledCard = managePage.locator(".client-manage-card").filter({
+    has: managePage.getByText(identity.serviceName, { exact: true }),
+  });
+  try {
+    await expect(cancelledCard).toHaveCount(1);
+    await expect(cancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
+    await expect(cancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0);
+  } catch (error) {
+    throw new Error(`Manage page did not reflect cancellation for the synthetic appointment: ${JSON.stringify({ manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
+  }
   await managePage.reload();
-  await expect(managePage.getByText(/cancelled/i)).toBeVisible();
+  const reloadedCancelledCard = managePage.locator(".client-manage-card").filter({
+    has: managePage.getByText(identity.serviceName, { exact: true }),
+  });
+  try {
+    await expect(reloadedCancelledCard).toHaveCount(1);
+    await expect(reloadedCancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
+    await expect(reloadedCancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0);
+  } catch (error) {
+    throw new Error(`Manage-page reload did not preserve cancellation for the synthetic appointment: ${JSON.stringify({ manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
+  }
   await page.reload();
   await expect(page.getByText(identity.clientName)).toBeVisible();
 
