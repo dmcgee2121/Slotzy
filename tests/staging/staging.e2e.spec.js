@@ -378,7 +378,12 @@ async function selectSyntheticService(publicPage, expectedServiceName) {
 async function managePageDiagnostics(managePage, expectedClientName, expectedServiceName, bookingsResponse) {
   let responsePayload = null;
   try { responsePayload = bookingsResponse ? await bookingsResponse.json() : null; } catch { /* keys remain unavailable */ }
-  return managePage.evaluate(({ clientName, serviceName, api }) => {
+  const api = bookingsResponse ? {
+    status: bookingsResponse.status(),
+    responseKeys: responsePayload && typeof responsePayload === "object" ? Object.keys(responsePayload).sort() : [],
+  } : { status: 0, responseKeys: [] };
+  if (managePage.isClosed()) return { pageClosed: true, manageBookingsApi: api };
+  const inspect = managePage.evaluate(({ clientName, serviceName, apiState }) => {
     const url = new URL(window.location.href);
     const visibleText = Array.from(document.querySelectorAll("body *"))
       .filter((element) => element.children.length === 0 && Boolean(element.getClientRects().length))
@@ -403,16 +408,23 @@ async function managePageDiagnostics(managePage, expectedClientName, expectedSer
       cancelButtons: Array.from(document.querySelectorAll(".client-manage-card button"))
         .filter((button) => /^Cancel$/i.test(String(button.textContent || "").trim()))
         .map((button) => ({ visible: Boolean(button.getClientRects().length), enabled: !button.disabled })),
-      manageBookingsApi: api,
+      manageBookingsApi: apiState,
     };
   }, {
     clientName: expectedClientName,
     serviceName: expectedServiceName,
-    api: bookingsResponse ? {
-      status: bookingsResponse.status(),
-      responseKeys: responsePayload && typeof responsePayload === "object" ? Object.keys(responsePayload).sort() : [],
-    } : { status: 0, responseKeys: [] },
+    apiState: api,
   });
+  const timeout = new Promise((resolve) => setTimeout(() => resolve({ diagnosticTimedOut: true, manageBookingsApi: api }), 1000));
+  try {
+    return await Promise.race([inspect, timeout]);
+  } catch (error) {
+    return {
+      pageClosed: managePage.isClosed(),
+      diagnosticError: safeDiagnosticText(error?.message),
+      manageBookingsApi: api,
+    };
+  }
 }
 
 async function visibleSyntheticServiceTexts(page) {
@@ -887,21 +899,27 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     throw new Error(`Manage link did not render the booked appointment: ${JSON.stringify({ receiptState, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, manageBookings), assertionError: safeDiagnosticText(error?.message) })}`);
   }
   const managedCancelButton = managePage.getByRole("button", { name: /^Cancel$/i });
+  const managedCard = managePage.locator(".client-manage-card").filter({
+    has: managePage.getByText(identity.serviceName, { exact: true }),
+  });
+  const cardBadgeBeforeConfirm = await managedCard.locator(".appointment-actions .badge").allTextContents()
+    .then((values) => values.map((value) => String(value).trim())).catch(() => []);
   await managedCancelButton.click();
   const cancelUpdateResponse = managePage.waitForResponse((response) => (
     response.request().method() === "PATCH"
     && new URL(response.url()).origin === expectedApiOrigin
     && /^\/api\/bookings\/[^/]+$/.test(new URL(response.url()).pathname)
-  ));
+  ), { timeout: 15000 });
   const confirmCancelButton = managePage.getByRole("button", { name: /^Confirm Cancel$/i });
   await confirmCancelButton.click();
   let cancelUpdate;
   try {
     cancelUpdate = await cancelUpdateResponse;
   } catch (error) {
-    throw new Error(`Manage cancellation did not send an authoritative booking update: ${JSON.stringify({
+    throw new Error(`Cancel PATCH not observed: ${JSON.stringify({
       cancelButtonClicked: true,
       confirmCancelButtonClicked: true,
+      cardBadgeBeforeConfirm,
       endpointPath: "",
       method: "",
       status: 0,
@@ -921,30 +939,43 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     status: cancelUpdate.status(),
     responseKeys: cancelUpdatePayload && typeof cancelUpdatePayload === "object" ? Object.keys(cancelUpdatePayload).sort() : [],
     bookingStatusAfterResponse: String(cancelUpdatePayload?.booking?.status ?? "").trim(),
+    cardBadgeBeforeConfirm,
+    cardBadgeAfterPatch: await managedCard.locator(".appointment-actions .badge").allTextContents()
+      .then((values) => values.map((value) => String(value).trim())).catch(() => []),
   };
   if (cancelUpdate.status() !== 200 || cancelDiagnostic.bookingStatusAfterResponse !== "cancelled") {
-    throw new Error(`Manage cancellation API did not persist cancelled status: ${JSON.stringify(cancelDiagnostic)}`);
+    throw new Error(`Cancel PATCH non-success: ${JSON.stringify(cancelDiagnostic)}`);
   }
-  const cancelledCard = managePage.locator(".client-manage-card").filter({
-    has: managePage.getByText(identity.serviceName, { exact: true }),
-  });
+  const cancelledCard = managedCard;
   try {
-    await expect(cancelledCard).toHaveCount(1);
-    await expect(cancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
-    await expect(cancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0);
+    await expect(cancelledCard).toHaveCount(1, { timeout: 15000 });
+    await expect(cancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled", { timeout: 15000 });
+    await expect(cancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0, { timeout: 15000 });
   } catch (error) {
-    throw new Error(`Manage page did not reflect cancellation for the synthetic appointment: ${JSON.stringify({ cancelDiagnostic, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
+    throw new Error(`Cancel persisted but UI did not refresh: ${JSON.stringify({
+      ...cancelDiagnostic,
+      cardBadgeAfterUiWait: await cancelledCard.locator(".appointment-actions .badge").allTextContents().then((values) => values.map((value) => String(value).trim())).catch(() => []),
+      cancelButtonRemains: await cancelledCard.getByRole("button", { name: /^Cancel$/i }).count().then((count) => count > 0).catch(() => false),
+      manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
+      assertionError: safeDiagnosticText(error?.message),
+    })}`);
   }
   await managePage.reload();
   const reloadedCancelledCard = managePage.locator(".client-manage-card").filter({
     has: managePage.getByText(identity.serviceName, { exact: true }),
   });
   try {
-    await expect(reloadedCancelledCard).toHaveCount(1);
-    await expect(reloadedCancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
-    await expect(reloadedCancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0);
+    await expect(reloadedCancelledCard).toHaveCount(1, { timeout: 15000 });
+    await expect(reloadedCancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled", { timeout: 15000 });
+    await expect(reloadedCancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0, { timeout: 15000 });
   } catch (error) {
-    throw new Error(`Manage-page reload did not preserve cancellation for the synthetic appointment: ${JSON.stringify({ cancelDiagnostic, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
+    throw new Error(`Cancelled status did not persist after reload: ${JSON.stringify({
+      ...cancelDiagnostic,
+      cardBadgeAfterReload: await reloadedCancelledCard.locator(".appointment-actions .badge").allTextContents().then((values) => values.map((value) => String(value).trim())).catch(() => []),
+      cancelButtonRemainsAfterReload: await reloadedCancelledCard.getByRole("button", { name: /^Cancel$/i }).count().then((count) => count > 0).catch(() => false),
+      manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
+      assertionError: safeDiagnosticText(error?.message),
+    })}`);
   }
   await page.reload();
   await expect(page.getByText(identity.clientName)).toBeVisible();
