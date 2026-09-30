@@ -1084,6 +1084,25 @@ async function apiSaveBookings(bookingsInput, options = {}) {
   return apiGetBookings();
 }
 
+async function apiUpdateBooking(bookingId, bookingPatch, options = {}) {
+  const id = toRecordId(bookingId);
+  if (!id) throw new Error("Booking id is required for an API update");
+  const headers = options?.manualNotify ? { "X-Slotzy-Notify-Mode": "manual" } : undefined;
+  const payload = await apiRequest(`/bookings/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: bookingPatch,
+    headers,
+  });
+  const booking = isObjectRecord(payload?.booking) ? payload.booking : null;
+  if (!booking) throw new Error("Invalid booking payload from update");
+  const current = getBookings();
+  const next = current.some((entry) => toRecordId(entry?.id) === id)
+    ? current.map((entry) => (toRecordId(entry?.id) === id ? booking : entry))
+    : [...current, booking];
+  saveBookings(next);
+  return booking;
+}
+
 async function apiGetAvailabilityMap() {
   const payload = await apiRequest("/availability");
   const nextMap = normalizeAvailabilityMapFromApi(payload);
@@ -1382,6 +1401,23 @@ export function saveBookingsAsync(arr, options = {}) {
   return runAsync(
     () => saveBookings(arr),
     { apiFn: () => apiSaveBookings(arr, options), label: "bookings write", fallbackOnError: options.fallbackOnError !== false }
+  );
+}
+
+export function updateBookingAsync(bookingId, bookingPatch, options = {}) {
+  const id = toRecordId(bookingId);
+  const applyLocalUpdate = () => {
+    if (!id) throw new Error("Booking id is required for an update");
+    const current = getBookings();
+    const next = current.map((booking) => (
+      toRecordId(booking?.id) === id ? { ...booking, ...(bookingPatch || {}) } : booking
+    ));
+    saveBookings(next);
+    return next.find((booking) => toRecordId(booking?.id) === id) || null;
+  };
+  return runAsync(
+    applyLocalUpdate,
+    { apiFn: () => apiUpdateBooking(id, bookingPatch, options), label: "booking update", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 

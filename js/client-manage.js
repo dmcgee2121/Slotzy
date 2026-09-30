@@ -318,20 +318,21 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
 
     const previousBooking = { ...targetBooking };
 
-    const nextBookings = (Array.isArray(currentRows) ? currentRows : []).map((booking) => {
-      if (String(booking?.id ?? "").trim() !== bookingId) return booking;
-      if (!isBookingAccessibleToCurrentClient(booking)) return booking;
-      return {
-        ...booking,
-        status: "cancelled",
-        updatedAtISO: new Date().toISOString(),
-      };
-    });
+    const cancellationPatch = {
+      ...targetBooking,
+      status: "cancelled",
+      updatedAtISO: new Date().toISOString(),
+    };
 
     try {
-      await dataStore.saveBookingsAsync(nextBookings, { manualNotify: true, fallbackOnError: false });
+      const nextBooking = await dataStore.updateBookingAsync(bookingId, cancellationPatch, {
+        manualNotify: true,
+        fallbackOnError: false,
+      });
+      if (!nextBooking || normalizeStatus(nextBooking.status) !== "cancelled") {
+        throw new Error("Cancellation update did not return a cancelled booking");
+      }
       pendingCancelBookingId = "";
-      const nextBooking = findAccessibleBooking(nextBookings, bookingId) || { ...previousBooking, status: "cancelled" };
       // The booking write is authoritative. Refresh the card immediately so a
       // slow optional notification cannot leave the customer seeing Booked.
       await renderClientManagePage();

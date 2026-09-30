@@ -902,6 +902,11 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const managedCard = managePage.locator(".client-manage-card").filter({
     has: managePage.getByText(identity.serviceName, { exact: true }),
   });
+  const managedBookingId = String((await managedCancelButton.getAttribute("data-id")) ?? "").trim();
+  const managedBookingIdShape = {
+    authoritativeIdPresent: Boolean(managedBookingId),
+    authoritativeIdUuidLike: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(managedBookingId),
+  };
   const cardBadgeBeforeConfirm = await managedCard.locator(".appointment-actions .badge").allTextContents()
     .then((values) => values.map((value) => String(value).trim())).catch(() => []);
   await managedCancelButton.click();
@@ -920,12 +925,14 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       cancelButtonClicked: true,
       confirmCancelButtonClicked: true,
       cardBadgeBeforeConfirm,
+      ...managedBookingIdShape,
       endpointPath: "",
       method: "",
       status: 0,
       responseKeys: [],
       bookingStatusAfterResponse: "",
       manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
+      browserErrors: browserErrors.map((message) => safeDiagnosticText(message)),
       waitError: safeDiagnosticText(error?.message),
     })}`);
   }
@@ -939,6 +946,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     status: cancelUpdate.status(),
     responseKeys: cancelUpdatePayload && typeof cancelUpdatePayload === "object" ? Object.keys(cancelUpdatePayload).sort() : [],
     bookingStatusAfterResponse: String(cancelUpdatePayload?.booking?.status ?? "").trim(),
+    ...managedBookingIdShape,
     cardBadgeBeforeConfirm,
     cardBadgeAfterPatch: await managedCard.locator(".appointment-actions .badge").allTextContents()
       .then((values) => values.map((value) => String(value).trim())).catch(() => []),
