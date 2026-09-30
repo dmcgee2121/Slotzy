@@ -328,6 +328,53 @@ async function selectSyntheticBarber(publicPage, syntheticUsername) {
   }
 }
 
+async function selectSyntheticService(publicPage, expectedServiceName) {
+  const serviceSelect = publicPage.locator("#serviceSelect");
+  const expectedName = String(expectedServiceName ?? "").trim();
+  const readOptions = () => serviceSelect.locator("option").evaluateAll((elements) => elements.map((option) => ({
+    value: String(option.value || ""),
+    label: String(option.textContent || "").trim(),
+    serviceName: String(option.dataset.serviceName || "").trim(),
+  })));
+  await expect(serviceSelect).not.toBeDisabled();
+  const preSelectionOptions = await readOptions();
+  const preSelectionDiagnostics = {
+    expectedSyntheticServiceName: expectedName,
+    selectedProviderValue: String(await publicPage.locator("#barberSelect").inputValue().catch(() => "")),
+    serviceSelectVisible: Boolean(await serviceSelect.evaluate((select) => select.getClientRects().length).catch(() => false)),
+    serviceSelectEnabled: Boolean(await serviceSelect.isEnabled().catch(() => false)),
+    optionCount: preSelectionOptions.length,
+    visibleSyntheticOptionLabels: preSelectionOptions.map((option) => option.label).filter((label) => /^e2e /i.test(label)),
+    expectedServiceLabelExists: preSelectionOptions.some((option) => option.serviceName === expectedName || option.label.startsWith(`${expectedName} - `)),
+  };
+  try {
+    await publicPage.waitForFunction((name) => Array.from(document.querySelectorAll("#serviceSelect option"))
+      .some((option) => option.value && (option.dataset.serviceName === name || option.textContent.trim().startsWith(`${name} - `))), expectedName);
+  } catch (error) {
+    const options = await readOptions().catch(() => []);
+    const url = new URL(publicPage.url());
+    const isSyntheticBookingUrl = /^e2e-/i.test(String(url.searchParams.get("shop") || ""));
+    throw new Error(`Public booking synthetic service option was not found: ${JSON.stringify({
+      currentPublicBookingUrl: isSyntheticBookingUrl ? publicPage.url() : "[non-synthetic-or-unavailable]",
+      preSelectionDiagnostics,
+      currentSelectedProviderValue: String(await publicPage.locator("#barberSelect").inputValue().catch(() => "")),
+      currentServiceSelectVisible: Boolean(await serviceSelect.evaluate((select) => select.getClientRects().length).catch(() => false)),
+      currentServiceSelectEnabled: Boolean(await serviceSelect.isEnabled().catch(() => false)),
+      currentOptionCount: options.length,
+      visibleSyntheticOptionLabels: options.map((option) => option.label).filter((label) => /^e2e /i.test(label)),
+      expectedSyntheticServiceName: expectedName,
+      currentExpectedServiceLabelExists: options.some((option) => option.serviceName === expectedName || option.label.startsWith(`${expectedName} - `)),
+      publicBookingServiceApi: "not-requested; public-book.js uses hydrated browser service cache",
+      waitError: safeDiagnosticText(error?.message),
+    })}`);
+  }
+  const options = await readOptions();
+  const matchingOption = options.find((option) => option.value && (option.serviceName === expectedName || option.label.startsWith(`${expectedName} - `)));
+  expect(Boolean(matchingOption)).toBe(true);
+  await serviceSelect.selectOption(matchingOption.value);
+  await expect(serviceSelect).toHaveValue(matchingOption.value);
+}
+
 async function visibleSyntheticServiceTexts(page) {
   return page.locator("#serviceList .owner-service-card h3").allTextContents()
     .then((values) => values.map((value) => String(value).trim()).filter((value) => /^E2E /i.test(value)))
@@ -749,7 +796,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const publicPage = await context.newPage();
   await publicPage.goto(bookingLink);
   await selectSyntheticBarber(publicPage, identity.username);
-  await publicPage.selectOption("#serviceSelect", { label: identity.serviceName });
+  await selectSyntheticService(publicPage, identity.serviceName);
   await publicPage.locator("#bookingDate").fill(tomorrow.toISOString().slice(0, 10));
   const slot = publicPage.locator("#time-slot-select option[value]:not([value=''])").first();
   await expect(slot).toBeAttached();
