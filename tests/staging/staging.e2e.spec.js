@@ -179,6 +179,35 @@ async function shopSaveResponseState(response, expectedShopName, inputState) {
   };
 }
 
+async function ownerSetupStep1Diagnostics(page, browserErrors) {
+  const stepPanels = await page.locator("[data-step-panel]").evaluateAll((panels) => panels.map((panel) => ({
+    stepId: panel.getAttribute("data-step-panel"),
+    visible: Boolean(panel.getClientRects().length),
+    label: String(panel.querySelector("h2")?.textContent || "").trim(),
+  }))).catch(() => []);
+  const buttons = await page.locator("[data-step-panel='1'] button").evaluateAll((controls) => controls.map((button) => ({
+    visible: Boolean(button.getClientRects().length),
+    enabled: !button.disabled,
+    text: safeDiagnosticText(button.textContent || ""),
+  }))).catch(() => []);
+  const validationMessages = await page.locator("#setupShopStatus, #setupStatus").evaluateAll((elements) => elements
+    .filter((element) => Boolean(element.getClientRects().length) && String(element.textContent || "").trim())
+    .map((element) => safeDiagnosticText(element.textContent || ""))).catch(() => []);
+  let path = "[unavailable]";
+  try { path = new URL(page.url()).pathname; } catch { /* retain safe fallback */ }
+  return {
+    currentPath: path,
+    activeStep: stepPanels.find((panel) => panel.visible) || null,
+    shopNameInputFilled: Boolean(String(await page.locator("#setupShopName").inputValue().catch(() => "")).trim()),
+    ownerDisplayNameFilled: Boolean(String(await page.locator("#setupOwnerDisplayName").inputValue().catch(() => "")).trim()),
+    step1ButtonCount: buttons.length,
+    step1Buttons: buttons,
+    validationMessagesVisible: validationMessages.length > 0,
+    validationMessages,
+    browserErrors: browserErrors.map((error) => safeDiagnosticText(error)),
+  };
+}
+
 async function visibleSyntheticServiceTexts(page) {
   return page.locator("#serviceList .owner-service-card h3").allTextContents()
     .then((values) => values.map((value) => String(value).trim()).filter((value) => /^E2E /i.test(value)))
@@ -467,6 +496,10 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   // step is complete. The ready-step Dashboard control is intentionally hidden
   // before then, so follow the real UI rather than accepting the hidden link.
   await expect(page.locator("#setupShopName")).toBeVisible();
+  // The field is present in the static HTML. Wait for initSetupWizard() to
+  // render Step 1 before filling it, otherwise applySetupStatus() can restore
+  // the initial empty value after this test's fill and validation blocks save.
+  await expect(page.locator("#setupIntroText")).toHaveText("Set the shop name and branding clients will recognize on your public booking page.");
   {
     await page.fill("#setupShopName", identity.shopName);
     const shopInputState = {
@@ -474,13 +507,20 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       ownerProfileFieldPresent: Boolean(await page.locator("#setupOwnerDisplayName").count()),
       ownerProfileFilled: Boolean(String(await page.locator("#setupOwnerDisplayName").inputValue().catch(() => "")).trim()),
     };
+    const step1Diagnostics = await ownerSetupStep1Diagnostics(page, browserErrors);
     const shopSaveResponse = page.waitForResponse((response) => (
       response.request().method() === "POST"
       && new URL(response.url()).origin === expectedApiOrigin
       && new URL(response.url()).pathname === "/api/shops"
     ));
     await page.locator("#setupStep1Next").click();
-    const shopCreation = await shopSaveResponseState(await shopSaveResponse, identity.shopName, shopInputState);
+    let shopSave;
+    try {
+      shopSave = await shopSaveResponse;
+    } catch (error) {
+      throw new Error(`Owner setup Step 1 did not observe POST /api/shops: ${JSON.stringify({ ...step1Diagnostics, waitError: safeDiagnosticText(error?.message) })}`);
+    }
+    const shopCreation = await shopSaveResponseState(shopSave, identity.shopName, shopInputState);
     const ownerShopState = await ownerShopApiState(request, authToken, identity.shopName);
     if (shopCreation.status !== 201 || !shopCreation.shopPresent || !shopCreation.shopIdPresent || !shopCreation.syntheticShopNameMatches || ownerShopState.authStatus !== 200 || ownerShopState.shopsStatus !== 200 || !ownerShopState.authUserExists || !ownerShopState.userHasShopId || ownerShopState.ownerShopCount < 1 || !ownerShopState.anySyntheticShopExists) {
       throw new Error(`Owner setup Step 1 did not create and link the synthetic shop: ${JSON.stringify({ ...shopCreation, ...ownerShopState, currentPath: new URL(page.url()).pathname })}`);
