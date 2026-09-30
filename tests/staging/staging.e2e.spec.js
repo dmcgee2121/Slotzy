@@ -158,6 +158,7 @@ async function ownerShopApiState(request, authToken, expectedShopName) {
     userHasShopId: Boolean(String(mePayload?.user?.shopId ?? "").trim()),
     ownerShopCount: shops.length,
     anySyntheticShopExists: shops.some((shop) => String(shop?.name ?? shop?.businessName ?? "").trim() === expectedShopName),
+    anyShopHasSlug: shops.some((shop) => Boolean(String(shop?.slug ?? "").trim())),
   };
 }
 
@@ -205,6 +206,61 @@ async function ownerSetupStep1Diagnostics(page, browserErrors) {
     validationMessagesVisible: validationMessages.length > 0,
     validationMessages,
     browserErrors: browserErrors.map((error) => safeDiagnosticText(error)),
+  };
+}
+
+async function dashboardBookingLinkDiagnostics(page, request, authToken) {
+  const anchors = await page.locator("a").evaluateAll((elements) => elements.map((anchor) => {
+    const href = String(anchor.getAttribute("href") || "");
+    if (!/book|public|booking/i.test(href)) return null;
+    try {
+      const url = new URL(href, window.location.href);
+      return { path: url.pathname, hasQuery: Boolean(url.search) };
+    } catch {
+      return { path: "[unparseable]", hasQuery: false };
+    }
+  }).filter(Boolean)).catch(() => []);
+  const controls = await page.locator("button, input").evaluateAll((elements) => elements
+    .filter((element) => /copy|share|open.*booking|booking.*link/i.test(String(element.textContent || "") + " " + String(element.getAttribute("aria-label") || "") + " " + String(element.id || "")))
+    .map((element) => ({ id: String(element.id || ""), visible: Boolean(element.getClientRects().length), enabled: !element.disabled }))).catch(() => []);
+  const pageState = await page.evaluate(() => {
+    const input = document.getElementById("pilotBookingLink");
+    const banner = document.getElementById("pilotModeBanner");
+    const badge = document.getElementById("userBadge");
+    const hero = document.getElementById("ownerHeroTitle");
+    let localShopHasSlug = false;
+    try {
+      const shops = JSON.parse(localStorage.getItem("Slotzy_shops") || "[]");
+      localShopHasSlug = Array.isArray(shops) && shops.some((shop) => Boolean(String(shop?.slug || "").trim()));
+    } catch { /* report safe false */ }
+    const badgeText = String(badge?.textContent || "").trim();
+    return {
+      currentPath: window.location.pathname,
+      dashboardLoaded: Boolean(hero?.getClientRects().length),
+      userBadgeText: /e2e-/i.test(badgeText) ? badgeText : "[not-synthetic-or-unavailable]",
+      pilotBannerVisible: Boolean(banner?.getClientRects().length),
+      bookingLinkInputVisible: Boolean(input?.getClientRects().length),
+      bookingLinkValuePresent: Boolean(String(input?.value || "").trim()),
+      bookingLinkPath: (() => {
+        try { return new URL(String(input?.value || ""), window.location.href).pathname; } catch { return ""; }
+      })(),
+      bookingLinkHasShopQuery: (() => {
+        try { return new URL(String(input?.value || ""), window.location.href).searchParams.has("shop"); } catch { return false; }
+      })(),
+      localShopHasSlug,
+      visibleSafeHeadings: Array.from(document.querySelectorAll("h1, h2, h3"))
+        .filter((heading) => Boolean(heading.getClientRects().length))
+        .map((heading) => String(heading.textContent || "").trim())
+        .filter((text) => ["Owner Dashboard", "Today at a Glance", "Insights", "Services", "Bookings", "Availability", "Reports", "Pilot Mode"].includes(text)),
+    };
+  }).catch(() => ({ currentPath: "[unavailable]", dashboardLoaded: false }));
+  const apiState = await ownerShopApiState(request, authToken, "").catch(() => null);
+  return {
+    ...pageState,
+    anchorCount: await page.locator("a").count().catch(() => 0),
+    bookingRelatedAnchorHrefs: anchors,
+    bookingRelatedControls: controls,
+    apiShopSlugPresent: Boolean(apiState?.ownerShopCount && apiState?.anyShopHasSlug),
   };
 }
 
@@ -615,11 +671,19 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
 
   await page.goto(`${frontendUrl}/pages/business-owner.html`);
-
-  const bookingLink = await page.locator("a[href*='book.html']").first().getAttribute("href");
-  expect(bookingLink).toBeTruthy();
+  const dashboardDiagnostics = await dashboardBookingLinkDiagnostics(page, request, authToken);
+  const bookingLinkInput = page.locator("#pilotBookingLink");
+  try {
+    await expect(bookingLinkInput).toBeVisible();
+    await expect(bookingLinkInput).toHaveValue(/\/pages\/book\.html\?shop=.+/);
+    await expect(page.locator("#pilotCopyBookingBtn")).toBeVisible();
+    await expect(page.locator("#pilotOpenBookingBtn")).toBeVisible();
+  } catch (error) {
+    throw new Error(`Owner dashboard did not expose its public booking URL: ${JSON.stringify({ ...dashboardDiagnostics, assertionError: safeDiagnosticText(error?.message) })}`);
+  }
+  const bookingLink = await bookingLinkInput.inputValue();
   const publicPage = await context.newPage();
-  await publicPage.goto(new URL(bookingLink, frontendUrl).toString());
+  await publicPage.goto(bookingLink);
   await publicPage.selectOption("#barberSelect", { label: new RegExp(identity.username, "i") });
   await publicPage.selectOption("#serviceSelect", { label: identity.serviceName });
   await publicPage.locator("#bookingDate").fill(tomorrow.toISOString().slice(0, 10));
