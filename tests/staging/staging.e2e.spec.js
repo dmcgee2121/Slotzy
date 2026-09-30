@@ -273,17 +273,59 @@ async function selectSyntheticBarber(publicPage, syntheticUsername) {
   })));
   const target = String(syntheticUsername ?? "").trim().toLowerCase();
   const matchingOption = options.find((option) => option.value && option.label.toLowerCase().includes(target));
-  if (!matchingOption) {
+  const selectionDiagnostics = async () => {
+    const controlState = await barberSelect.evaluate((select) => ({
+      visible: Boolean(select.getClientRects().length),
+      enabled: !select.disabled,
+    })).catch(() => ({ visible: false, enabled: false }));
+    const visibleProviderControls = await publicPage.locator("button, [role='option'], [data-provider], [data-barber]").evaluateAll((elements) => elements
+      .filter((element) => Boolean(element.getClientRects().length))
+      .map((element) => String(element.textContent || "").trim())
+      .filter((text) => /^e2e-/i.test(text))).catch(() => []);
     const url = new URL(publicPage.url());
     const isSyntheticBookingUrl = /^e2e-/i.test(String(url.searchParams.get("shop") || ""));
-    throw new Error(`Public booking synthetic barber option was not found: ${JSON.stringify({
+    return {
+      barberSelectVisible: controlState.visible,
+      barberSelectEnabled: controlState.enabled,
       optionCount: options.length,
-      syntheticMatchFound: false,
-      visibleSyntheticOptionLabels: options.map((option) => option.label).filter((label) => /^e2e-/i.test(label)),
+      syntheticProviderMatchFound: Boolean(matchingOption),
+      visibleSyntheticProviderControls: visibleProviderControls,
       currentPublicBookingUrl: isSyntheticBookingUrl ? publicPage.url() : "[non-synthetic-or-unavailable]",
+    };
+  };
+  if (!matchingOption) {
+    throw new Error(`Public booking synthetic barber option was not found: ${JSON.stringify({
+      ...await selectionDiagnostics(),
+      visibleSyntheticOptionLabels: options.map((option) => option.label).filter((label) => /^e2e-/i.test(label)),
     })}`);
   }
-  await barberSelect.selectOption(matchingOption.value);
+  const controlState = await barberSelect.evaluate((select) => ({
+    visible: Boolean(select.getClientRects().length),
+    value: String(select.value || ""),
+  }));
+  try {
+    if (controlState.visible) {
+      await barberSelect.selectOption(matchingOption.value);
+    } else {
+      // The booking engine intentionally hides the native selector when this
+      // shop has one provider and auto-selects it. Confirm/set that state and
+      // dispatch the normal change event so dependent services render.
+      const applied = await publicPage.evaluate((value) => {
+        const select = document.getElementById("barberSelect");
+        if (!(select instanceof HTMLSelectElement)) return false;
+        select.value = value;
+        if (select.value !== value) return false;
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        return true;
+      }, matchingOption.value);
+      expect(applied).toBe(true);
+    }
+    await expect(barberSelect).toHaveValue(matchingOption.value);
+    await expect(publicPage.locator("#serviceSelect")).not.toBeDisabled();
+  } catch (error) {
+    throw new Error(`Public booking provider selection failed: ${JSON.stringify({ ...await selectionDiagnostics(), selectionError: safeDiagnosticText(error?.message) })}`);
+  }
 }
 
 async function visibleSyntheticServiceTexts(page) {
