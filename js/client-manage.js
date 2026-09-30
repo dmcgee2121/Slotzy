@@ -329,14 +329,16 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     });
 
     try {
-      await dataStore.saveBookingsAsync(nextBookings, { manualNotify: true });
+      await dataStore.saveBookingsAsync(nextBookings, { manualNotify: true, fallbackOnError: false });
       pendingCancelBookingId = "";
       const nextBooking = findAccessibleBooking(nextBookings, bookingId) || { ...previousBooking, status: "cancelled" };
+      // The booking write is authoritative. Refresh the card immediately so a
+      // slow optional notification cannot leave the customer seeing Booked.
+      await renderClientManagePage();
       const notifyResult = await notifyManageBooking("cancel", {
         booking: nextBooking,
         previousBooking,
       });
-      await renderClientManagePage();
       const statusMessage = notifyResult?.ok
         ? "Appointment cancelled."
         : `Appointment cancelled. ${notifyResult?.offline ? "Email not sent (server offline)." : (String(notifyResult?.error ?? "").trim() || "Email not sent right now.")}`;
@@ -603,7 +605,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         };
       });
 
-      await dataStore.saveBookingsAsync(nextBookings, { manualNotify: true });
+      await dataStore.saveBookingsAsync(nextBookings, { manualNotify: true, fallbackOnError: false });
       const nextBooking = findAccessibleBooking(nextBookings, rescheduleBookingId) || {
         ...booking,
         startISO: start.toISOString(),

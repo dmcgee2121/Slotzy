@@ -886,8 +886,45 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   } catch (error) {
     throw new Error(`Manage link did not render the booked appointment: ${JSON.stringify({ receiptState, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, manageBookings), assertionError: safeDiagnosticText(error?.message) })}`);
   }
-  await managePage.getByRole("button", { name: /^Cancel$/i }).click();
-  await managePage.getByRole("button", { name: /confirm cancel/i }).click();
+  const managedCancelButton = managePage.getByRole("button", { name: /^Cancel$/i });
+  await managedCancelButton.click();
+  const cancelUpdateResponse = managePage.waitForResponse((response) => (
+    response.request().method() === "PATCH"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && /^\/api\/bookings\/[^/]+$/.test(new URL(response.url()).pathname)
+  ));
+  const confirmCancelButton = managePage.getByRole("button", { name: /^Confirm Cancel$/i });
+  await confirmCancelButton.click();
+  let cancelUpdate;
+  try {
+    cancelUpdate = await cancelUpdateResponse;
+  } catch (error) {
+    throw new Error(`Manage cancellation did not send an authoritative booking update: ${JSON.stringify({
+      cancelButtonClicked: true,
+      confirmCancelButtonClicked: true,
+      endpointPath: "",
+      method: "",
+      status: 0,
+      responseKeys: [],
+      bookingStatusAfterResponse: "",
+      manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
+      waitError: safeDiagnosticText(error?.message),
+    })}`);
+  }
+  let cancelUpdatePayload = null;
+  try { cancelUpdatePayload = await cancelUpdate.json(); } catch { /* safe response shape below */ }
+  const cancelDiagnostic = {
+    cancelButtonClicked: true,
+    confirmCancelButtonClicked: true,
+    endpointPath: new URL(cancelUpdate.url()).pathname,
+    method: cancelUpdate.request().method(),
+    status: cancelUpdate.status(),
+    responseKeys: cancelUpdatePayload && typeof cancelUpdatePayload === "object" ? Object.keys(cancelUpdatePayload).sort() : [],
+    bookingStatusAfterResponse: String(cancelUpdatePayload?.booking?.status ?? "").trim(),
+  };
+  if (cancelUpdate.status() !== 200 || cancelDiagnostic.bookingStatusAfterResponse !== "cancelled") {
+    throw new Error(`Manage cancellation API did not persist cancelled status: ${JSON.stringify(cancelDiagnostic)}`);
+  }
   const cancelledCard = managePage.locator(".client-manage-card").filter({
     has: managePage.getByText(identity.serviceName, { exact: true }),
   });
@@ -896,7 +933,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     await expect(cancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
     await expect(cancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0);
   } catch (error) {
-    throw new Error(`Manage page did not reflect cancellation for the synthetic appointment: ${JSON.stringify({ manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
+    throw new Error(`Manage page did not reflect cancellation for the synthetic appointment: ${JSON.stringify({ cancelDiagnostic, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
   }
   await managePage.reload();
   const reloadedCancelledCard = managePage.locator(".client-manage-card").filter({
@@ -907,7 +944,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     await expect(reloadedCancelledCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
     await expect(reloadedCancelledCard.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0);
   } catch (error) {
-    throw new Error(`Manage-page reload did not preserve cancellation for the synthetic appointment: ${JSON.stringify({ manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
+    throw new Error(`Manage-page reload did not preserve cancellation for the synthetic appointment: ${JSON.stringify({ cancelDiagnostic, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null), assertionError: safeDiagnosticText(error?.message) })}`);
   }
   await page.reload();
   await expect(page.getByText(identity.clientName)).toBeVisible();

@@ -1381,7 +1381,7 @@ export function getBookingsAsync() {
 export function saveBookingsAsync(arr, options = {}) {
   return runAsync(
     () => saveBookings(arr),
-    { apiFn: () => apiSaveBookings(arr, options), label: "bookings write" }
+    { apiFn: () => apiSaveBookings(arr, options), label: "bookings write", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 
