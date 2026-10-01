@@ -123,6 +123,47 @@ async function expectControlFits(page, target, { minHeight = 44 } = {}) {
   expect(bounds.height, `${label} is too short to tap comfortably`).toBeGreaterThanOrEqual(minHeight);
 }
 
+async function expectMobileWeeklyHours(page) {
+  const rows = page.locator("#availability-weekly-body tr");
+  await expect(rows).toHaveCount(7);
+
+  const rowStates = await rows.evaluateAll((weeklyRows) => weeklyRows.map((row) => {
+    const day = row.querySelector(".availability-day-cell");
+    const enabled = row.querySelector(".availability-enabled-control");
+    const start = row.querySelector("input[data-field='start']");
+    const end = row.querySelector("input[data-field='end']");
+    const bounds = (element) => {
+      const box = element.getBoundingClientRect();
+      return { left: box.left, right: box.right, width: box.width, height: box.height };
+    };
+    const dayStyle = getComputedStyle(day);
+    return {
+      dayText: day.textContent.trim(),
+      dayWhiteSpace: dayStyle.whiteSpace,
+      dayWordBreak: dayStyle.wordBreak,
+      dayFits: day.scrollWidth <= day.clientWidth,
+      row: bounds(row),
+      enabled: bounds(enabled),
+      start: bounds(start),
+      end: bounds(end),
+      viewportWidth: window.innerWidth,
+    };
+  }));
+
+  for (const state of rowStates) {
+    expect(state.dayText, "weekly-hours day label should be readable").toMatch(/^[A-Za-z]+$/);
+    expect(state.dayWhiteSpace, `${state.dayText} must stay on one line`).toBe("nowrap");
+    expect(state.dayWordBreak, `${state.dayText} must not break letter-by-letter`).not.toBe("break-all");
+    expect(state.dayFits, `${state.dayText} must fit its day row`).toBe(true);
+    for (const [controlName, box] of Object.entries({ enabled: state.enabled, start: state.start, end: state.end })) {
+      expect(box.left, `${state.dayText} ${controlName} starts outside its row`).toBeGreaterThanOrEqual(state.row.left - 1);
+      expect(box.right, `${state.dayText} ${controlName} is clipped by its row`).toBeLessThanOrEqual(state.row.right + 1);
+      expect(box.right, `${state.dayText} ${controlName} is clipped by the viewport`).toBeLessThanOrEqual(state.viewportWidth + 1);
+      expect(box.height, `${state.dayText} ${controlName} is too short to tap`).toBeGreaterThanOrEqual(44);
+    }
+  }
+}
+
 test("login and registration modal fit the mobile viewport", async ({ page }) => {
   await page.goto("/pages/index.html");
   await page.locator(".mobile-nav-toggle").click();
@@ -213,6 +254,19 @@ test("owner critical controls remain usable across mobile pages", async ({ page 
     await expectNoPageOverflow(page, surface.path);
     for (const selector of surface.controls) {
       await expectControlFits(page, selector);
+    }
+    if (surface.path === "/pages/business-owner.html") {
+      await expectMobileWeeklyHours(page);
+      for (const selector of [
+        "#availability-timezone",
+        "#availability-buffer",
+        "#availability-quick-date",
+        "#availability-timeoff-start",
+        "#availability-timeoff-end",
+        "#availability-add-timeoff",
+      ]) {
+        await expectControlFits(page, selector);
+      }
     }
   }
 });

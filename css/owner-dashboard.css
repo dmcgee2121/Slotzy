@@ -572,6 +572,15 @@
   border-bottom: 1px solid var(--border);
 }
 
+.availability-mobile-label {
+  display: none;
+}
+
+.availability-enabled-control,
+.availability-time-control {
+  margin: 0;
+}
+
 .availability-timeoff-list {
   margin-top: 10px;
 }
@@ -2000,6 +2009,108 @@
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .owner-page .availability-table-wrap {
+    overflow: visible;
+  }
+
+  .owner-page .availability-table {
+    display: block;
+    overflow: visible;
+  }
+
+  .owner-page .availability-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .owner-page .availability-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .owner-page .availability-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--secondary);
+  }
+
+  .owner-page .availability-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .owner-page .availability-table .availability-day-cell {
+    grid-column: 1 / -1;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .owner-page .availability-table .availability-enabled-cell {
+    grid-column: 1 / -1;
+  }
+
+  .owner-page .availability-enabled-control {
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .owner-page .availability-enabled-control input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+  }
+
+  .owner-page .availability-time-control {
+    display: grid;
+    gap: 6px;
+  }
+
+  .owner-page .availability-mobile-label {
+    display: inline;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .owner-page .availability-time-control input[type="time"] {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .owner-page .availability-timeoff-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .owner-page .availability-timeoff-item .btn {
+    width: 100%;
   }
 
   .owner-page #calendar .fc {

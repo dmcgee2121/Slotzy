@@ -152,34 +152,47 @@ function renderWeeklyTable(weekly) {
   body.innerHTML = DAY_ORDER.map((day) => {
     const row = weekly[day];
     const disabled = row.enabled ? "" : "disabled";
+    const dayLabel = escapeHtml(DAY_LABELS[day]);
     return `
       <tr>
-        <td>${escapeHtml(DAY_LABELS[day])}</td>
-        <td>
-          <input
-            type="checkbox"
-            data-day="${day}"
-            data-field="enabled"
-            ${row.enabled ? "checked" : ""}
-          />
+        <td class="availability-day-cell">${dayLabel}</td>
+        <td class="availability-enabled-cell">
+          <label class="availability-enabled-control">
+            <span class="availability-mobile-label">Enabled</span>
+            <input
+              type="checkbox"
+              aria-label="${dayLabel} enabled"
+              data-day="${day}"
+              data-field="enabled"
+              ${row.enabled ? "checked" : ""}
+            />
+          </label>
         </td>
-        <td>
-          <input
-            type="time"
-            data-day="${day}"
-            data-field="start"
-            value="${escapeHtml(row.start)}"
-            ${disabled}
-          />
+        <td class="availability-time-cell">
+          <label class="availability-time-control">
+            <span class="availability-mobile-label">Start</span>
+            <input
+              type="time"
+              aria-label="${dayLabel} start time"
+              data-day="${day}"
+              data-field="start"
+              value="${escapeHtml(row.start)}"
+              ${disabled}
+            />
+          </label>
         </td>
-        <td>
-          <input
-            type="time"
-            data-day="${day}"
-            data-field="end"
-            value="${escapeHtml(row.end)}"
-            ${disabled}
-          />
+        <td class="availability-time-cell">
+          <label class="availability-time-control">
+            <span class="availability-mobile-label">End</span>
+            <input
+              type="time"
+              aria-label="${dayLabel} end time"
+              data-day="${day}"
+              data-field="end"
+              value="${escapeHtml(row.end)}"
+              ${disabled}
+            />
+          </label>
         </td>
       </tr>
     `;

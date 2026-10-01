@@ -23,6 +23,8 @@ Automated local mobile checks cover iPhone SE (375×667), iPhone 15-style (393×
 
 The audit found and fixed three focused blockers: the auth modal could exceed a short viewport without scrolling; live auth fields used `#auth-form` while CSS still targeted obsolete `#login-form`; and public/mobile form controls and primary targets could remain below the 44px tap target used elsewhere. Key audited pages now have automated document-overflow, control-clipping, and tap-height checks. The owner calendar intentionally scrolls inside its bounded container instead of widening the document.
 
+The Availability weekly-hours follow-up replaces the compressed four-column table with seven readable day cards at widths up to 768px. Each card keeps the day on one line, gives Enabled a full-width labelled 44px target, and places labelled Start and End controls in a clean two-column row. Time-off rows also stack on narrow screens. Desktop keeps the existing table layout, and availability persistence/data attributes are unchanged. Mobile automation now checks all seven rows for letter wrapping, viewport/card clipping, and 44px targets, plus timezone, buffer, time-off, and save controls.
+
 The automated Chromium viewports do not replace physical-device validation. Before pilot invitations, manually check iOS Safari and Android Chrome with the virtual keyboard open, native date/select controls, sticky header space, calendar horizontal gestures, modal scrolling, copy/open behavior, outdoor readability/contrast, rotation, safe-area insets, and receipt/manage-link handoff between browser tabs or messaging apps.
 
 ## Before inviting real barbers

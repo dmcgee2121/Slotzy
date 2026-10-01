@@ -695,7 +695,14 @@ import {
     if (ui.availabilityWeeklyBody) {
       ui.availabilityWeeklyBody.innerHTML = DAY_KEYS.map((dayKey) => {
         const row = availability.weekly[dayKey];
-        return `<tr><td>${escapeHtml(DAY_LABELS[dayKey])}</td><td><input type="checkbox" data-day="${dayKey}" data-field="enabled" ${row.enabled ? "checked" : ""} /></td><td><input type="time" data-day="${dayKey}" data-field="start" value="${escapeHtml(row.start)}" ${row.enabled ? "" : "disabled"} /></td><td><input type="time" data-day="${dayKey}" data-field="end" value="${escapeHtml(row.end)}" ${row.enabled ? "" : "disabled"} /></td></tr>`;
+        const dayLabel = escapeHtml(DAY_LABELS[dayKey]);
+        const disabled = row.enabled ? "" : "disabled";
+        return `<tr>
+          <td class="availability-day-cell">${dayLabel}</td>
+          <td class="availability-enabled-cell"><label class="availability-enabled-control"><span class="availability-mobile-label">Enabled</span><input type="checkbox" aria-label="${dayLabel} enabled" data-day="${dayKey}" data-field="enabled" ${row.enabled ? "checked" : ""} /></label></td>
+          <td class="availability-time-cell"><label class="availability-time-control"><span class="availability-mobile-label">Start</span><input type="time" aria-label="${dayLabel} start time" data-day="${dayKey}" data-field="start" value="${escapeHtml(row.start)}" ${disabled} /></label></td>
+          <td class="availability-time-cell"><label class="availability-time-control"><span class="availability-mobile-label">End</span><input type="time" aria-label="${dayLabel} end time" data-day="${dayKey}" data-field="end" value="${escapeHtml(row.end)}" ${disabled} /></label></td>
+        </tr>`;
       }).join("");
     }
   }
