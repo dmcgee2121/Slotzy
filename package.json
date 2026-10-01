@@ -8,6 +8,7 @@
     "test:smoke": "playwright test",
     "test:smoke:headed": "playwright test --headed",
     "test:smoke:ui": "playwright test --ui",
+    "test:mobile": "playwright test -c playwright.mobile.config.cjs",
     "test:staging": "playwright test -c playwright.staging.config.cjs"
   },
   "devDependencies": {

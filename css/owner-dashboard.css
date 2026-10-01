@@ -1757,6 +1757,20 @@
     padding-right: 14px;
   }
 
+  .owner-page input[type="text"],
+  .owner-page input[type="email"],
+  .owner-page input[type="tel"],
+  .owner-page input[type="number"],
+  .owner-page input[type="time"],
+  .owner-page input[type="date"],
+  .owner-page input[type="datetime-local"],
+  .owner-page input[type="url"],
+  .owner-page input[type="password"],
+  .owner-page input[type="search"],
+  .owner-page select {
+    min-height: 44px;
+  }
+
   .owner-page .owner-layout {
     padding: 16px 0;
     gap: 16px;

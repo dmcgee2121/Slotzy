@@ -261,8 +261,47 @@ nav .link:hover { color: var(--primary-hover); }
   top: 50%;
   transform: translate(-50%, -50%);
   width: min(92vw, 440px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 201;
   opacity: 1;
+}
+
+.modal-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.modal-toggle .btn {
+  width: 100%;
+}
+
+#auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+#auth-form label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+#auth-form input,
+#auth-form select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+#auth-form .btn {
+  min-height: 44px;
 }
 
 .session-modal-copy {
@@ -1534,6 +1573,38 @@ textarea:focus-visible,
 }
 
 @media (max-width: 768px) {
+  .topbar nav .link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .field input[type="text"],
+  .field input[type="email"],
+  .field input[type="tel"],
+  .field input[type="number"],
+  .field input[type="time"],
+  .field input[type="date"],
+  .field input[type="url"],
+  .field input[type="password"],
+  .field input[type="search"],
+  .field select,
+  .owner-page input[type="text"],
+  .owner-page input[type="email"],
+  .owner-page input[type="tel"],
+  .owner-page input[type="number"],
+  .owner-page input[type="time"],
+  .owner-page input[type="date"],
+  .owner-page input[type="datetime-local"],
+  .owner-page input[type="url"],
+  .owner-page input[type="password"],
+  .owner-page input[type="search"],
+  .owner-page select {
+    min-height: 44px;
+  }
+
   .form-grid-2,
   .form-grid-3 {
     grid-template-columns: 1fr;
@@ -1611,6 +1682,7 @@ textarea:focus-visible,
   #bookingPanel button,
   #bookingPanel a.btn {
     width: 100%;
+    min-height: 44px;
   }
 
   .public-shop-directory-card {

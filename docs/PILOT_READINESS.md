@@ -12,10 +12,18 @@ Staging uses synthetic data, separate credentials, a separate database, and serv
 
 ## Known limitations and deferred UX work
 
-- Complete the remaining checklist cases, especially mobile visual QA, branding/settings, invalid manage links, team edits, status actions, and failure recovery.
+- Complete the remaining checklist cases, especially real-device mobile visual QA, branding/settings, team edits, status actions, and failure recovery.
 - Run the complete local one-worker smoke suite in CI and retain its result alongside the guarded hosted suite.
 - UX polish is intentionally deferred: no redesign, native shell, Play Store work, or broad flow changes are included in staging validation.
 - The staging E2E suite leaves uniquely prefixed synthetic records because no safe targeted cleanup endpoint exists. Broad database reset is intentionally prohibited in staging.
+
+## Mobile-first audit (2026-09-30)
+
+Automated local mobile checks cover iPhone SE (375×667), iPhone 15-style (393×852), Pixel/Android-style (412×915), and iPad Mini-style (768×1024) viewports. The suite checks login/register, owner setup, public provider/service/date/time/details flow, receipt/manage link, manage cancellation and reload persistence, invalid manage-link state, dashboard booking-link controls, services, availability, appointments, and settings.
+
+The audit found and fixed three focused blockers: the auth modal could exceed a short viewport without scrolling; live auth fields used `#auth-form` while CSS still targeted obsolete `#login-form`; and public/mobile form controls and primary targets could remain below the 44px tap target used elsewhere. Key audited pages now have automated document-overflow, control-clipping, and tap-height checks. The owner calendar intentionally scrolls inside its bounded container instead of widening the document.
+
+The automated Chromium viewports do not replace physical-device validation. Before pilot invitations, manually check iOS Safari and Android Chrome with the virtual keyboard open, native date/select controls, sticky header space, calendar horizontal gestures, modal scrolling, copy/open behavior, outdoor readability/contrast, rotation, safe-area insets, and receipt/manage-link handoff between browser tabs or messaging apps.
 
 ## Before inviting real barbers
 
@@ -31,4 +39,4 @@ Complete production-specific security review, separate production secrets/projec
 
 ## Recommended next pilot checks
 
-Run the remaining manual checklist cases on phone-width devices, verify logout/session behavior and invalid manage links, exercise team/service edits and owner status actions, validate controlled email delivery, and rehearse staging backup/restore plus backend failure recovery. Review monitoring and dependency/security results before inviting real barbers.
+Run the remaining real-device checks above, verify logout/session behavior, exercise team/service edits and owner status actions, validate controlled email delivery, and rehearse staging backup/restore plus backend failure recovery. Review monitoring and dependency/security results before inviting real barbers.

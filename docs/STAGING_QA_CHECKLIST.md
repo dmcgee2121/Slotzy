@@ -116,9 +116,11 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 
 ## 9. Mobile QA
 
-- [ ] At phone width, verify navigation, forms, and buttons remain usable.
-- [ ] Verify no horizontal overflow.
-- [ ] Complete public booking and manage flows on a phone-width viewport.
+- [x] Automated local coverage at 375×667, 393×852, 412×915, and 768×1024 verifies navigation, forms, primary controls, and 44px tap targets.
+- [x] Automated checks find no document-level horizontal overflow on public booking, receipt, manage/invalid-manage, owner setup, dashboard, services, appointments, and settings pages.
+- [x] Synthetic local mobile flow completes provider/service/date/time/details, receipt/manage link, cancel, exact Cancelled state, and reload persistence.
+- [ ] On physical iPhone Safari and Android Chrome, verify the virtual keyboard, native date/select controls, sticky header, internal calendar scrolling, modal scrolling, orientation, and safe-area behavior.
+- [ ] Manually assess contrast/readability in ordinary and bright-light conditions; automation in this pass does not constitute a WCAG contrast audit.
 
 ## 10. Failure and recovery
 
