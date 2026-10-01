@@ -25,6 +25,8 @@ The audit found and fixed three focused blockers: the auth modal could exceed a 
 
 The Availability weekly-hours follow-up replaces the compressed four-column table with seven readable day cards at widths up to 768px. Each card keeps the day on one line, gives Enabled a full-width labelled 44px target, and places labelled Start and End controls in a clean two-column row. Time-off rows also stack on narrow screens. Desktop keeps the existing table layout, and availability persistence/data attributes are unchanged. Mobile automation now checks all seven rows for letter wrapping, viewport/card clipping, and 44px targets, plus timezone, buffer, time-off, and save controls.
 
+Real-phone barber review exposed a stale installed-shell case: `owner-dashboard.css` was cache-first under the unchanged `slotzy-shell-v1`, so a phone/PWA could retain the pre-card stylesheet after the frontend deploy. The shell cache is now versioned to `v2`, and CSS/JavaScript shell requests are network-first with cached offline fallback. The mobile suite now performs an actual local barber login under a controlling service worker and checks the authenticated dashboard Availability container, seven named rows, collapsed table headers, card bounds, overflow, and Save Availability target.
+
 The automated Chromium viewports do not replace physical-device validation. Before pilot invitations, manually check iOS Safari and Android Chrome with the virtual keyboard open, native date/select controls, sticky header space, calendar horizontal gestures, modal scrolling, copy/open behavior, outdoor readability/contrast, rotation, safe-area insets, and receipt/manage-link handoff between browser tabs or messaging apps.
 
 ## Before inviting real barbers

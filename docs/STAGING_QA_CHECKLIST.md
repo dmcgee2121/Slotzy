@@ -119,6 +119,7 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - [x] Automated local coverage at 375×667, 393×852, 412×915, and 768×1024 verifies navigation, forms, primary controls, and 44px tap targets.
 - [x] Automated checks find no document-level horizontal overflow on public booking, receipt, manage/invalid-manage, owner setup, dashboard, services, appointments, and settings pages.
 - [x] Availability weekly hours render as readable day cards at mobile/tablet widths; day labels do not letter-wrap, and Enabled/Start/End controls remain visible and at least 44px tall.
+- [x] Logged-in barber dashboard Availability is exercised with a controlling service worker; its Weekly Hours container has no horizontal scrollbar and Save Availability remains tappable.
 - [x] Synthetic local mobile flow completes provider/service/date/time/details, receipt/manage link, cancel, exact Cancelled state, and reload persistence.
 - [ ] On physical iPhone Safari and Android Chrome, verify the virtual keyboard, native date/select controls, sticky header, internal calendar scrolling, modal scrolling, orientation, and safe-area behavior.
 - [ ] Manually assess contrast/readability in ordinary and bright-light conditions; automation in this pass does not constitute a WCAG contrast audit.

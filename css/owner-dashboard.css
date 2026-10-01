@@ -2013,10 +2013,16 @@
 
   .owner-page .availability-table-wrap {
     overflow: visible;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .owner-page .availability-table {
     display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow: visible;
   }
 
@@ -2096,6 +2102,8 @@
     font-size: 0.82rem;
     font-weight: 700;
     color: var(--text);
+    white-space: nowrap;
+    word-break: normal;
   }
 
   .owner-page .availability-time-control input[type="time"] {

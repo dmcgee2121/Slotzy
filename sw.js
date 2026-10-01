@@ -1,4 +1,6 @@
-const SHELL_CACHE_NAME = "slotzy-shell-v1";
+// Bump whenever a cache-first shell asset changes so installed phones/PWAs do
+// not keep an older stylesheet or script after a deploy.
+const SHELL_CACHE_NAME = "slotzy-shell-v2";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -68,6 +70,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isNavigation) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // CSS and JavaScript must pick up the active deployment while online. The
+  // cache remains the offline fallback, but it must not pin an installed phone
+  // to an older dashboard layout or handler.
+  if (pathname.startsWith("/css/") || pathname.startsWith("/js/")) {
     event.respondWith(networkFirst(request));
     return;
   }
