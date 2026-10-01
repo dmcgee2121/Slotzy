@@ -10,11 +10,74 @@ The verified lifecycle requires authoritative `POST /api/bookings` persistence b
 
 Staging uses synthetic data, separate credentials, a separate database, and server-side Supabase access. JSON remains the local/default rollback adapter. This is not production approval and is not authorization to import pilot data.
 
+## Roadmap
+
+Slotzy has moved beyond core staging rescue. Hosted staging E2E is green, the Netlify -> Render -> Supabase staging stack is verified, and the authoritative public booking lifecycle persists through receipt, manage-link access, cancellation, and reload. The mobile readiness suite also passes, the Availability layout has been improved for phone and tablet widths, and the stale service-worker CSS path has been addressed.
+
+The next milestone is **closed pilot readiness**, not Play Store readiness. App packaging and store planning come only after mobile polish, pilot hardening, and feedback from trusted barber/customer users.
+
+### Phase 1: Staging foundation — completed
+
+- Hosted staging E2E is green across the focused setup chain, full owner-to-customer lifecycle, and negative checks.
+- Netlify frontend -> Render API -> dedicated Supabase staging Postgres is verified.
+- Public bookings persist authoritatively before the receipt is shown.
+- Manage links, cancellation, and cancelled state after reload are verified.
+- The local mobile readiness suite exists and passes across four representative viewports.
+- Mobile Availability uses readable day cards, and the stale installed-shell CSS issue is addressed through cache versioning and network-first shell assets.
+
+### Phase 2: Mobile pilot polish — current
+
+- Review the complete public booking, receipt, manage-link, cancellation, and reschedule experience on real iPhone and Android phones.
+- Review the authenticated barber dashboard on real phones, including appointment actions, Availability, settings, and booking-link sharing.
+- Reduce dashboard length and navigation friction so common daily actions do not require excessive scrolling or hunting.
+- Polish owner setup on mobile, including keyboard behavior, step transitions, form density, and the handoff to the dashboard/public link.
+- Polish public booking for small screens, native date/select controls, messaging-app link handoff, and clear recovery paths.
+- Make empty, loading, offline/backend-error, invalid-link, and retry states consistent and actionable.
+- Remove wording that feels like a developer demo and use concise barber/customer language throughout.
+
+Exit criteria: the key barber and customer journeys are comfortable on physical iOS and Android devices, remaining polish defects are triaged, and no high-severity usability blocker prevents a small trusted pilot.
+
+### Phase 3: Pilot hardening
+
+- [ ] Verify invalid, missing, and expired manage links with a safe recovery path.
+- [ ] Verify session expiration, logout, refresh behavior, and protected-page redirects.
+- [ ] Add and validate forgot-password/password-reset expectations before relying on owner accounts in a pilot.
+- [ ] Define which booking, cancellation, and operational emails or notifications are sent, when delivery is best-effort, and what the UI promises.
+- [ ] Document staging backup, restore, recovery, retention, and pilot rollback notes; rehearse the supported recovery path.
+- [ ] Review monitoring and logs for useful failure signals without customer data, secrets, tokens, or noisy success diagnostics.
+- [ ] Complete a focused security/privacy review covering authorization, manage-link sensitivity, secrets, dependencies, data collection, retention, and disclosures.
+- [ ] Maintain a repeatable manual QA checklist for real devices and the critical owner/customer lifecycle.
+- [ ] Define a small-pilot support process: named owner, contact channel, response expectations, incident notes, defect triage, and a pause/rollback decision path.
+
+Exit criteria: operational, recovery, security/privacy, authentication, and support gaps are understood and acceptable for a deliberately small pilot using controlled real data.
+
+### Phase 4: Closed pilot with trusted barber/customer users
+
+- Invite a small, named group only after Phases 2 and 3 exit criteria are met.
+- Observe setup, daily dashboard use, booking completion, manage-link use, cancellations/reschedules, and support needs.
+- Collect structured feedback, prioritize recurring friction, and pause expansion for reliability, privacy, or data-loss concerns.
+
+### Phase 5: Product/brand polish
+
+- Apply pilot learning to navigation, hierarchy, copy, onboarding, empty states, branding, and customer trust cues.
+- Resolve the highest-value workflow and presentation issues without expanding scope into speculative features.
+
+### Phase 6: Play Store / app packaging prep
+
+- Decide whether a native/PWA wrapper is justified by pilot evidence.
+- Define offline behavior, deep links/manage links, notifications, native credential storage, permissions, privacy disclosures, store assets, device coverage, and release/update mechanics.
+- Begin packaging only after the hosted mobile product is stable and closed-pilot feedback has been incorporated.
+
+### Phase 7: Production launch planning
+
+- Plan production-specific infrastructure, secrets/origins, migrations, backups and restore, observability/alerting, security/privacy approval, regression, rollback, support, and staged rollout.
+- Treat production approval as a separate gate from staging, closed pilot, and app-store packaging.
+
 ## Known limitations and deferred UX work
 
 - Complete the remaining checklist cases, especially real-device mobile visual QA, branding/settings, team edits, status actions, and failure recovery.
 - Run the complete local one-worker smoke suite in CI and retain its result alongside the guarded hosted suite.
-- UX polish is intentionally deferred: no redesign, native shell, Play Store work, or broad flow changes are included in staging validation.
+- Mobile pilot polish is now the active phase. Broad redesign, native packaging, and Play Store work remain deferred until closed-pilot feedback.
 - The staging E2E suite leaves uniquely prefixed synthetic records because no safe targeted cleanup endpoint exists. Broad database reset is intentionally prohibited in staging.
 
 ## Mobile-first audit (2026-09-30)
@@ -35,7 +98,7 @@ Complete the staging QA checklist, staging backup/restore rehearsal, monitoring/
 
 ## Before Play Store or native work
 
-Stabilize hosted web behavior, define offline/deep-link/manage-token behavior, notification requirements, privacy disclosures, native credential storage, and mobile-device QA. Do not start Capacitor/native work merely because staging is reachable.
+Complete mobile pilot polish, pilot hardening, and the closed pilot first. Then use real pilot evidence to define offline/deep-link/manage-token behavior, notification requirements, privacy disclosures, native credential storage, and mobile-device QA. Slotzy is not ready for Play Store packaging yet; staging reachability and passing automated mobile coverage are necessary foundations, not a store-readiness decision.
 
 ## Before production
 
@@ -43,4 +106,4 @@ Complete production-specific security review, separate production secrets/projec
 
 ## Recommended next pilot checks
 
-Run the remaining real-device checks above, verify logout/session behavior, exercise team/service edits and owner status actions, validate controlled email delivery, and rehearse staging backup/restore plus backend failure recovery. Review monitoring and dependency/security results before inviting real barbers.
+The recommended next milestone is **closed pilot readiness**. Start with the Phase 2 real-phone public booking and barber-dashboard reviews, then close the Phase 3 authentication, notification, recovery, monitoring, security/privacy, manual-QA, and support gaps. Invite trusted barbers/customers only after those gates are met; defer Play Store preparation until their feedback has been incorporated.

@@ -1,4 +1,20 @@
-# Slotzy Project Status — non-OneDrive re-baseline (2026-09-27)
+# Slotzy Project Status — staging and mobile readiness (2026-10-01)
+
+## Current roadmap position (2026-10-01)
+
+Slotzy is no longer in core staging rescue. Hosted staging E2E is green against the verified Netlify -> Render -> Supabase staging stack. Authoritative public booking persistence, manage-link access, cancellation, and cancellation persistence after reload are covered. The mobile readiness suite passes across its representative viewports; mobile Availability has been redesigned into readable day cards; and the service-worker stale CSS path was corrected.
+
+The active phase is **Mobile Pilot Polish**. The next milestone is **closed pilot readiness**, reached through real-phone barber/customer review followed by pilot hardening. Slotzy is not ready for Play Store packaging: app-store work follows mobile polish, a controlled closed pilot, and incorporation of pilot feedback.
+
+Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
+
+1. Staging foundation — completed
+2. Mobile pilot polish — current
+3. Pilot hardening
+4. Closed pilot with trusted barber/customer users
+5. Product/brand polish
+6. Play Store / app packaging prep
+7. Production launch planning
 
 ## Result
 
