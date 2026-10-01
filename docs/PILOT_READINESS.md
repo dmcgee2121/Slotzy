@@ -27,6 +27,7 @@ The next milestone is **closed pilot readiness**, not Play Store readiness. App 
 
 ### Phase 2: Mobile pilot polish — current
 
+- Use `docs/MOBILE_PILOT_POLISH_CHECKLIST.md` as the working UI checklist and priority order for this phase.
 - Review the complete public booking, receipt, manage-link, cancellation, and reschedule experience on real iPhone and Android phones.
 - Review the authenticated barber dashboard on real phones, including appointment actions, Availability, settings, and booking-link sharing.
 - Reduce dashboard length and navigation friction so common daily actions do not require excessive scrolling or hunting.
@@ -106,4 +107,4 @@ Complete production-specific security review, separate production secrets/projec
 
 ## Recommended next pilot checks
 
-The recommended next milestone is **closed pilot readiness**. Start with the Phase 2 real-phone public booking and barber-dashboard reviews, then close the Phase 3 authentication, notification, recovery, monitoring, security/privacy, manual-QA, and support gaps. Invite trusted barbers/customers only after those gates are met; defer Play Store preparation until their feedback has been incorporated.
+The recommended next milestone is **closed pilot readiness**. Use the dedicated mobile polish checklist, starting with a focused mobile owner dashboard hierarchy/navigation task and real-phone public booking and barber-dashboard reviews. Then close the Phase 3 authentication, notification, recovery, monitoring, security/privacy, manual-QA, and support gaps. Invite trusted barbers/customers only after those gates are met; defer Play Store preparation until their feedback has been incorporated.
