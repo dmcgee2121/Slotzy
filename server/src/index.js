@@ -114,7 +114,6 @@ async function logStagingSupabaseDnsProbe() {
   }
   try {
     await lookup(hostname);
-    console.info("[Slotzy:storage] staging Supabase DNS probe succeeded", { hostname });
   } catch (error) {
     console.warn("[Slotzy:storage] staging Supabase DNS probe failed", {
       hostname,
@@ -1203,15 +1202,6 @@ app.post("/api/auth/register", async (req, res) => {
 
     const token = signToken(user);
     const authUser = buildAuthUser(user);
-    // A staging-safe contract signal: never log the token, username, request
-    // body, or user object values. Its absence after a 201 indicates a stale
-    // deployment or response layer rather than this checked-in route.
-    console.info("[Slotzy:auth] POST /api/auth/register succeeded", {
-      storage: STORAGE_ADAPTER,
-      status: 201,
-      responseKeys: ["token", "user"],
-      userKeys: Object.keys(authUser).sort(),
-    });
     return res.status(201).json({ token, user: authUser });
   } catch (error) {
     // Keep the browser response generic, but make hosted diagnostics actionable.
@@ -1254,17 +1244,6 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.get("/api/auth/me", requireAuth, (req, res) => {
-  const ownerShopId = isOwner(req.user) ? getUserShopId(req.db, req.user) : "";
-  logStagingAuthContract("GET /api/auth/me succeeded", {
-    status: 200,
-    storage: STORAGE_ADAPTER,
-    hasAuthUser: Boolean(req.user?.username),
-    authUserHasShopId: Boolean(req.user?.shopId),
-    hasResolvedShop: Boolean(ownerShopId),
-    ownerShopCount: isOwner(req.user)
-      ? req.db.shops.filter((shop) => usernamesEqual(shop?.ownerUsername, req.user.username)).length
-      : 0,
-  });
   return res.json({ user: buildAuthUser(req.user) });
 });
 
@@ -1335,19 +1314,9 @@ app.post("/api/shops", requireAuth, async (req, res) => {
     }
 
     await writeStore(db);
-    logStagingShopContract("POST /api/shops succeeded", {
-      status: 201,
-      storage: STORAGE_ADAPTER,
-      hasAuthUser: Boolean(user?.username),
-      incomingShopNameIsE2E: /^e2e[ -]/i.test(name),
-      createdShop: Boolean(shop?.id),
-      userLinkedToShop: Boolean(ownerRecord?.shopId && ownerRecord.shopId === shop.id),
-      ownerShopCountAfterSave: db.shops.filter((entry) => usernamesEqual(entry?.ownerUsername, user.username)).length,
-      userHasShopIdAfterSave: Boolean(ownerRecord?.shopId),
-    });
     return res.status(201).json({ shop });
   } catch (error) {
-    logStagingShopContract("POST /api/shops failed", {
+    logStagingShopFailure("POST /api/shops failed", {
       status: 500,
       storage: STORAGE_ADAPTER,
       code: String(error?.code ?? ""),
@@ -1417,21 +1386,9 @@ app.patch("/api/shops/:shopId", requireAuth, async (req, res) => {
     db.shops[index] = next;
     await writeStore(db);
 
-    const linkedOwner = findUserByUsername(db, user.username);
-    logStagingShopContract("PATCH /api/shops/:shopId succeeded", {
-      status: 200,
-      storage: STORAGE_ADAPTER,
-      hasAuthUser: Boolean(user?.username),
-      incomingShopNameIsE2E: /^e2e[ -]/i.test(String(req.body?.name ?? req.body?.businessName ?? "")),
-      updatedShop: Boolean(next?.id),
-      userLinkedToShop: Boolean(linkedOwner?.shopId && linkedOwner.shopId === next.id),
-      ownerShopCountAfterSave: db.shops.filter((entry) => usernamesEqual(entry?.ownerUsername, user.username)).length,
-      userHasShopIdAfterSave: Boolean(linkedOwner?.shopId),
-    });
-
     return res.json({ shop: next });
   } catch (error) {
-    logStagingShopContract("PATCH /api/shops/:shopId failed", {
+    logStagingShopFailure("PATCH /api/shops/:shopId failed", {
       status: 500,
       storage: STORAGE_ADAPTER,
       code: String(error?.code ?? ""),
@@ -1442,26 +1399,10 @@ app.patch("/api/shops/:shopId", requireAuth, async (req, res) => {
   }
 });
 
-function logStagingServiceContract(marker, fields) {
+function logStagingShopFailure(marker, fields) {
   const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
   if (environment !== "staging" && environment !== "development") return;
-  console.info(`[Slotzy:services] ${marker}`, fields);
-}
-
-function logStagingShopContract(marker, fields) {
-  const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
-  if (environment !== "staging" && environment !== "development") return;
-  console.info(`[Slotzy:shops] ${marker}`, fields);
-}
-
-function logStagingAuthContract(marker, fields) {
-  const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
-  if (environment !== "staging" && environment !== "development") return;
-  console.info(`[Slotzy:auth] ${marker}`, fields);
-}
-
-function isUuidShaped(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value ?? ""));
+  console.error(`[Slotzy:shops] ${marker}`, fields);
 }
 
 app.get("/api/services", requireAuth, (req, res) => {
@@ -1471,20 +1412,12 @@ app.get("/api/services", requireAuth, (req, res) => {
   const queryBarberUsername = normalizeUsername(req.query.barberUsername);
   const queryActive = String(req.query.active ?? "").trim().toLowerCase();
 
-  const allServices = [...db.services];
-  let services = allServices;
-  let resolvedShopId = "";
-  const authUserShopId = normalizeUsername(user?.shopId);
-  const ownerShops = isOwner(user)
-    ? db.shops.filter((shop) => usernamesEqual(shop?.ownerUsername, user?.username))
-    : [];
+  let services = [...db.services];
 
   if (isOwner(user)) {
     const ownerShopId = getUserShopId(db, user);
-    resolvedShopId = ownerShopId;
     services = services.filter((service) => normalizeUsername(service?.shopId) === ownerShopId);
   } else if (isBarber(user)) {
-    resolvedShopId = getUserShopId(db, user);
     services = services.filter((service) => canBarberManageService(user, service));
   }
 
@@ -1501,22 +1434,6 @@ app.get("/api/services", requireAuth, (req, res) => {
     services = services.filter((service) => Boolean(service?.active !== false) === active);
   }
 
-  logStagingServiceContract("GET /api/services succeeded", {
-    status: 200,
-    storage: STORAGE_ADAPTER,
-    hasAuthUser: Boolean(user?.username),
-    authUserHasShopId: Boolean(authUserShopId),
-    authUserShopIdIsUuidShaped: isUuidShaped(authUserShopId),
-    hasResolvedShop: Boolean(resolvedShopId),
-    resolvedShopIdIsUuidShaped: isUuidShaped(resolvedShopId),
-    ownerShopCount: ownerShops.length,
-    anyE2EShopExists: db.shops.some((shop) => /^e2e[ -]/i.test(String(shop?.name ?? shop?.businessName ?? ""))),
-    totalServiceCount: allServices.length,
-    returnedServiceCount: services.length,
-    hasE2EServiceBeforeScope: allServices.some((service) => /^e2e[ -]/i.test(String(service?.name ?? service?.title ?? ""))),
-    hasE2EServiceAfterScope: services.some((service) => /^e2e[ -]/i.test(String(service?.name ?? service?.title ?? ""))),
-    allReturnedServicesMatchResolvedShop: Boolean(resolvedShopId) && services.every((service) => normalizeUsername(service?.shopId) === resolvedShopId),
-  });
   return res.json({ services });
 });
 
@@ -1601,18 +1518,6 @@ app.post("/api/services", requireAuth, async (req, res) => {
 
     db.services.push(service);
     await writeStore(db);
-    logStagingServiceContract("POST /api/services succeeded", {
-      status: 201,
-      storage: STORAGE_ADAPTER,
-      hasAuthUser: Boolean(user?.username),
-      hasResolvedShop: Boolean(getUserShopId(db, user)),
-      responseKeys: ["service"],
-      serviceHasId: Boolean(service.id),
-      serviceHasName: Boolean(service.name),
-      serviceHasShopId: Boolean(service.shopId),
-      serviceNameIsE2E: /^e2e[ -]/i.test(service.name),
-      serviceShopMatchesResolvedShop: Boolean(service.shopId) && service.shopId === getUserShopId(db, user),
-    });
     return res.status(201).json({ service });
   } catch {
     return res.status(500).json({ error: "internal server error" });

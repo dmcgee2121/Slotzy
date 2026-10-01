@@ -529,7 +529,7 @@ This is acceptable only for local development. It blocks real pilot and staging 
 
 - Current Render markers proved `requireAuth` could resolve the JWT username to a user, while `getUserShopId()` received neither `user.shopId` nor an owned shop. The owner link is reconstructed by `readStore()` from `shop_members`; only canonical mappings had been paginated in the prior fix. Users, shops, memberships, services, and the other relational tables still used single capped PostgREST reads, so a newly inserted membership in populated staging could be omitted even while its user row was present.
 - All Postgres adapter collection reads are now deterministically paginated in 500-row pages. The populated-state regression inserts 1,005 unrelated users and 1,005 unrelated canonical mappings before creating the fixture owner/shop, two services, and availability; it then requires the owner membership and both service scopes to survive.
-- Service diagnostics now also report `authUserHasShopId`, UUID-shape booleans, owned-shop count, and E2E-shop presence without logging any identifier or name. Keep these temporary staging/development markers through one successful hosted lifecycle, then remove or reduce them. No schema change is required.
+- Service diagnostics also reported `authUserHasShopId`, UUID-shape booleans, owned-shop count, and E2E-shop presence without logging any identifier or name. These temporary normal-success markers were removed after the successful hosted lifecycle recorded below. No schema change was required.
 
 ## Hosted owner setup authoritative shop save (2026-09-27)
 
@@ -548,7 +548,7 @@ This is acceptable only for local development. It blocks real pilot and staging 
 
 - The focused API chain passed, proving the backend shop/service/availability sequence. The browser divergence was **H**, which caused apparent **A/E** behavior: registration navigates staff to `business-owner.html`, then `owner-setup-guard.js` asynchronously redirects a new owner. The E2E accepted the transient dashboard URL and inspected setup controls before the guard completed, so it skipped the wizard entirely and later observed the guard's `owner-setup.html` redirect with zero services.
 - A fresh synthetic browser owner must now reach `owner-setup.html` and see the shop field before Step 1 begins; the direct-dashboard alternative was removed for this necessarily incomplete account. Existing strong shop/service checks now execute rather than being bypassed. The availability step additionally captures the exact `PUT /api/availability` path/method/status and safe response keys before verifying both services again.
-- This correction is test-only. The wizard, guard, backend contracts, and application navigation remain unchanged. Keep the temporary staging shop/service/auth diagnostics through one confirmed full hosted pass, then remove or reduce them.
+- This correction is test-only. The wizard, guard, backend contracts, and application navigation remain unchanged. The temporary normal-success shop/service/auth markers were later removed after the confirmed full hosted pass; failure diagnostics remain.
 
 ## Staging browser Step 1 initialization race (2026-09-29)
 
@@ -624,3 +624,10 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - The hosted runtime reached `apiUpdateBooking()` and issued the correct `PATCH /api/bookings/:bookingId`, but the browser rejected its preflight because the server's explicit CORS header allowlist omitted `X-Slotzy-Notify-Mode`. The request therefore failed before the booking route ran.
 - Production-like CORS now permits exactly `Content-Type`, `Authorization`, and `X-Slotzy-Notify-Mode`; the existing origin allowlist and `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` method list are unchanged. The notification header remains necessary because it tells the route to skip its automatic notification while the manage client performs the existing manual notification flow.
 - The frontend and E2E contracts are unchanged: cancellation still requires the targeted PATCH, HTTP 200, returned `booking.status === "cancelled"`, exact card status/action changes, and persistence after reload. Render must redeploy this backend change before hosted confirmation.
+
+## Hosted staging lifecycle pass and pilot cleanup (2026-09-30)
+
+- Commit `3db01ac` passed all three guarded hosted tests against the Netlify staging frontend, Render staging API, and Supabase staging Postgres: focused owner-setup API chain, full synthetic owner-to-customer lifecycle, and synthetic negative checks.
+- The passing lifecycle proves authoritative public booking persistence before receipt, manage-link access to the same synthetic booking, direct `PATCH /api/bookings/:bookingId` cancellation through the `X-Slotzy-Notify-Mode` CORS preflight, exact cancelled-card state without a Cancel action, and persistence after reload. These assertions and their scrubbed failure diagnostics remain intact.
+- Normal-success diagnostic streams added during incident isolation were removed: registration contract success, `/api/auth/me`, shop/service contract success, and successful Supabase DNS probes. Safe failure-path registration/shop/storage logs remain, as do E2E-only path/method/status/response-key and synthetic-state diagnostics.
+- Pilot readiness is improved but not production approval. Remaining recommended checks include phone-width visual flows, logout/session and invalid manage links, team/service edit paths, owner status actions, controlled email delivery, backup/restore and failure recovery, monitoring, and dependency/security review.
