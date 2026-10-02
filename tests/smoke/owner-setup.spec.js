@@ -92,7 +92,7 @@ test("owner resumes incomplete setup and gets a working public booking link", as
 
   await expect(page).toHaveURL(/\/pages\/owner-setup\.html$/);
   await expect(page.locator("#setupStepSummary")).toHaveText("Step 3 of 5");
-  await expect(page.locator("#setupProgressDetail")).toContainText("You're picking up where you left off.");
+  await expect(page.locator("#setupProgressDetail")).toContainText("Your shop and team are saved.");
   await page.selectOption("#setupServiceBarber", OWNER_USERNAME);
   await page.fill("#setupServiceName", "Classic Cut");
   await page.fill("#setupServicePrice", "35");
@@ -184,5 +184,5 @@ test("configured owners bypass onboarding and land on the dashboard", async ({ p
 
   await expect(page).toHaveURL(/\/pages\/business-owner\.html$/);
   await expect(page.locator("#ownerHeroTitle")).toContainText("Ready Shop");
-  await expect(page.locator("#ownerTodayGlanceCard")).toBeVisible();
+  await expect(page.locator("#owner-today-section")).toBeVisible();
 });

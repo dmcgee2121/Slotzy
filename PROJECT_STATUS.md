@@ -16,6 +16,17 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 6. Play Store / app packaging prep
 7. Production launch planning
 
+## Owner setup mobile polish pass (2026-10-01)
+
+- Kept the existing five setup gates and all save behavior, but reframed the page as a concise Shop, Team, Services, Hours, and Ready flow with clearer titles and later-edit guidance.
+- Replaced wizard/first-run and internal slot-generation language, enlarged the solo choice, compacted the mobile progress indicator, strengthened primary actions, and rendered validation/success text as readable contained notices.
+- Promoted `Finish and Open Dashboard` as the final completion action while retaining copy/open/QR access to the same generated public booking link.
+- Expanded the mobile suite from an active-panel spot check to a full controlled new-owner completion path at every configured viewport, including shop/team/services/hours validation, overflow and tap-target checks, all seven responsive Hours cards, and final actions. The hosted staging lifecycle retains its authoritative shop/service/availability assertions; only its Step 1 initialization-copy synchronization was updated.
+- Validation: mobile readiness passed **24 tests across four configured viewports**; focused owner-setup smoke passed **2 tests**; smoke discovery remains **24 tests in 7 files**. The staging command stopped at its required `SLOTZY_ALLOW_STAGING_E2E=true` mutation guard, so no staging data changed and the two later tests did not run.
+- No setup persistence, authentication, public booking persistence, backend, Supabase, staging data, production, or native packaging behavior changed. Frontend changes require a Netlify redeploy; Render does not require a redeploy.
+- Remaining real-phone risks are virtual-keyboard resize/scroll, native file/time/select controls, focus after validation, thumb reach on long steps, resumed setup, rotation/safe areas, and installed/browser back behavior. Later polish may add explicit saving states or focus-to-first-error if device observation justifies it.
+- A manually observed mobile customer booking save error remains logged separately as a **pilot-blocker candidate**. This task did not touch that save path and does not resolve or downgrade the risk.
+
 ## Mobile owner dashboard hierarchy and navigation pass (2026-10-01)
 
 - Added a mobile-only two-column quick-jump bar for Today, Booking Link, Appointments, Services, Availability, and Settings. Each target is at least 44px tall; in-page targets are focusable and use native fragment navigation.

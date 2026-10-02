@@ -159,7 +159,7 @@ import {
     ui.main.innerHTML = `
       <section class="card owner-panel" style="max-width: 560px; margin: 2rem auto; text-align: center;">
         <h1>Owner sign-in required.</h1>
-        <p class="small">Please sign in as an owner to run setup.</p>
+        <p class="small">Please sign in as an owner to finish setting up your shop.</p>
         <a href="../index.html" class="btn btn-primary">Go to Home</a>
       </section>
     `;
@@ -213,6 +213,8 @@ import {
       const itemStep = Number(item.getAttribute("data-step") ?? "0");
       item.classList.toggle("is-active", itemStep === nextStep);
       item.classList.toggle("is-complete", itemStep < nextStep);
+      if (itemStep === nextStep) item.setAttribute("aria-current", "step");
+      else item.removeAttribute("aria-current");
     });
 
     if (ui.stepSummary) ui.stepSummary.textContent = `Step ${nextStep} of 5`;
@@ -225,24 +227,24 @@ import {
   }
 
   function getIntroText(step) {
-    if (step === 1) return "Set the shop name and branding clients will recognize on your public booking page.";
-    if (step === 2) return "Solo-first by default. Keep going fast as a solo barber, or add team members only if you need multiple schedules.";
-    if (step === 3) return "Add at least two services before you share the booking link.";
-    if (step === 4) return "Set weekly hours and buffer time so Slotzy can generate valid booking slots.";
-    if (step === 5) return "Your booking page is live. Copy the link, share the QR, and open the public page.";
-    return "Set up your shop, team, services, and hours once, then start sharing your booking link.";
+    if (step === 1) return "Name your shop and choose an optional logo for the page clients will see.";
+    if (step === 2) return "Confirm your booking name, then choose whether you work solo or with a team.";
+    if (step === 3) return "Add at least two services with the price and time each one needs.";
+    if (step === 4) return "Choose the days and times clients can book with you.";
+    if (step === 5) return "Setup is complete. Your booking link is ready to share.";
+    return "Add the essentials clients need to choose a service and time.";
   }
 
   function getProgressDetail(step) {
     const nextStep = Number(step || 1);
     if (nextStep === 1) {
-      return "Start with the essentials. You can fine-tune advanced settings after your booking page is live.";
+      return "Start with the essentials. You can update your shop details and booking settings later.";
     }
     if (nextStep === 5) {
-      return "Everything needed for public booking is saved. Your next step is simply to share the link.";
+      return "Everything needed for booking is saved. Open your dashboard or share the link now.";
     }
     const labels = { 2: "shop", 3: "shop and team", 4: "shop, team, and services" };
-    return `You're picking up where you left off. Your ${labels[nextStep] || "previous setup"} ${nextStep === 2 ? "is" : "are"} saved; finish this step to keep moving.`;
+    return `Your ${labels[nextStep] || "earlier details"} ${nextStep === 2 ? "is" : "are"} saved. You can come back and make changes later.`;
   }
 
   async function handleSaveShopStep() {
@@ -275,7 +277,7 @@ import {
       return;
     }
     if (!ui.onlyBarberCheckbox?.checked && getAdditionalBarbers().length === 0) {
-      setStatus(ui.barberStatus, "Add at least one barber or choose \"I'm the only barber\".", false);
+      setStatus(ui.barberStatus, "Add at least one barber or select \"I work by myself\".", false);
       return;
     }
 
@@ -298,7 +300,7 @@ import {
     const email = String(ui.barberEmailInput?.value ?? "").trim();
 
     if (displayName.length < 2) return setStatus(ui.barberStatus, "Display name must be at least 2 characters.", false);
-    if (!/^[a-zA-Z0-9._-]{3,32}$/.test(username)) return setStatus(ui.barberStatus, "Username must be 3-32 chars using letters, numbers, dot, dash, or underscore.", false);
+    if (!/^[a-zA-Z0-9._-]{3,32}$/.test(username)) return setStatus(ui.barberStatus, "Username must be 3-32 characters using letters, numbers, a dot, dash, or underscore.", false);
     if (password.length < 4) return setStatus(ui.barberStatus, "Password must be at least 4 characters.", false);
     if (email && !looksLikeEmail(email)) return setStatus(ui.barberStatus, "Please enter a valid barber email address.", false);
 
@@ -448,8 +450,8 @@ import {
     }, { fallbackOnError: false });
 
     if (showSuccess) {
-      setStatus(ui.availabilityStatus, "Availability saved.", true);
-      window.showToast?.("Availability saved.", "success");
+      setStatus(ui.availabilityStatus, "Booking hours saved.", true);
+      window.showToast?.("Booking hours saved.", "success");
     }
     return true;
   }
@@ -654,7 +656,7 @@ import {
     const services = getScopedServices();
     if (!ui.serviceList) return;
     if (services.length === 0) {
-      ui.serviceList.innerHTML = `<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No services yet</h3><p>Start with your two most requested services. Clients need services before Slotzy can show them available times.</p></section>`;
+      ui.serviceList.innerHTML = `<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No services yet</h3><p>Add your two most requested services so clients can choose what they need.</p></section>`;
       return;
     }
     const namesByUsername = new Map((state.setupStatus?.staff || []).map((staffUser) => [staffUser.username, staffUser.displayName]));
@@ -710,7 +712,7 @@ import {
   function renderReadyStep() {
     const staffNames = (state.setupStatus?.staff || []).map((staffUser) => staffUser.displayName).filter(Boolean);
     if (ui.readyShopName) ui.readyShopName.textContent = state.shopName || "My Shop";
-    if (ui.readyBarberName) ui.readyBarberName.textContent = staffNames.length > 0 ? staffNames.join(", ") : "Booking team pending";
+    if (ui.readyBarberName) ui.readyBarberName.textContent = staffNames.length > 0 ? staffNames.join(", ") : "Not added yet";
     if (ui.bookingLinkInput) ui.bookingLinkInput.value = buildBookingLink(state.shopSlug || toSlug(state.shopName || state.username));
     if (ui.printBookingQrBtn) ui.printBookingQrBtn.disabled = true;
   }

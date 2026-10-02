@@ -125,12 +125,40 @@ async function expectControlFits(page, target, { minHeight = 44 } = {}) {
   expect(bounds.height, `${label} is too short to tap comfortably`).toBeGreaterThanOrEqual(minHeight);
 }
 
-async function expectMobileWeeklyHours(page, expectedSurface = "dashboard") {
-  const rows = page.locator("#availability-weekly-body tr");
+async function expectReadableStatus(page, selector) {
+  const status = page.locator(selector);
+  await expect(status).toBeVisible();
+  const state = await status.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const styles = getComputedStyle(element);
+    return {
+      left: bounds.left,
+      right: bounds.right,
+      width: bounds.width,
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      fontSize: Number.parseFloat(styles.fontSize),
+      lineHeight: Number.parseFloat(styles.lineHeight),
+      role: element.getAttribute("role"),
+    };
+  });
+  expect(state.left, `${selector} starts outside the viewport`).toBeGreaterThanOrEqual(0);
+  expect(state.right, `${selector} is clipped horizontally`).toBeLessThanOrEqual(page.viewportSize().width + 1);
+  expect(state.scrollWidth, `${selector} text overflows its message`).toBeLessThanOrEqual(state.clientWidth + 1);
+  expect(state.fontSize, `${selector} text is too small`).toBeGreaterThanOrEqual(14);
+  expect(state.lineHeight, `${selector} needs readable line spacing`).toBeGreaterThanOrEqual(19);
+  expect(state.role).toBe("alert");
+}
+
+async function expectMobileWeeklyHours(page, expectedSurface = "dashboard", {
+  bodySelector = "#availability-weekly-body",
+  expectedPath = "/pages/business-owner.html",
+} = {}) {
+  const rows = page.locator(`${bodySelector} tr`);
   await expect(rows).toHaveCount(7);
 
-  const layout = await page.locator(".availability-table-wrap").evaluate((container) => {
-    const weeklyRows = Array.from(container.querySelectorAll("#availability-weekly-body tr"));
+  const layout = await page.locator(bodySelector).locator("xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' availability-table-wrap ')][1]").evaluate((container, selector) => {
+    const weeklyRows = Array.from(container.querySelectorAll(`${selector} tr`));
     const tableHeaders = Array.from(container.querySelectorAll("thead th"));
     const tableHead = container.querySelector("thead");
     const bounds = (element) => {
@@ -178,7 +206,7 @@ async function expectMobileWeeklyHours(page, expectedSurface = "dashboard") {
         };
       }),
     };
-  });
+  }, bodySelector);
 
   const diagnostics = JSON.stringify({
     surface: expectedSurface,
@@ -190,7 +218,7 @@ async function expectMobileWeeklyHours(page, expectedSurface = "dashboard") {
     rowCount: layout.rowCount,
     visibleTextSamples: layout.visibleTextSamples,
   });
-  expect(layout.currentPath, `authenticated ${expectedSurface} path; ${diagnostics}`).toBe("/pages/business-owner.html");
+  expect(layout.currentPath, `authenticated ${expectedSurface} path; ${diagnostics}`).toBe(expectedPath);
   expect(layout.containerScrollWidth, `Weekly Hours must not scroll horizontally; ${diagnostics}`).toBeLessThanOrEqual(layout.containerClientWidth + 1);
   expect(layout.headerStates.map(({ text }) => text), `Weekly Hours headers must remain semantic; ${diagnostics}`).toEqual(["Day", "Enabled", "Start", "End"]);
   expect(layout.tableHead.width, `Day/Enabled header row should be visually collapsed on mobile; ${diagnostics}`).toBeLessThanOrEqual(1);
@@ -291,18 +319,110 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await expect(page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" }).locator(".appointment-actions .badge")).toHaveText("Cancelled");
 });
 
-test("invalid manage link and owner setup states fit mobile", async ({ page }) => {
-  await seedStorage(page, buildSeed(), { includeSession: true });
+test("invalid manage link state fits mobile", async ({ page }) => {
+  await seedStorage(page, buildSeed());
   await page.goto("/pages/manage.html?shop=missing-mobile-shop&contact=e2e-mobile-invalid%40example.test");
   await expect(page.locator("#manageStatus")).toContainText("could not find a shop");
   await expectNoPageOverflow(page, "invalid manage link page");
+});
+
+test("owner setup is guided and usable through completion on mobile", async ({ page }) => {
+  const setupSeed = buildSeed();
+  setupSeed.local.Slotzy_users[0].shopId = SHOP_ID;
+  setupSeed.local.Slotzy_shop = { shopId: SHOP_ID, name: "A", businessName: "A" };
+  setupSeed.local.Slotzy_shops = [{ id: SHOP_ID, name: "A", businessName: "A", slug: "a", ownerUsername: OWNER_USERNAME }];
+  await seedStorage(page, setupSeed, { includeSession: true });
 
   await page.goto("/pages/owner-setup.html");
-  const activeSetupPanel = page.locator("[data-step-panel]:not(.hidden)");
-  await expect(activeSetupPanel).toBeVisible();
-  await expectNoPageOverflow(page, "owner setup page");
-  await expectControlFits(page, activeSetupPanel.locator("input:visible, select:visible"));
-  await expectControlFits(page, activeSetupPanel.locator("button:visible"));
+  await expect(page.locator("#setupIntroText")).toHaveText("Name your shop and choose an optional logo for the page clients will see.");
+  await expect(page.locator(".setup-step")).toHaveCount(5);
+  await expect(page.locator('.setup-step[aria-current="step"]')).toContainText("Shop");
+  await expect(page.getByRole("heading", { name: "Name your shop" })).toBeVisible();
+  await expect(page.locator("[data-step-panel='1'] .setup-later-note")).toContainText("later");
+  await expectNoPageOverflow(page, "owner setup shop step");
+  for (const selector of ["#setupShopName", "#setupShopLogoInput", "#setupRemoveShopLogoBtn", "#setupStep1Next"]) {
+    await expectControlFits(page, selector);
+  }
+
+  await page.locator("#setupStep1Next").click();
+  await expect(page.locator("#setupShopStatus")).toContainText("at least 2 characters");
+  await expectReadableStatus(page, "#setupShopStatus");
+  await page.locator("#setupShopName").fill("E2E Mobile Setup Shop");
+  await page.locator("#setupStep1Next").click();
+
+  await expect(page.getByRole("heading", { name: "Choose your booking team" })).toBeVisible();
+  await expect(page.locator('.setup-step[aria-current="step"]')).toContainText("Team");
+  await expectNoPageOverflow(page, "owner setup team step");
+  await expectControlFits(page, ".setup-toggle-card");
+  await expectControlFits(page, "#setupOwnerDisplayName");
+  await expectControlFits(page, "#setupStep2Back");
+  await expectControlFits(page, "#setupStep2Next");
+
+  await page.locator("#setupOnlyBarberCheckbox").uncheck();
+  await expectNoPageOverflow(page, "owner setup optional team fields");
+  for (const selector of ["#setupBarberDisplayName", "#setupBarberUsername", "#setupBarberPassword", "#setupBarberEmail", "#setupAddBarberBtn"]) {
+    await expectControlFits(page, selector);
+  }
+  await page.locator("#setupStep2Next").click();
+  await expect(page.locator("#setupBarberStatus")).toContainText("I work by myself");
+  await expectReadableStatus(page, "#setupBarberStatus");
+  await page.locator("#setupOnlyBarberCheckbox").check();
+  await page.locator("#setupStep2Next").click();
+
+  await expect(page.getByRole("heading", { name: "Add your services" })).toBeVisible();
+  await expect(page.locator('.setup-step[aria-current="step"]')).toContainText("Services");
+  await expectNoPageOverflow(page, "owner setup services step");
+  for (const selector of ["#setupServiceBarber", "#setupServiceName", "#setupServicePrice", "#setupServiceDuration", "#setupAddServiceBtn", "#setupStep3Back", "#setupStep3Next"]) {
+    await expectControlFits(page, selector);
+  }
+
+  const addService = async (name, price, duration) => {
+    await page.locator("#setupServiceName").fill(name);
+    await page.locator("#setupServicePrice").fill(price);
+    await page.locator("#setupServiceDuration").fill(duration);
+    await page.locator("#setupAddServiceBtn").click();
+    await expect(page.locator("#setupServiceList")).toContainText(name);
+  };
+  await addService("E2E Mobile Cut", "35", "30");
+  await page.locator("#setupStep3Next").click();
+  await expect(page.locator("#setupServiceStatus")).toContainText("at least 2 services");
+  await expectReadableStatus(page, "#setupServiceStatus");
+  await addService("E2E Mobile Trim", "20", "20");
+  await page.locator("#setupStep3Next").click();
+
+  await expect(page.getByRole("heading", { name: "Set your booking hours" })).toBeVisible();
+  await expect(page.locator('.setup-step[aria-current="step"]')).toContainText("Hours");
+  await expectNoPageOverflow(page, "owner setup availability step");
+  for (const selector of ["#setupAvailabilityBarber", "#setupTimezone", "#setupBufferMinutes", "#setupSaveAvailabilityBtn", "#setupStep4Back", "#setupStep4Next"]) {
+    await expectControlFits(page, selector);
+  }
+  await expectMobileWeeklyHours(page, "owner setup", {
+    bodySelector: "#setupAvailabilityWeeklyBody",
+    expectedPath: "/pages/owner-setup.html",
+  });
+
+  await page.locator('#setupAvailabilityWeeklyBody input[data-field="enabled"]').evaluateAll((checkboxes) => {
+    checkboxes.forEach((checkbox) => {
+      if (!checkbox.checked) return;
+      checkbox.checked = false;
+      checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
+  await page.locator("#setupStep4Next").click();
+  await expect(page.locator("#setupAvailabilityStatus")).toContainText("Enable at least one day");
+  await expectReadableStatus(page, "#setupAvailabilityStatus");
+  await page.locator('input[data-day="mon"][data-field="enabled"]').check();
+  await page.locator("#setupStep4Next").click();
+
+  await expect(page.getByRole("heading", { name: "Your booking page is ready" })).toBeVisible();
+  await expect(page.locator('.setup-step[aria-current="step"]')).toContainText("Ready");
+  await expect(page.locator("#setupReadyStatus")).toContainText("Setup complete");
+  await expectNoPageOverflow(page, "owner setup ready step");
+  await expectControlFits(page, "#setupBookingLink");
+  for (const selector of ["#setupGoDashboard", "#setupCopyBookingLink", "#setupPrintBookingQr", "#setupOpenBookingPage"]) {
+    await expectControlFits(page, selector);
+  }
+  await expect(page.locator("#setupGoDashboard")).toHaveText("Finish and Open Dashboard");
 });
 
 test("logged-in barber dashboard weekly hours use the mobile card layout", async ({ page }) => {

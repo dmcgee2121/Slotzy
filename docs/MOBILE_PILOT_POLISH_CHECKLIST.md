@@ -27,6 +27,18 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - [ ] Validate native date/select controls, virtual-keyboard scrolling, visual density, browser back behavior, copy/open handoff, and the receipt on physical iPhone Safari and Android Chrome.
 - [ ] Consider a live step/progress state only if pilot observation shows customers lose their place; this pass deliberately avoids adding navigation logic.
 
+## Owner setup pass (2026-10-01)
+
+- [x] Reworked the existing five-step setup presentation into a clearer Shop, Team, Services, Hours, and Ready path without changing any setup fields, completion rules, storage adapters, or backend requests.
+- [x] Replaced wizard/demo and internal scheduling language with short owner-facing explanations, including a clear note in every step about what can be changed later.
+- [x] Made the progress indicator compact at phone widths, strengthened the solo choice and primary actions, added comfortable section spacing, and made inline success/error messages readable as contained notices.
+- [x] Made `Finish and Open Dashboard` the completion action while retaining copy, open, and QR actions for the existing public booking link.
+- [x] Expanded automated mobile coverage to walk through all five steps, exercise validation messages, verify Back/Continue and final actions, check fields and controls for clipping/44px targets, and recheck the seven-card Hours layout.
+- [ ] On physical iPhone Safari and Android Chrome, verify virtual-keyboard resize/scroll, native file/time/select controls, focus after validation, thumb reach on long steps, rotation/safe areas, and resumed-setup transitions.
+- [ ] Later polish: consider explicit save-in-progress button states and focus/scroll-to-first-error only if real-phone observation shows owners missing feedback; do not add more setup fields unless pilot feedback requires them.
+
+Separate pilot-blocker candidate: a manual mobile customer booking save error remains logged for reproduction and diagnosis. This owner-setup task did not change public booking persistence and does not resolve or downgrade that risk.
+
 ## Must fix before closed pilot
 
 ### Customer public booking
@@ -55,6 +67,8 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 
 ### Owner setup
 
+- [x] Automated mobile coverage completes a controlled new-owner Shop-to-Ready path at all four configured viewports and verifies the compact five-step indicator.
+- [x] Automated checks cover visible/tappable step actions, overflow-safe fields, readable shop/team/service/hours validation, the mobile Hours cards, and the final dashboard/link actions.
 - [ ] Complete both a genuinely new-owner path and a resumed incomplete setup path on iPhone and Android.
 - [ ] Confirm the five-step progress, saved/resumed state, Back/Continue actions, and optional team step are unambiguous.
 - [ ] Check keyboard type, focus, scroll-to-error, and button reach for shop, team, service, price, duration, and hours fields.

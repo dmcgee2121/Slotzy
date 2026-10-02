@@ -795,7 +795,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   // The field is present in the static HTML. Wait for initSetupWizard() to
   // render Step 1 before filling it, otherwise applySetupStatus() can restore
   // the initial empty value after this test's fill and validation blocks save.
-  await expect(page.locator("#setupIntroText")).toHaveText("Set the shop name and branding clients will recognize on your public booking page.");
+  await expect(page.locator("#setupIntroText")).toHaveText("Name your shop and choose an optional logo for the page clients will see.");
   {
     await page.fill("#setupShopName", identity.shopName);
     const shopInputState = {

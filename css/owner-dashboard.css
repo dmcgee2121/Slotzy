@@ -1196,6 +1196,27 @@
   color: var(--danger);
 }
 
+.owner-setup-page .booking-status:not(:empty) {
+  min-height: 0;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.owner-setup-page .booking-status.status-success:not(:empty) {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.owner-setup-page .booking-status.status-error:not(:empty) {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .owner-page .setup-stepper {
   list-style: none;
   margin: 12px 0 0;
@@ -1206,7 +1227,7 @@
 }
 
 .owner-page .setup-step {
-  min-height: 34px;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--secondary);
@@ -1216,7 +1237,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   text-align: center;
+}
+
+.owner-page .setup-step-number {
+  font-variant-numeric: tabular-nums;
 }
 
 .owner-page .setup-step.is-active {
@@ -1246,6 +1272,65 @@
   margin: 0;
 }
 
+.owner-setup-page #ownerSetupMain {
+  width: min(100%, 900px);
+}
+
+.owner-setup-page .owner-setup-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.owner-setup-page .setup-panel-head {
+  display: grid;
+  gap: 6px;
+}
+
+.owner-setup-page .setup-panel-head h2,
+.owner-setup-page .setup-panel-head p,
+.owner-setup-page .setup-field-help {
+  margin: 0;
+}
+
+.owner-setup-page .setup-later-note {
+  padding-left: 10px;
+  border-left: 3px solid var(--primary);
+  color: var(--text);
+}
+
+.owner-setup-page .setup-toggle-card {
+  min-height: 56px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.owner-setup-page .setup-toggle-card > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.owner-setup-page .setup-toggle-card small {
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.owner-setup-page .setup-toggle-card input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  accent-color: var(--primary);
+}
+
 .owner-page .owner-setup-step-summary {
   margin: 0;
   font-weight: 700;
@@ -1259,11 +1344,35 @@
   margin-top: 12px;
 }
 
+.owner-setup-page .setup-form-cluster {
+  margin-top: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--secondary);
+}
+
+.owner-setup-page .setup-form-cluster > h3,
+.owner-setup-page .setup-form-cluster > p:first-of-type {
+  margin-top: 0;
+}
+
+.owner-setup-page .owner-setup-panel > .field,
+.owner-setup-page .setup-form-cluster > .field {
+  margin-bottom: 0;
+}
+
 .owner-page .setup-list-head,
 .owner-page .setup-success-head {
   display: grid;
   gap: 4px;
   margin-top: 16px;
+}
+
+.owner-setup-page .setup-list-head,
+.owner-setup-page .setup-success-head {
+  margin-top: 0;
+  gap: 6px;
 }
 
 .owner-page .setup-list-head h3,
@@ -1375,6 +1484,17 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.owner-setup-page .setup-actions {
+  margin-top: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  align-items: stretch;
+}
+
+.owner-setup-page .setup-actions .btn-primary {
+  flex: 1 1 220px;
 }
 
 .owner-page .setup-actions .btn {
@@ -1969,7 +2089,19 @@
   }
 
   .owner-page .setup-stepper {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .owner-page .setup-step {
+    min-width: 0;
+    min-height: 52px;
+    padding: 5px 2px;
+    border-radius: 10px;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 0.68rem;
+    line-height: 1.1;
   }
 
   .owner-page .owner-setup-shell {
@@ -2004,6 +2136,20 @@
   .owner-page button,
   .owner-page a.btn {
     min-height: 44px;
+  }
+
+  .owner-setup-page input[type="file"] {
+    min-height: 44px;
+    max-width: 100%;
+  }
+
+  .owner-setup-page .setup-form-cluster {
+    padding: 12px;
+  }
+
+  .owner-setup-page .setup-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .owner-page .appointments-filter-panel .appointment-view-segments {
@@ -2163,7 +2309,7 @@
   }
 
   .owner-page .availability-enabled-control {
-    min-height: 44px;
+    min-height: 45px;
     padding: 8px 10px;
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -2197,7 +2343,7 @@
   .owner-page .availability-time-control input[type="time"] {
     width: 100%;
     min-width: 0;
-    min-height: 44px;
+    min-height: 45px;
   }
 
   .owner-page .availability-timeoff-item {

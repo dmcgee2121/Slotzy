@@ -123,6 +123,9 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - [x] Mobile dashboard quick navigation exposes 44px targets for Today, Booking Link, Appointments, Services, Availability, and Settings; in-page targets receive focus, scroll into view, and retain document-level overflow checks across the configured viewports.
 - [x] Public booking presents four labelled steps and automated mobile checks cover shop identity, the initial empty state, provider handling, service/date/details/submit tap targets, receipt/manage actions, and overflow.
 - [x] Synthetic local mobile flow completes provider/service/date/time/details, receipt/manage link, cancel, exact Cancelled state, and reload persistence.
+- [x] Owner setup presents a compact five-step mobile path; automation completes Shop, Team, Services, Hours, and Ready while checking validation readability, control containment/tap size, all seven Hours cards, and the final dashboard/link actions.
+- [ ] Treat the manually observed mobile customer booking save error as a separate pilot-blocker candidate until reproduced and diagnosed; owner-setup polish did not change or validate away public booking persistence risk.
+- [ ] On physical iPhone Safari and Android Chrome, complete both new and resumed owner setup with the keyboard open and verify native file/time/select controls, validation focus/visibility, long-step thumb reach, rotation, and safe areas.
 - [ ] On physical iPhone Safari and Android Chrome, verify public-booking native controls, keyboard scrolling, status visibility, receipt density, and manage-link copy/open handoff.
 - [ ] On physical iPhone Safari and Android Chrome, verify dashboard jump focus/scroll position and browser/installed-PWA back behavior.
 - [ ] On physical iPhone Safari and Android Chrome, verify the virtual keyboard, native date/select controls, sticky header, internal calendar scrolling, modal scrolling, orientation, and safe-area behavior.
