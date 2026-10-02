@@ -18,6 +18,15 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - [ ] Validate the hierarchy, browser chrome, focus landing, thumb reach, and installed-PWA scroll behavior on physical iPhone and Android devices.
 - [ ] Consider collapsing or moving secondary Insights/Reports only if real pilot use still shows excessive scanning; this pass keeps all existing information available.
 
+## Customer public booking pass (2026-10-01)
+
+- [x] Reframed the public page as a four-step guided flow: barber, service, date/time, and customer details, while preserving every existing form ID and booking behavior.
+- [x] Replaced the repeated speed promise and internal slot-generation language with customer-facing guidance about available times, booking rules, confirmation, and the private manage link.
+- [x] Strengthened the booking submit area, inline error/success presentation, no-times recovery, receipt confirmation copy, and manage-link handoff.
+- [x] Added mobile assertions for shop identity, guided-flow heading, initial empty state, single- and multi-provider behavior, key 44px controls, receipt actions, manage link, and document-level overflow.
+- [ ] Validate native date/select controls, virtual-keyboard scrolling, visual density, browser back behavior, copy/open handoff, and the receipt on physical iPhone Safari and Android Chrome.
+- [ ] Consider a live step/progress state only if pilot observation shows customers lose their place; this pass deliberately avoids adding navigation logic.
+
 ## Must fix before closed pilot
 
 ### Customer public booking

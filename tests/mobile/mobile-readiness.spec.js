@@ -239,6 +239,19 @@ test("login and registration modal fit the mobile viewport", async ({ page }) =>
 test("public booking receipt and manage cancellation work on mobile", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }));
   await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
+  await expect(page.getByRole("heading", { name: "Choose what works for you" })).toBeVisible();
+  await expectNoPageOverflow(page, "public booking initial state");
+  await expect(page.getByRole("heading", { name: "Select service and date" })).toBeVisible();
+  const barberSelect = page.locator("#barberSelect");
+  if (await barberSelect.isVisible()) {
+    await expectControlFits(page, barberSelect);
+  } else {
+    await expect(barberSelect).toHaveValue(OWNER_USERNAME);
+  }
+  for (const selector of ["#serviceSelect", "#bookingDate", "#clientName", "#clientContact", "#bookBtn"]) {
+    await expectControlFits(page, selector);
+  }
   await expect(page.locator("#serviceSelect")).toBeEnabled();
   await page.locator("#serviceSelect").selectOption(SERVICE_ID);
 
@@ -258,6 +271,9 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
   await expectNoPageOverflow(page, "booking receipt");
   await expectControlFits(page, "#btn-receipt-open-manage-link");
+  await expectControlFits(page, "#btn-receipt-copy-manage-link");
+  await expectControlFits(page, "#bookingReceiptManageLink");
+  await expect(page.locator(".booking-receipt-manage-link-panel")).toContainText("private manage link");
 
   const manageLink = await page.locator("#bookingReceiptManageLink").getAttribute("href");
   expect(manageLink).toBeTruthy();

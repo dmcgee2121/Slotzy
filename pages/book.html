@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../css/owner-dashboard.css" />
 </head>
 
-<body>
+<body class="public-booking-page">
   <header class="topbar">
     <div class="container">
       <div class="brand">
@@ -20,7 +20,7 @@
     </div>
   </header>
 
-  <main class="container owner-layout page-stack">
+  <main class="container owner-layout page-stack public-booking-layout">
     <section class="card owner-panel public-shop-directory hidden section-stack" id="publicShopPickerSection" aria-labelledby="publicShopPickerTitle">
       <div class="public-shop-directory-copy">
         <p class="small public-shop-directory-tip">If your barber gave you a link or QR, use that for the fastest booking.</p>
@@ -40,7 +40,7 @@
         <img id="publicShopLogo" class="public-shop-logo" src="../assets/images/slotzy-logo.png" alt="Slotzy logo" />
         <div class="public-shop-hero-copy">
           <h1 id="publicShopName">Loading shop...</h1>
-          <p id="publicShopBranding">Book in 30 seconds. Choose your service, pick a time, and you're done.</p>
+          <p id="publicShopBranding">Choose a service and an available time. No account is required.</p>
           <p id="publicShopPhone" class="small hidden"></p>
           <p id="publicShopAddress" class="small hidden"></p>
           <p id="publicShopError" class="small hidden" aria-live="polite"></p>
@@ -50,8 +50,9 @@
 
     <section class="card owner-panel section-stack" id="bookingPanel">
       <div class="card-head">
-        <h2>Book in 30 seconds</h2>
-        <p class="small">No account needed. Follow the steps below, then save the manage link from your receipt for changes later.</p>
+        <p class="booking-page-kicker">Book an appointment</p>
+        <h2>Choose what works for you</h2>
+        <p class="small">Follow the four steps below. After booking, save the private manage link on your confirmation to make allowed changes later.</p>
       </div>
 
       <ol class="booking-steps" aria-label="Booking steps">
@@ -66,65 +67,83 @@
         <option value="">Loading...</option>
       </select>
 
-      <div class="form-stack">
-        <div class="field" id="barberField">
-          <label for="barberSelect">Barber</label>
-          <select id="barberSelect" disabled>
-            <option value="">Select a barber</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="serviceSelect">Service</label>
-          <select id="serviceSelect" disabled>
-            <option value="">Select a service</option>
-          </select>
-        </div>
-
-        <section id="bookingPolicyCard" class="card owner-action-card section-stack hidden" aria-live="polite">
-          <div class="card-head">
-            <h3>Booking policy</h3>
+      <div class="booking-flow">
+        <section class="booking-flow-section" aria-labelledby="bookingProviderHeading">
+          <div class="booking-flow-heading">
+            <p class="booking-step-kicker">Step 1 of 4</p>
+            <h3 id="bookingProviderHeading">Choose your barber</h3>
           </div>
-          <p id="bookingPolicySameDay" class="small muted hidden"></p>
-          <p id="bookingPolicyAdvance" class="small muted"></p>
-          <p id="bookingPolicyCancel" class="small muted"></p>
+          <div class="field" id="barberField">
+            <label for="barberSelect">Barber</label>
+            <select id="barberSelect" disabled>
+              <option value="">Select a barber</option>
+            </select>
+          </div>
+          <p id="changeBarberHelp" class="small hidden">
+            Need a different schedule?
+            <a id="changeBarberLink" href="#barberSelect">Change barber</a>
+          </p>
         </section>
 
-        <div class="field">
-          <label for="bookingDate">Date</label>
-          <input type="date" id="bookingDate" />
-        </div>
+        <section class="booking-flow-section" aria-labelledby="bookingServiceHeading">
+          <div class="booking-flow-heading">
+            <p class="booking-step-kicker">Step 2 of 4</p>
+            <h3 id="bookingServiceHeading">Choose a service</h3>
+          </div>
+          <div class="field">
+            <label for="serviceSelect">Service</label>
+            <select id="serviceSelect" disabled>
+              <option value="">Select a service</option>
+            </select>
+          </div>
 
-        <div class="field">
-          <span id="slotListLabel" class="field-label">Choose a time</span>
-          <div id="slotList" class="availability-timeoff-list" role="region" aria-labelledby="slotListLabel"></div>
-        </div>
+          <section id="bookingPolicyCard" class="card owner-action-card section-stack hidden" aria-live="polite">
+            <div class="card-head">
+              <h3>Before you book</h3>
+            </div>
+            <p id="bookingPolicySameDay" class="small muted hidden"></p>
+            <p id="bookingPolicyAdvance" class="small muted"></p>
+            <p id="bookingPolicyCancel" class="small muted"></p>
+          </section>
+        </section>
+
+        <section class="booking-flow-section" aria-labelledby="bookingTimeHeading">
+          <div class="booking-flow-heading">
+            <p class="booking-step-kicker">Step 3 of 4</p>
+            <h3 id="bookingTimeHeading">Pick a date and time</h3>
+          </div>
+          <div class="field">
+            <label for="bookingDate">Date</label>
+            <input type="date" id="bookingDate" />
+          </div>
+
+          <div class="field">
+            <span id="slotListLabel" class="field-label">Available times</span>
+            <div id="slotList" class="availability-timeoff-list" role="region" aria-labelledby="slotListLabel"></div>
+          </div>
+        </section>
+
+        <section class="booking-flow-section booking-contact-section" aria-labelledby="bookingDetailsHeading">
+          <div class="booking-flow-heading booking-contact-heading">
+            <p class="booking-step-kicker">Step 4 of 4</p>
+            <h3 id="bookingDetailsHeading">Add your details</h3>
+            <p class="small">Use a phone number or email you can recognize later. It helps identify your appointment from the private manage link.</p>
+          </div>
+          <div class="field">
+            <label for="clientName">Your name</label>
+            <input type="text" id="clientName" placeholder="Full name" autocomplete="name" />
+          </div>
+
+          <div class="field">
+            <label for="clientContact">Phone or email</label>
+            <input type="text" id="clientContact" placeholder="Phone number or email" autocomplete="tel" inputmode="tel" />
+          </div>
+        </section>
       </div>
-      <p id="changeBarberHelp" class="small hidden">
-        Need a different schedule?
-        <a id="changeBarberLink" href="#barberSelect">Change barber</a>
-      </p>
-
-      <div class="form-stack booking-contact-section">
-        <div class="card-head booking-contact-heading">
-          <h3>Your details</h3>
-          <p class="small">We use these details to identify your appointment from the manage link.</p>
-        </div>
-        <div class="field">
-          <label for="clientName">Your Name</label>
-          <input type="text" id="clientName" placeholder="Enter your full name" autocomplete="name" />
-        </div>
-
-        <div class="field">
-          <label for="clientContact">Contact (phone or email)</label>
-          <input type="text" id="clientContact" placeholder="Enter phone or email" autocomplete="tel" inputmode="tel" />
-        </div>
-      </div>
-      <p class="small muted">Need to reschedule? Use your manage link from the booking receipt. No account needed.</p>
 
       <section id="depositNotice" class="card owner-action-card hidden section-stack">
         <div class="card-head">
-          <h3>Deposit Policy</h3>
+          <h3>Deposit policy</h3>
         </div>
         <p id="depositNoticeText" class="small">No deposit required for this booking.</p>
         <div id="depositAckWrap" class="toggle-row hidden">
@@ -133,11 +152,14 @@
         </div>
       </section>
 
-      <div class="cta-row">
-        <button id="bookBtn" class="btn btn-primary owner-action-btn" type="button">Book Appointment</button>
+      <div class="booking-submit-section">
+        <p id="policyHint" class="small muted">Choose a barber to see available times and booking rules.</p>
+        <div class="cta-row">
+          <button id="bookBtn" class="btn btn-primary owner-action-btn" type="button">Confirm Appointment</button>
+        </div>
+        <p class="small booking-submit-help">Your appointment is confirmed only after the receipt appears. Save its private manage link for cancellation or rescheduling allowed by the shop.</p>
+        <p id="bookingStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
-      <p id="policyHint" class="small muted">Slots are generated from owner availability and existing bookings.</p>
-      <p id="bookingStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
   </main>
 

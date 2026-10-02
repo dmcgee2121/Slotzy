@@ -492,7 +492,7 @@ export function initBookingEngine(options = {}) {
           ? `
             <section class="booking-receipt-manage-link-panel" aria-label="Manage your appointment">
               <h2>Manage your appointment</h2>
-              <p class="small muted">Use this manage link to view upcoming appointments and cancel or reschedule within the allowed window.</p>
+              <p class="small muted">Save this private manage link. It lets you view the appointment and cancel or reschedule within the shop's allowed window.</p>
               <div class="booking-receipt-manage-link-row">
                 <a id="bookingReceiptManageLink" class="booking-receipt-manage-link" href="${escapeHtml(manageLinkUrl)}" aria-label="Manage this appointment">${escapeHtml(manageLinkUrl)}</a>
                 <a id="btn-receipt-open-manage-link" class="btn btn-primary" href="${escapeHtml(manageLinkUrl)}">Open Manage Page</a>
@@ -624,7 +624,7 @@ export function initBookingEngine(options = {}) {
       icon: "&#10003;",
       kicker: "Appointment confirmed",
       title: "Booked!",
-      message: "Your appointment is locked in. Everything you need is below.",
+      message: "Your appointment is confirmed. Review the details and save your private manage link below.",
     };
   }
 
@@ -1239,9 +1239,9 @@ export function initBookingEngine(options = {}) {
       if (shop && shop.branding) {
         publicShopBranding.textContent = shop.branding;
       } else if (shop) {
-        publicShopBranding.textContent = "Book in 30 seconds. Choose your service, pick a time, and use your manage link later if plans change.";
+        publicShopBranding.textContent = "Choose a service and an available time. No account is required.";
       } else if (!hasError) {
-        publicShopBranding.textContent = "Search for your shop first, then book in 30 seconds.";
+        publicShopBranding.textContent = "Find your shop, then choose a service and an available time.";
       } else {
         publicShopBranding.textContent = "We could not load this shop's booking profile.";
       }
@@ -1582,7 +1582,7 @@ export function initBookingEngine(options = {}) {
     const depositText = depositPolicy.requireDeposit
       ? ` A deposit of $${depositPolicy.depositAmount.toFixed(2)} is required to book.`
       : " No deposit is required.";
-    policyHint.textContent = `Slots are generated from ${barberLabel}'s availability, time off, and existing scheduled appointments.${bookingWindowText}${cancellationText}${depositText}`;
+    policyHint.textContent = `Times shown are currently available with ${barberLabel}.${bookingWindowText}${cancellationText}${depositText}`;
   }
 
   function renderBookingPolicyCard() {
@@ -2096,8 +2096,7 @@ export function initBookingEngine(options = {}) {
         <section class="empty-state">
           <span class="empty-state-icon" aria-hidden="true">S</span>
           <h3>No available times</h3>
-          <p>Try picking another day.</p>
-          <p>You can also choose another barber.</p>
+          <p>Try another date, or choose a different barber to check their schedule.</p>
           <button type="button" id="noTimesChangeBarberBtn" class="btn btn-ghost empty-state-cta">Choose another barber</button>
         </section>
       `;
@@ -2266,11 +2265,11 @@ export function initBookingEngine(options = {}) {
       return;
     }
     if (!clientName) {
-      setStatus("Client name is required.", false);
+      setStatus("Enter your name to continue.", false);
       return;
     }
     if (!clientContact) {
-      setStatus("Client contact is required.", false);
+      setStatus("Enter a phone number or email to continue.", false);
       return;
     }
     if (depositRequired && !depositAcknowledge?.checked) {

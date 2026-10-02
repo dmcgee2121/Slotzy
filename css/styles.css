@@ -665,8 +665,7 @@ textarea:focus-visible,
 }
 
 .booking-contact-section {
-  padding-top: 4px;
-  border-top: 1px solid #e2e8f0;
+  border-bottom: 0;
 }
 
 .booking-contact-heading {
@@ -680,13 +679,116 @@ textarea:focus-visible,
 
 .booking-slot-select {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--card);
   color: var(--text);
   font-size: 0.92rem;
+}
+
+.public-booking-layout {
+  max-width: 920px;
+}
+
+.booking-page-kicker,
+.booking-step-kicker {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.booking-flow {
+  display: grid;
+  gap: 0;
+  border: 1px solid #dbe3f0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.booking-flow-section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.booking-flow-section:last-child {
+  border-bottom: 0;
+}
+
+.booking-flow-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.booking-flow-heading h3,
+.booking-flow-heading p {
+  margin: 0;
+}
+
+.booking-flow-heading h3 {
+  color: #0f172a;
+  font-size: 1.08rem;
+}
+
+.booking-submit-section {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.booking-submit-section p {
+  margin: 0;
+}
+
+.booking-submit-section .cta-row,
+.booking-submit-section #bookBtn {
+  width: 100%;
+}
+
+.booking-submit-help {
+  color: #475569;
+  line-height: 1.5;
+}
+
+.public-booking-page .booking-status:not(:empty),
+.public-booking-page #publicShopError:not(:empty) {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.public-booking-page .booking-status.status-error:not(:empty),
+.public-booking-page #publicShopError.status-error:not(:empty) {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.public-booking-page .booking-status.status-success:not(:empty) {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.booking-receipt-manage-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .walkin-modal-panel {
@@ -1612,6 +1714,38 @@ textarea:focus-visible,
 
   .booking-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .public-booking-page .owner-layout {
+    padding-top: 16px;
+    gap: 14px;
+  }
+
+  .public-booking-page #publicShopHero,
+  .public-booking-page #bookingPanel {
+    padding: 16px;
+  }
+
+  .public-booking-page #bookingPanel {
+    gap: 16px;
+  }
+
+  .booking-flow-section {
+    padding: 16px;
+  }
+
+  .booking-submit-section {
+    padding: 16px;
+  }
+
+  .public-booking-page .empty-state {
+    padding: 16px;
+  }
+
+  .public-booking-page .booking-receipt-hero,
+  .public-booking-page .booking-receipt-card,
+  .public-booking-page .booking-receipt-manage-link-panel {
+    padding: 16px;
   }
 
   .toggle-row {

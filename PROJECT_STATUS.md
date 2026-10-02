@@ -26,6 +26,16 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 - Smoke discovery passed: **24 tests in 7 files**.
 - Remaining risk: validate the new hierarchy, focus landing, browser back behavior, and installed-PWA scrolling on physical iPhone and Android devices; consider further collapsing secondary Insights/Reports only after that review.
 
+## Customer public booking mobile polish pass (2026-10-01)
+
+- Grouped the existing booking controls into four visible steps: barber, service, date/time, and customer details. Shop identity remains first, and the confirmation/manage-link handoff remains the final state.
+- Replaced the repeated `Book in 30 seconds` promise, internal slot-generation wording, and client/developer terminology with concise customer guidance. The receipt now tells customers to review the confirmed details and save the private manage link.
+- Added focused mobile styling for step grouping, comfortable spacing, 44px time/manage targets, a full-width confirmation action, and prominent inline status/error states. Desktop remains responsive and uses the same flow.
+- No persistence, booking rules, cancellation/reschedule persistence, API, authentication, Supabase, staging, or production behavior changed. `js/booking-engine.js` changes are presentation copy only.
+- Mobile readiness passed: **20 tests across four configured viewports**. New coverage checks identity, initial empty state, single-provider selection, key controls, receipt/manage actions, and overflow.
+- The guarded staging command stopped before mutation because `SLOTZY_ALLOW_STAGING_E2E=true` was not set; two tests did not run. Smoke discovery remains **24 tests in 7 files**.
+- Remaining risk: physical iPhone/Android review of native date/select controls, keyboard scrolling, status visibility, receipt density, browser back behavior, and manage-link handoff.
+
 ## Result
 
 The OneDrive cloud-provider read failures are resolved in this clean clone at `C:\Dev\Slotzy`. `npm`, Node, Playwright test discovery, static-server startup within Playwright, and the backend all successfully read project files. No application code, booking logic, nested `slotzy/` directory, deployment configuration, or native/Capacitor files were changed.
