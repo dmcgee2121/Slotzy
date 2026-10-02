@@ -1018,7 +1018,7 @@ export function initBookingEngine(options = {}) {
   function renderPublicShopPicker(shops = getShops()) {
     if (!isPublicBookingPage || !publicShopPickerSection || !publicShopPickerList) return;
 
-    const source = Array.isArray(shops) ? shops : [];
+    const source = (Array.isArray(shops) ? shops : []).filter((shop) => !isSyntheticE2eShop(shop));
     const query = String(publicShopSearchInput?.value ?? "").trim().toLowerCase();
     const matches = source.filter((shop) => {
       const name = String(shop?.name ?? "").trim().toLowerCase();
@@ -1322,7 +1322,8 @@ export function initBookingEngine(options = {}) {
           : null;
         return {
           id: shopId,
-          name: String(shop?.name ?? "Shop").trim() || "Shop",
+          name: String(shop?.name ?? shop?.businessName ?? "Shop").trim() || "Shop",
+          businessName: String(shop?.businessName ?? shop?.name ?? "Shop").trim() || "Shop",
           slug: normalizeSlug(shop?.slug ?? shop?.name ?? ""),
           active: Object.prototype.hasOwnProperty.call(shop ?? {}, "active")
             ? Boolean(shop?.active)
@@ -1360,17 +1361,18 @@ export function initBookingEngine(options = {}) {
       }
 
       if (!requestedShopSlug && !requestedShopId) {
+        const discoverableShops = shops.filter((shop) => !isSyntheticE2eShop(shop));
         selectedShopId = "";
-        const defaultOption = shops.length > 0
+        const defaultOption = discoverableShops.length > 0
           ? '<option value="">Select a shop</option>'
           : '<option value="">No shops available</option>';
-        const optionsMarkup = shops.map((shop) => (
+        const optionsMarkup = discoverableShops.map((shop) => (
           `<option value="${escapeHtml(shop.id)}">${escapeHtml(shop.name)}</option>`
         )).join("");
         shopSelect.innerHTML = `${defaultOption}${optionsMarkup}`;
         shopSelect.value = "";
-        shopSelect.disabled = shops.length === 0;
-        renderPublicShopPicker(shops);
+        shopSelect.disabled = discoverableShops.length === 0;
+        renderPublicShopPicker(discoverableShops);
         updatePublicShopHeader(null, "");
         updatePublicBookingScreenState();
         return;
@@ -2374,6 +2376,18 @@ export function initBookingEngine(options = {}) {
       booking: confirmedBooking,
       manageLink: buildClientManageLink(confirmedBooking, getConfirmationCode(confirmedBooking.id)),
     });
+  }
+
+  function isSyntheticE2eShop(shop) {
+    const names = [shop?.name, shop?.businessName]
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
+    if (names.some((value) => /^e2e\s/i.test(value) || /e2e-/i.test(value))) return true;
+
+    const identifiers = [shop?.slug, shop?.id]
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
+    return identifiers.some((value) => /(^|[-_])e2e(?:[-_]|$)/i.test(value));
   }
 
   function getPublicBookingFailureMessage(error) {

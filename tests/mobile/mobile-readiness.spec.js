@@ -328,7 +328,10 @@ test("dashboard public link creates an authoritative anonymous booking under ser
       .map((day) => [day, { enabled: true, start: "09:00", end: "17:00" }])
   );
   const publicContextPayload = {
-    shops: [{ id: SHOP_ID, name: "E2E Mobile Pilot Shop", businessName: "E2E Mobile Pilot Shop", slug: SHOP_SLUG, bookingPolicy: policy }],
+    shops: [
+      { id: "shop_public_mobile_fixture", name: "Pilot Neighborhood Barbers", businessName: "Pilot Neighborhood Barbers", slug: "pilot-neighborhood-barbers", bookingPolicy: policy },
+      { id: SHOP_ID, name: "E2E Mobile Pilot Shop", businessName: "E2E Mobile Pilot Shop", slug: SHOP_SLUG, bookingPolicy: policy },
+    ],
     providers: [{ username: OWNER_USERNAME, displayName: "E2E Mobile Owner", role: "owner", shopId: SHOP_ID }],
     services: [{ id: SERVICE_ID, name: "E2E Mobile Cut", title: "E2E Mobile Cut", price: 35, duration: 30, durationMinutes: 30, active: true, shopId: SHOP_ID, barberUsername: OWNER_USERNAME, ownerUsername: OWNER_USERNAME }],
     availabilityByBarber: { [OWNER_USERNAME]: { timezone: "America/Chicago", bufferMinutes: 0, weekly, timeOff: [] } },
@@ -380,6 +383,11 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     localStorage.setItem("Slotzy_api_mode", "1");
     localStorage.setItem("Slotzy_mobile_readiness_seeded", "1");
   });
+  await page.goto("/pages/book.html");
+  await expect(page.locator("#publicShopPickerSection")).toBeVisible();
+  await expect(page.locator("#publicShopPickerList")).toContainText("Pilot Neighborhood Barbers");
+  await expect(page.locator("#publicShopPickerList")).not.toContainText("E2E Mobile Pilot Shop");
+
   await page.goto(bookingLink);
   await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);

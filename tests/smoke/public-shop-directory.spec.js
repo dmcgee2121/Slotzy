@@ -8,6 +8,9 @@ const SOUTH_OWNER = "owner_directory_south";
 const SOUTH_SERVICE_ID = "svc_directory_south";
 const HIDDEN_SHOP_ID = "shop_directory_hidden";
 const HIDDEN_OWNER = "owner_directory_hidden";
+const E2E_SHOP_ID = "shop_e2e_directory_fixture";
+const E2E_OWNER = "e2e-directory-owner";
+const E2E_SERVICE_ID = "service_e2e_directory_fixture";
 
 function toYmd(date) {
   const yyyy = String(date.getFullYear());
@@ -61,6 +64,13 @@ function buildSeed() {
           displayName: "Hidden Owner",
           shopId: HIDDEN_SHOP_ID,
         },
+        {
+          username: E2E_OWNER,
+          password: "pass1234",
+          role: "owner",
+          displayName: "E2E Directory Owner",
+          shopId: E2E_SHOP_ID,
+        },
       ],
       Slotzy_profiles: {},
       Slotzy_shop: {
@@ -86,6 +96,12 @@ function buildSeed() {
           name: "Hidden Shop",
           slug: "hidden-shop",
           active: false,
+          createdAtISO: nowIso,
+        },
+        {
+          id: E2E_SHOP_ID,
+          name: "E2E Synthetic Directory Shop",
+          slug: "e2e-directory-fixture-shop",
           createdAtISO: nowIso,
         },
       ],
@@ -116,6 +132,19 @@ function buildSeed() {
           barberUsername: SOUTH_OWNER,
           ownerUsername: SOUTH_OWNER,
         },
+        {
+          id: E2E_SERVICE_ID,
+          name: "E2E Directory Cut",
+          title: "E2E Directory Cut",
+          price: 25,
+          duration: 30,
+          durationMinutes: 30,
+          active: true,
+          createdAtISO: nowIso,
+          shopId: E2E_SHOP_ID,
+          barberUsername: E2E_OWNER,
+          ownerUsername: E2E_OWNER,
+        },
       ],
       Slotzy_staff: [],
       Slotzy_bookings: [],
@@ -123,6 +152,7 @@ function buildSeed() {
         ...buildAvailability(NORTH_OWNER),
         ...buildAvailability(SOUTH_OWNER),
         ...buildAvailability(HIDDEN_OWNER),
+        ...buildAvailability(E2E_OWNER),
       },
     },
     session: {},
@@ -155,6 +185,7 @@ test("public booking without a slug shows directory search and selecting a shop 
   await expect(page.locator("#publicShopPickerList")).toContainText("Northside Studio");
   await expect(page.locator("#publicShopPickerList")).toContainText("Downtown Clips");
   await expect(page.locator("#publicShopPickerList")).not.toContainText("Hidden Shop");
+  await expect(page.locator("#publicShopPickerList")).not.toContainText("E2E Synthetic Directory Shop");
 
   await page.fill("#publicShopSearch", "down");
   await expect(page.locator("#publicShopPickerList")).toContainText("Downtown Clips");
@@ -182,7 +213,7 @@ test("public booking without a slug shows directory search and selecting a shop 
   expect(slotValue).toBeTruthy();
   await page.selectOption("#time-slot-select", String(slotValue));
 
-  await page.getByRole("button", { name: "Book Appointment" }).click();
+  await page.getByRole("button", { name: "Confirm Appointment" }).click();
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
   await expect(page.locator("#bookingReceiptShop")).toContainText("Downtown Clips");
   await expect(page.locator("#booking-receipt-section")).toContainText("Downtown Fade");
@@ -197,4 +228,16 @@ test("public booking with a slug skips the directory picker", async ({ page }) =
   await expect(page.locator("#publicShopName")).toHaveText("Northside Studio");
   await expect(page.locator("#bookingPanel")).toBeVisible();
   await expect(page.locator("#barberSelect")).toHaveValue(NORTH_OWNER);
+});
+
+test("direct synthetic booking link remains available while discovery hides it", async ({ page }) => {
+  await seedStorage(page, buildSeed());
+
+  await page.goto("/pages/book.html?shop=e2e-directory-fixture-shop");
+
+  await expect(page.locator("#publicShopPickerSection")).toBeHidden();
+  await expect(page.locator("#publicShopName")).toHaveText("E2E Synthetic Directory Shop");
+  await expect(page.locator("#bookingPanel")).toBeVisible();
+  await expect(page.locator("#barberSelect")).toHaveValue(E2E_OWNER);
+  await expect(page.locator("#serviceSelect")).toBeEnabled();
 });

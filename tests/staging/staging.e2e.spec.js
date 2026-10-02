@@ -923,6 +923,22 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
   const bookingLink = await bookingLinkInput.inputValue();
   const publicContext = await browser.newContext();
+  const directoryPage = await publicContext.newPage();
+  const directoryContextResponse = directoryPage.waitForResponse((response) => (
+    response.request().method() === "GET"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && new URL(response.url()).pathname === "/api/public/booking-context"
+    && !new URL(response.url()).search
+  ));
+  await directoryPage.goto(`${frontendUrl}/pages/book.html`);
+  const directoryContextLoad = await directoryContextResponse;
+  expect(directoryContextLoad.status()).toBe(200);
+  await expect(directoryPage.locator("#publicShopPickerSection")).toBeVisible();
+  await expect(directoryPage.locator("#publicShopPickerList")).not.toContainText(identity.shopName);
+  const visibleSyntheticDirectoryCards = await directoryPage.locator(".public-shop-directory-card strong").allTextContents();
+  expect(visibleSyntheticDirectoryCards.filter((name) => /^E2E\s/i.test(String(name)) || /e2e-/i.test(String(name)))).toEqual([]);
+  await directoryPage.close();
+
   const publicPage = await publicContext.newPage();
   const publicContextResponse = publicPage.waitForResponse((response) => (
     response.request().method() === "GET"

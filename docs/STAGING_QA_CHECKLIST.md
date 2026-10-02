@@ -151,3 +151,12 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - After deployment, the hosted lifecycle must load `/api/public/booking-context` with HTTP 200 from a separate browser context, prove no frontend auth token is present, send `POST /api/bookings` without Authorization, require HTTP 201, and require the receipt/manage link before continuing to the existing owner-visible booking and persisted cancellation checks.
 - Deploy order is Render first, then Netlify. Running the strengthened hosted suite against the pre-change deployment is expected to fail because the anonymous public context/create contract is not deployed yet.
 - Real-phone follow-up: allow the `slotzy-shell-v3` worker to activate, reopen the dashboard-generated link, create a fresh-slot booking, verify a deliberate conflict message, toggle connectivity before submission, and confirm the manage link/cancellation still persists after reload.
+
+## Public discovery synthetic-data isolation (2026-10-01)
+
+- [x] Unscoped public shop discovery excludes the suite's `E2E ` / `e2e-` naming and identifier conventions.
+- [x] Scoped direct lookup by synthetic slug or shop ID remains allowed; hosted E2E still uses the dashboard-generated link and must complete the full booking lifecycle.
+- [x] Local coverage proves a normal shop is discoverable, an E2E shop is hidden, and the E2E shop's direct link loads.
+- [ ] After Render and Netlify redeploy, run the guarded lifecycle and confirm the anonymous directory contains no E2E-labelled cards before its synthetic direct-link booking.
+- [ ] Prefer an explicit persisted `publiclyListed`/test-data marker over naming conventions when a coordinated schema change is scheduled.
+- [ ] Remove historical staging synthetic rows only through separately approved, targeted tooling; never reset the staging database for this cleanup.

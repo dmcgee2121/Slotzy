@@ -268,6 +268,18 @@ function createSlug(value) {
   return slug || `shop-${Date.now()}`;
 }
 
+function isSyntheticE2eShop(shop) {
+  const names = [shop?.name, shop?.businessName]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean);
+  if (names.some((value) => /^e2e\s/i.test(value) || /e2e-/i.test(value))) return true;
+
+  const identifiers = [shop?.slug, shop?.id]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean);
+  return identifiers.some((value) => /(^|[-_])e2e(?:[-_]|$)/i.test(value));
+}
+
 function normalizePrice(value, fallback = 0) {
   const raw = Number(value);
   if (!Number.isFinite(raw)) return Number(fallback.toFixed(2));
@@ -1248,7 +1260,10 @@ app.get("/api/public/booking-context", async (req, res) => {
     const db = await readStore();
     const requestedShopId = normalizeUsername(req.query.shopId);
     const requestedSlug = String(req.query.shop ?? "").trim().toLowerCase();
-    let shops = [...db.shops];
+    const isDirectLookup = Boolean(requestedShopId || requestedSlug);
+    let shops = isDirectLookup
+      ? [...db.shops]
+      : db.shops.filter((shop) => !isSyntheticE2eShop(shop));
 
     if (requestedShopId) {
       shops = shops.filter((shop) => normalizeUsername(shop?.id) === requestedShopId);
@@ -1311,6 +1326,7 @@ app.get("/api/public/booking-context", async (req, res) => {
         name: String(shop?.name ?? shop?.businessName ?? "Shop").trim(),
         businessName: String(shop?.businessName ?? shop?.name ?? "Shop").trim(),
         slug: String(shop?.slug ?? "").trim(),
+        active: shop?.active !== false,
         shopPhone: String(shop?.shopPhone ?? shop?.phone ?? "").trim(),
         address: String(shop?.address ?? "").trim(),
         logo: String(shop?.logo ?? shop?.logoDataUrl ?? "").trim(),

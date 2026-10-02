@@ -167,3 +167,11 @@ Implement a focused **mobile owner dashboard hierarchy and navigation pass**. Sc
 - [x] Mobile coverage now opens the dashboard's real booking link in API mode without an auth token, under service-worker control, and requires anonymous `POST /api/bookings` HTTP 201, receipt, manage link, no document overflow, and no Authorization header across all four configured viewports.
 - [ ] After coordinated Render then Netlify staging deploys, rerun the guarded hosted lifecycle. Its customer booking page now uses a separate anonymous browser context rather than inheriting the owner's storage.
 - [ ] Repeat the original flow on the affected phone after the new service worker activates; verify the old cache is removed, try a genuinely fresh slot, test a deliberate same-slot conflict, and test an offline/reconnect retry without double submission.
+
+## Public shop discovery cleanup (2026-10-01)
+
+- [x] Hide accumulated E2E shops from unscoped public discovery/search using the established `E2E ` name and `e2e` identifier markers.
+- [x] Keep scoped `?shop=` and `?shopId=` direct booking links available, including the synthetic links required by hosted lifecycle tests.
+- [x] Verify a normal shop remains visible, a synthetic shop is absent from discovery, and its direct link still opens the booking flow.
+- [ ] Replace name-pattern filtering with an explicit persisted public-visibility/test-data marker when the shop schema supports it.
+- [ ] Plan targeted staging-only synthetic data cleanup separately; do not use a broad database reset.

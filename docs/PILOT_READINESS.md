@@ -124,3 +124,9 @@ The reported real-phone error was not physically reproduced here, but the root c
 Public booking now has a deliberately anonymous, privacy-limited context read and authoritative create route. The successful UI still requires HTTP 201 before showing a receipt, and the server validates provider/shop/service linkage and overlap conflicts. Safe browser diagnostics and customer-facing conflict/network/selection messages were added. The installed shell is bumped to `slotzy-shell-v3`, with public booking assets using network-first behavior.
 
 This change requires a coordinated staging rollout: deploy Render first, then Netlify, then run the guarded hosted tests. It is not production approval. Physical iOS Safari and Android Chrome validation remains required for service-worker activation, stale-slot conflict recovery, offline/reconnect behavior, duplicate-submit resistance, receipt/manage-link handoff, and persisted cancellation.
+
+## Public shop discovery hygiene (2026-10-01)
+
+The customer shop chooser previously received every shop from the unscoped public booking-context endpoint, so accumulated staging E2E records appeared beside real pilot shops. Discovery now excludes only established synthetic patterns: names beginning `E2E `, names containing `e2e-`, and slugs/IDs containing a delimited `e2e` segment. A matching direct `shop` or `shopId` lookup remains allowed so dashboard links and guarded E2E booking coverage continue to work.
+
+No staging data was deleted. This pattern rule is intentionally narrow but remains a convention rather than durable metadata. Before broader rollout, add an explicit persisted listing/test marker across storage adapters and establish approved targeted cleanup for old synthetic staging records.
