@@ -160,3 +160,12 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - [ ] After Render and Netlify redeploy, run the guarded lifecycle and confirm the anonymous directory contains no E2E-labelled cards before its synthetic direct-link booking.
 - [ ] Prefer an explicit persisted `publiclyListed`/test-data marker over naming conventions when a coordinated schema change is scheduled.
 - [ ] Remove historical staging synthetic rows only through separately approved, targeted tooling; never reset the staging database for this cleanup.
+
+## Owner visibility after anonymous booking (2026-10-01)
+
+- [x] Classify the missing owner card as stale owner-browser booking cache (F), plus the expected Today filter excluding the lifecycle's tomorrow appointment (E).
+- [x] Require the owner appointments page to complete its authenticated `/api/bookings` refresh before first render; API failure must not silently fall back to stale local bookings.
+- [x] Capture safe POST diagnostics: observed/status/key names, booking/linkage ID shapes, status, client-field presence, receipt visibility, and manage-link presence.
+- [x] Capture safe owner-list diagnostics: endpoint/method/status/key names, count, authoritative ID/service/client match booleans, statuses, and shop/provider shape comparisons.
+- [x] Select the actual All view and still require the owner-visible card to contain the synthetic client and service plus a scheduled status. This does not weaken owner-side verification.
+- [ ] Confirm the strengthened lifecycle against deployed Netlify code; no Render change is required for this correction.

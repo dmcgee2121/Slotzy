@@ -130,3 +130,9 @@ This change requires a coordinated staging rollout: deploy Render first, then Ne
 The customer shop chooser previously received every shop from the unscoped public booking-context endpoint, so accumulated staging E2E records appeared beside real pilot shops. Discovery now excludes only established synthetic patterns: names beginning `E2E `, names containing `e2e-`, and slugs/IDs containing a delimited `e2e` segment. A matching direct `shop` or `shopId` lookup remains allowed so dashboard links and guarded E2E booking coverage continue to work.
 
 No staging data was deleted. This pattern rule is intentionally narrow but remains a convention rather than durable metadata. Before broader rollout, add an explicit persisted listing/test marker across storage adapters and establish approved targeted cleanup for old synthetic staging records.
+
+## Owner appointments authoritative refresh (2026-10-01)
+
+The anonymous booking POST and Postgres mapping preserve client, shop, provider, service, and status fields. The owner visibility failure occurred afterward: the Appointments page rendered only its owner-context local cache, which no longer receives writes from the deliberately isolated anonymous public context. It also defaults to Today while the lifecycle books tomorrow.
+
+Appointments now refreshes the authenticated owner booking list before initial render and reports refresh failures instead of silently relying on stale local data. Hosted coverage proves the created ID and synthetic service/client markers exist in that API response, then selects All and requires the real owner appointment card before continuing through manage-link cancellation and persistence. This is a frontend/test correction; the Render booking routes and Postgres mapping are unchanged.

@@ -40,6 +40,14 @@ function safeDiagnosticText(value) {
     .slice(0, 500);
 }
 
+function describeIdShape(value) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return "missing";
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)) return "uuid";
+  if (/^[a-z]+_[a-z0-9_-]+$/i.test(normalized)) return "prefixed";
+  return "opaque";
+}
+
 function collectBrowserDiagnostics(page) {
   const errors = [];
   const add = (source, message) => {
@@ -961,18 +969,44 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     response.request().method() === "POST"
     && new URL(response.url()).origin === expectedApiOrigin
     && new URL(response.url()).pathname === "/api/bookings"
-  ));
+  ), { timeout: 15000 }).then((response) => ({ response }), (error) => ({ error }));
   await publicPage.getByRole("button", { name: /book|confirm/i }).click();
-  const bookingSave = await bookingSaveResponse;
+  const bookingSaveResult = await bookingSaveResponse;
+  if (bookingSaveResult.error) {
+    throw new Error(`Public booking POST was not observed: ${JSON.stringify({
+      bookingPostObserved: false,
+      endpointPath: "/api/bookings",
+      method: "POST",
+      status: 0,
+      responseKeys: [],
+      receiptDisplayed: await publicPage.locator("#bookingReceiptTitle").isVisible().catch(() => false),
+      manageLinkPresent: Boolean(await publicPage.locator("#bookingReceiptManageLink").getAttribute("href").catch(() => "")),
+      waitError: safeDiagnosticText(bookingSaveResult.error?.message),
+    })}`);
+  }
+  const bookingSave = bookingSaveResult.response;
   expect(bookingSave.request().headers().authorization).toBeUndefined();
   let bookingPayload = null;
   try { bookingPayload = await bookingSave.json(); } catch { /* safe response shape below */ }
+  const createdBooking = bookingPayload?.booking && typeof bookingPayload.booking === "object"
+    ? bookingPayload.booking
+    : null;
+  const createdBookingId = String(createdBooking?.id ?? "").trim();
   const bookingReceipt = publicPage.locator("#bookingReceiptTitle");
   await expect(bookingReceipt).toBeVisible();
   const manageLink = await publicPage.locator("#bookingReceiptManageLink").getAttribute("href");
   const receiptState = {
+    bookingPostObserved: true,
     bookingStatus: bookingSave.status(),
     bookingResponseKeys: bookingPayload && typeof bookingPayload === "object" ? Object.keys(bookingPayload).sort() : [],
+    returnedBookingIdShape: describeIdShape(createdBooking?.id),
+    returnedBookingStatus: String(createdBooking?.status ?? ""),
+    returnedShopIdShape: describeIdShape(createdBooking?.shopId),
+    returnedProviderIdShape: describeIdShape(createdBooking?.barberUsername ?? createdBooking?.ownerUsername),
+    returnedServiceIdShape: describeIdShape(createdBooking?.serviceId),
+    returnedClientNamePresent: Boolean(String(createdBooking?.clientName ?? "").trim()),
+    returnedClientContactPresent: Boolean(String(createdBooking?.clientContact ?? "").trim()),
+    returnedCustomerUsernamePresent: Boolean(String(createdBooking?.customerUsername ?? "").trim()),
     receiptDisplayed: await bookingReceipt.isVisible(),
     manageLinkExists: Boolean(manageLink),
     manageLinkPath: (() => { try { return new URL(String(manageLink || ""), publicPage.url()).pathname; } catch { return ""; } })(),
@@ -980,13 +1014,71 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     syntheticClientVisibleOnReceipt: await publicPage.getByText(identity.clientName, { exact: true }).isVisible().catch(() => false),
     syntheticServiceVisibleOnReceipt: await publicPage.getByText(identity.serviceName, { exact: true }).isVisible().catch(() => false),
   };
-  if (bookingSave.status() !== 201 || !receiptState.manageLinkExists || !receiptState.syntheticClientVisibleOnReceipt || !receiptState.syntheticServiceVisibleOnReceipt) {
+  if (bookingSave.status() !== 201 || !createdBookingId || !receiptState.manageLinkExists || !receiptState.syntheticClientVisibleOnReceipt || !receiptState.syntheticServiceVisibleOnReceipt) {
     throw new Error(`Public booking did not create a verifiable receipt/manage link: ${JSON.stringify(receiptState)}`);
   }
   await publicContext.close();
 
+  const ownerAppointmentsResponse = page.waitForResponse((response) => (
+    response.request().method() === "GET"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && new URL(response.url()).pathname === "/api/bookings"
+  ), { timeout: 15000 }).then((response) => ({ response }), (error) => ({ error }));
   await page.goto(`${frontendUrl}/pages/manage-appointments.html`);
-  await expect(page.getByText(identity.clientName)).toBeVisible();
+  const ownerAppointmentsResult = await ownerAppointmentsResponse;
+  if (ownerAppointmentsResult.error) {
+    throw new Error(`Owner appointments API read was not observed: ${JSON.stringify({
+      apiRequestObserved: false,
+      endpointPath: "/api/bookings",
+      method: "GET",
+      status: 0,
+      responseKeys: [],
+      waitError: safeDiagnosticText(ownerAppointmentsResult.error?.message),
+    })}`);
+  }
+  const ownerAppointmentsLoad = ownerAppointmentsResult.response;
+  let ownerAppointmentsPayload = null;
+  try { ownerAppointmentsPayload = await ownerAppointmentsLoad.json(); } catch { /* safe shape below */ }
+  const ownerAppointments = Array.isArray(ownerAppointmentsPayload?.bookings)
+    ? ownerAppointmentsPayload.bookings
+    : [];
+  const matchingOwnerAppointment = ownerAppointments.find((booking) => String(booking?.id ?? "").trim() === createdBookingId) || null;
+  const ownerAppointmentsState = {
+    apiRequestObserved: true,
+    endpointPath: new URL(ownerAppointmentsLoad.url()).pathname,
+    method: ownerAppointmentsLoad.request().method(),
+    status: ownerAppointmentsLoad.status(),
+    responseKeys: ownerAppointmentsPayload && typeof ownerAppointmentsPayload === "object" ? Object.keys(ownerAppointmentsPayload).sort() : [],
+    appointmentCount: ownerAppointments.length,
+    matchingSyntheticBookingId: Boolean(matchingOwnerAppointment),
+    matchingSyntheticServiceMarker: ownerAppointments.some((booking) => String(booking?.serviceName ?? booking?.serviceTitle ?? "").trim() === identity.serviceName),
+    matchingSyntheticClientMarker: ownerAppointments.some((booking) => String(booking?.clientName ?? "").trim() === identity.clientName),
+    appointmentStatuses: [...new Set(ownerAppointments.map((booking) => String(booking?.status ?? "").trim()).filter(Boolean))].sort(),
+    createdShopIdShape: describeIdShape(createdBooking?.shopId),
+    ownerShopIdShape: describeIdShape(matchingOwnerAppointment?.shopId),
+    shopIdMatchesCreated: Boolean(matchingOwnerAppointment) && String(matchingOwnerAppointment?.shopId ?? "") === String(createdBooking?.shopId ?? ""),
+    createdProviderIdShape: describeIdShape(createdBooking?.barberUsername ?? createdBooking?.ownerUsername),
+    ownerProviderIdShape: describeIdShape(matchingOwnerAppointment?.barberUsername ?? matchingOwnerAppointment?.ownerUsername),
+    providerIdMatchesCreated: Boolean(matchingOwnerAppointment) && String(matchingOwnerAppointment?.barberUsername ?? matchingOwnerAppointment?.ownerUsername ?? "") === String(createdBooking?.barberUsername ?? createdBooking?.ownerUsername ?? ""),
+  };
+  if (
+    ownerAppointmentsLoad.status() !== 200
+    || !ownerAppointmentsState.matchingSyntheticBookingId
+    || !ownerAppointmentsState.matchingSyntheticServiceMarker
+    || !ownerAppointmentsState.matchingSyntheticClientMarker
+  ) {
+    throw new Error(`Owner appointments API did not return the anonymous booking: ${JSON.stringify({ receiptState, ownerAppointmentsState })}`);
+  }
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const ownerAppointmentCard = page.locator(".appointment-row").filter({
+    has: page.getByText(identity.serviceName, { exact: true }),
+  });
+  try {
+    await expect(ownerAppointmentCard).toContainText(identity.clientName);
+    await expect(ownerAppointmentCard.locator(".appointment-actions .badge")).toContainText(/Booked|Confirmed/);
+  } catch (error) {
+    throw new Error(`Owner appointments UI did not render the authoritative anonymous booking: ${JSON.stringify({ ownerAppointmentsState, assertionError: safeDiagnosticText(error?.message) })}`);
+  }
   const managePage = await context.newPage();
   const manageBrowserErrors = collectBrowserDiagnostics(managePage);
   const manageBookingsResponse = managePage.waitForResponse((response) => (

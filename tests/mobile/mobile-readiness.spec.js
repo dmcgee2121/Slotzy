@@ -342,6 +342,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   let bookingPostHadAuthorization = false;
   let bookingShouldConflict = false;
   let safeFailureDiagnostic = null;
+  let authoritativeBooking = null;
   page.on("console", async (message) => {
     if (message.type() !== "error" || !message.text().includes("[Slotzy:public-booking] Save failed")) return;
     safeFailureDiagnostic = await message.args()[1]?.jsonValue().catch(() => null);
@@ -350,6 +351,14 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(publicContextPayload) });
   });
   await page.route("**/api/bookings", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ bookings: authoritativeBooking ? [authoritativeBooking] : [] }),
+      });
+      return;
+    }
     if (route.request().method() !== "POST") return route.continue();
     bookingPostAttempted = true;
     bookingPostHadAuthorization = Boolean(route.request().headers().authorization);
@@ -362,10 +371,11 @@ test("dashboard public link creates an authoritative anonymous booking under ser
       });
       return;
     }
+    authoritativeBooking = { ...submitted, id: "11111111-1111-4111-8111-111111111111", status: "booked" };
     await route.fulfill({
       status: 201,
       contentType: "application/json",
-      body: JSON.stringify({ booking: { ...submitted, id: "11111111-1111-4111-8111-111111111111", status: "booked" } }),
+      body: JSON.stringify({ booking: authoritativeBooking }),
     });
   });
 
@@ -444,6 +454,22 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   }));
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("E2E Diagnostic Client");
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("diagnostic-client@example.test");
+
+  await page.evaluate((owner) => {
+    localStorage.setItem("Slotzy_bookings", "[]");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-mobile-owner-token");
+    sessionStorage.setItem("Slotzy_user", JSON.stringify(owner));
+  }, buildSeed({ configuredOwner: true }).session.Slotzy_user);
+  const ownerBookingsResponse = page.waitForResponse((response) => (
+    response.request().method() === "GET"
+    && new URL(response.url()).pathname === "/api/bookings"
+  ));
+  await page.goto("/pages/manage-appointments.html");
+  expect((await ownerBookingsResponse).status()).toBe(200);
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const ownerAppointment = page.locator(".appointment-row").filter({ hasText: "E2E Mobile Cut" });
+  await expect(ownerAppointment).toContainText("E2E Anonymous Mobile Client");
+  await expect(ownerAppointment.locator(".appointment-actions .badge")).toContainText("Booked");
 });
 
 test("invalid manage link state fits mobile", async ({ page }) => {

@@ -1482,10 +1482,17 @@ export function saveBookings(arr) {
   });
 }
 
-export function getBookingsAsync() {
+export function getBookingsAsync(options = {}) {
+  if (options?.requireApi === true) {
+    return apiGetBookings();
+  }
   return runAsync(
     () => getBookings(),
-    { apiFn: () => apiGetBookings(), label: "bookings read" }
+    {
+      apiFn: () => apiGetBookings(),
+      label: "bookings read",
+      fallbackOnError: options?.fallbackOnError !== false,
+    }
   );
 }
 

@@ -72,9 +72,11 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   const walkinCancelBtn = document.getElementById("walkinCancelBtn");
   const walkinCloseBtn = document.getElementById("walkinCloseBtn");
 
-  document.addEventListener("DOMContentLoaded", initManageAppointments);
+  document.addEventListener("DOMContentLoaded", () => {
+    void initManageAppointments();
+  });
 
-  function initManageAppointments() {
+  async function initManageAppointments() {
     if (isInitialized) return;
     isInitialized = true;
 
@@ -95,6 +97,21 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     barbersInShop = getBarbersForCurrentScope();
     configureScopeControls();
     bindEventsOnce();
+    if (statusMessageEl) {
+      statusMessageEl.textContent = "Refreshing appointments...";
+      statusMessageEl.setAttribute("role", "status");
+    }
+    try {
+      await dataStore.getBookingsAsync({ fallbackOnError: false });
+      if (statusMessageEl?.textContent === "Refreshing appointments...") {
+        statusMessageEl.textContent = "";
+      }
+    } catch {
+      if (statusMessageEl) {
+        statusMessageEl.textContent = "Could not refresh appointments. Check your connection and try again.";
+        statusMessageEl.setAttribute("role", "alert");
+      }
+    }
     bindBookingSync();
     renderAll();
   }
