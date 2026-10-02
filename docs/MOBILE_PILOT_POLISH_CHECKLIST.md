@@ -31,6 +31,15 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - [ ] Validate the hierarchy, browser chrome, focus landing, thumb reach, and installed-PWA scroll behavior on physical iPhone and Android devices.
 - [ ] Consider collapsing or moving secondary Insights/Reports only if real pilot use still shows excessive scanning; this pass keeps all existing information available.
 
+## Owner header and calendar control pass (2026-10-02)
+
+- [x] Removed the duplicate signed-in welcome pill from the owner dashboard's mobile navigation; the dashboard hero remains the single welcome context.
+- [x] Made the dashboard's Dashboard, Appointments, Services, Team, and Settings links a two-column 44px mobile grid and kept Logout as a full-width 44px final action.
+- [x] Reflowed the owner Appointments calendar toolbar into a month/year row followed by grouped previous/next and Today controls; the calendar no longer forces a wide mobile minimum width.
+- [x] Added and passed mobile assertions across iPhone SE, iPhone 15, Pixel 7, and iPad Mini projects (48 checks total) for dashboard-nav containment/no duplicate badge, calendar toolbar containment, 44px controls, and previous/next/Today interaction.
+- [ ] Confirm the revised header and calendar toolbar in Android Chrome and installed mode on physical phones, including month navigation and calendar day readability.
+- [x] No backend, booking persistence, appointment filtering/refresh, walk-in, export, cancellation, Supabase, or staging-data behavior changed.
+
 ## Customer public booking pass (2026-10-01)
 
 - [x] Reframed the public page as a four-step guided flow: barber, service, date/time, and customer details, while preserving every existing form ID and booking behavior.

@@ -1628,6 +1628,11 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       initialView: "dayGridMonth",
       initialDate,
       height: "auto",
+      headerToolbar: {
+        left: "prev,next",
+        center: "title",
+        right: "today",
+      },
       editable: true,
       eventDurationEditable: false,
       snapDuration: "00:15:00",

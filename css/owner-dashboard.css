@@ -2055,6 +2055,26 @@
     margin-left: 0;
   }
 
+  /* The dashboard greeting is already in the hero. Keep the compact header for navigation. */
+  .owner-dashboard-page .owner-dashboard-header-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .owner-dashboard-page .owner-dashboard-header-nav .link,
+  .owner-dashboard-page .owner-dashboard-header-nav button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+
+  .owner-dashboard-page .owner-dashboard-header-nav .logout-btn {
+    grid-column: 1 / -1;
+  }
+
   .owner-section-grid,
   .owner-two-col,
   .availability-grid {
@@ -2374,8 +2394,55 @@
     width: 100%;
   }
 
+  .owner-page #calendar {
+    overflow-x: hidden;
+  }
+
   .owner-page #calendar .fc {
-    min-width: 560px;
+    min-width: 0;
+  }
+
+  .owner-page #calendar .fc-header-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "title title"
+      "navigation today";
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .owner-page #calendar .fc-header-toolbar .fc-toolbar-chunk:nth-child(1) {
+    grid-area: navigation;
+    display: inline-flex;
+    gap: 0;
+  }
+
+  .owner-page #calendar .fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
+    grid-area: title;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .owner-page #calendar .fc-header-toolbar .fc-toolbar-chunk:nth-child(3) {
+    grid-area: today;
+    min-width: 0;
+  }
+
+  .owner-page #calendar .fc-header-toolbar .fc-toolbar-title {
+    font-size: 1.1rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .owner-page #calendar .fc-header-toolbar .fc-button {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .owner-page #calendar .fc-header-toolbar .fc-today-button {
+    width: 100%;
   }
 
   .owner-page .toggle-row {

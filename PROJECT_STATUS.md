@@ -16,6 +16,14 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 6. Play Store / app packaging prep
 7. Production launch planning
 
+## Owner mobile header and calendar controls polish (2026-10-02)
+
+- Resolved the real-phone owner-dashboard header crowding: the duplicate `Welcome, username` badge is no longer in the dashboard navigation; the existing hero greeting remains the single username location.
+- At mobile widths, Dashboard, Appointments, Services, Team, and Settings now use a contained two-column navigation grid, with a full-width 44px Logout target. Desktop navigation remains unchanged.
+- Resolved the owner Appointments calendar toolbar squeeze: FullCalendar now renders month/year on its own row, with paired previous/next controls and a full-width-in-row Today control below. The mobile calendar no longer imposes a wide minimum width.
+- This is frontend presentation and test coverage only. Booking, appointment filtering/refresh, walk-ins, exports, cancellation, persistence, backend, Supabase, staging data, and production were not changed.
+- Validation: 48 mobile checks passed across iPhone SE, iPhone 15, Pixel 7, and iPad Mini; smoke discovery listed 25 tests in 7 files; `git diff --check` passed. The staging command remained blocked by its required opt-in mutation guard, so no staging data changed.
+
 ## Mobile state consistency pass (2026-10-01)
 
 - Added a small shared state-panel pattern for loading, error, success, empty, and retry presentation, including overflow-safe copy and 44px mobile actions.

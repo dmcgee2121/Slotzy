@@ -8,6 +8,10 @@ This pass changes frontend markup, CSS, JavaScript, and mobile tests only. It do
 
 Local validation passed 44 mobile checks across four viewports, listed 25 smoke tests in 7 files, and passed `git diff --check`. The hosted staging command stopped at its explicit mutation guard because `SLOTZY_ALLOW_STAGING_E2E=true` was not provided; no staging data was changed.
 
+## Owner mobile navigation and calendar controls (2026-10-02)
+
+The owner dashboard no longer places the duplicate signed-in welcome pill between mobile navigation actions; the hero greeting is the sole username context. Its primary links now form a contained two-column grid, with a full-width Logout action and 44px targets. The owner Appointments calendar toolbar now places month/year above a compact previous/next pair and a properly sized Today control, without a mobile minimum-width overflow. This is a frontend-only layout/test pass: no backend, API, Supabase, persistence, booking, appointment, walk-in, export, or cancellation behavior changed. A Netlify frontend redeploy is required to publish it; Render does not require a redeploy. Physical iOS/Android validation remains required.
+
 ## Working in staging
 
 The Netlify staging frontend, Render staging API, and dedicated Supabase staging Postgres project are connected. Health reports the staging/Postgres adapter. On 2026-09-30, all three guarded hosted staging tests passed at commit `3db01ac`: the focused owner-setup API chain, the full synthetic owner-to-customer lifecycle, and synthetic negative checks.

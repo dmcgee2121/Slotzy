@@ -150,6 +150,14 @@ async function expectReadableStatus(page, selector) {
   expect(state.role).toBe("alert");
 }
 
+async function installCalendarToolbarStub(page) {
+  await page.route("**/fullcalendar@6.1.8/index.global.min.js", (route) => route.fulfill({
+    contentType: "application/javascript",
+    body: `window.FullCalendar={Calendar:class{constructor(el,options){this.el=el;this.options=options;this.date=new Date(options.initialDate||Date.now())}getDate(){return this.date}destroy(){this.el.innerHTML=''}render(){const update=()=>{const title=this.date.toLocaleString(undefined,{month:'long',year:'numeric'});this.el.innerHTML='<div class="fc"><div class="fc-header-toolbar"><div class="fc-toolbar-chunk"><button type="button" class="fc-prev-button">Previous</button><button type="button" class="fc-next-button">Next</button></div><div class="fc-toolbar-chunk"><h2 class="fc-toolbar-title">'+title+'</h2></div><div class="fc-toolbar-chunk"><button type="button" class="fc-today-button">Today</button></div></div><table><tbody><tr><td class="fc-daygrid-day" data-ymd="2026-10-02"><div class="fc-daygrid-day-top"></div></td></tr></tbody></table></div>';this.el.querySelector('.fc-prev-button').onclick=()=>{this.date.setMonth(this.date.getMonth()-1);update()};this.el.querySelector('.fc-next-button').onclick=()=>{this.date.setMonth(this.date.getMonth()+1);update()};this.el.querySelector('.fc-today-button').onclick=()=>{this.date=new Date();update()};this.options.datesSet&&this.options.datesSet({view:{currentStart:new Date(this.date.getFullYear(),this.date.getMonth(),1)}})};update()}}};`,
+  }));
+  await page.route("**/fullcalendar@6.1.8/index.global.min.css", (route) => route.fulfill({ contentType: "text/css", body: "" }));
+}
+
 async function expectMobileWeeklyHours(page, expectedSurface = "dashboard", {
   bodySelector = "#availability-weekly-body",
   expectedPath = "/pages/business-owner.html",
@@ -677,7 +685,8 @@ test("logged-in barber dashboard weekly hours use the mobile card layout", async
   await page.locator("#submit-btn").click();
 
   await expect(page).toHaveURL(/\/pages\/business-owner\.html$/);
-  await expect(page.locator("#userBadge")).toContainText(BARBER_USERNAME);
+  await expect(page.locator("#userBadge")).toHaveCount(0);
+  await expect(page.locator("#ownerHeroTitle")).toContainText("Welcome");
   const dashboardJumpNav = page.locator(".owner-dashboard-jump-nav");
   await expect(dashboardJumpNav).toBeVisible();
   await expectNoPageOverflow(page, "logged-in barber dashboard navigation");
@@ -708,6 +717,48 @@ test("logged-in barber dashboard weekly hours use the mobile card layout", async
   await expectMobileWeeklyHours(page, "logged-in barber dashboard");
   await expectNoPageOverflow(page, "logged-in barber dashboard Availability");
   await expectControlFits(page, "#availability-save-weekly");
+});
+
+test("owner dashboard navigation and calendar toolbar stay polished on mobile", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await installCalendarToolbarStub(page);
+
+  await page.goto("/pages/business-owner.html");
+  await expect(page.locator("#pilotBookingLink")).toBeVisible();
+  await expect(page.locator(".owner-dashboard-header-nav #userBadge")).toHaveCount(0);
+  await expect(page.locator("#ownerHeroTitle")).toContainText("Welcome");
+
+  const dashboardNav = page.locator(".owner-dashboard-header-nav");
+  await expect(dashboardNav).toBeVisible();
+  for (const name of ["Dashboard", "Appointments", "Services", "Team", "Settings", "Logout"]) {
+    await expectControlFits(page, dashboardNav.getByRole(name === "Logout" ? "button" : "link", { name, exact: true }));
+  }
+  const dashboardNavBounds = await dashboardNav.evaluate((nav) => ({
+    clientWidth: nav.clientWidth,
+    scrollWidth: nav.scrollWidth,
+  }));
+  expect(dashboardNavBounds.scrollWidth, "dashboard navigation must not scroll horizontally").toBeLessThanOrEqual(dashboardNavBounds.clientWidth + 1);
+  await expectNoPageOverflow(page, "owner dashboard header navigation");
+
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+  const calendar = page.locator("#calendar");
+  await expect(calendar.locator(".fc-header-toolbar")).toBeVisible();
+  for (const selector of [".fc-prev-button", ".fc-next-button", ".fc-today-button"]) {
+    await expectControlFits(page, calendar.locator(selector));
+  }
+
+  const toolbar = await calendar.locator(".fc-header-toolbar").evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    gridTemplateAreas: getComputedStyle(element).gridTemplateAreas,
+  }));
+  expect(toolbar.scrollWidth, "calendar controls must not scroll horizontally").toBeLessThanOrEqual(toolbar.clientWidth + 1);
+  expect(toolbar.gridTemplateAreas).toContain("title title");
+
+  await calendar.locator(".fc-prev-button").click();
+  await calendar.locator(".fc-next-button").click();
+  await calendar.locator(".fc-today-button").click();
+  await expectNoPageOverflow(page, "owner appointments calendar controls");
 });
 
 test("owner critical controls remain usable across mobile pages", async ({ page }) => {
