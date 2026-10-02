@@ -747,13 +747,31 @@ test("owner dashboard navigation and calendar toolbar stay polished on mobile", 
     await expectControlFits(page, calendar.locator(selector));
   }
 
-  const toolbar = await calendar.locator(".fc-header-toolbar").evaluate((element) => ({
-    clientWidth: element.clientWidth,
-    scrollWidth: element.scrollWidth,
-    gridTemplateAreas: getComputedStyle(element).gridTemplateAreas,
-  }));
+  const toolbar = await calendar.locator(".fc-header-toolbar").evaluate((element) => {
+    const calendarCard = element.closest(".appointments-calendar-panel");
+    const monthLabel = element.querySelector(".fc-toolbar-title");
+    const bounds = (node) => {
+      const box = node.getBoundingClientRect();
+      return { left: box.left, right: box.right, width: box.width };
+    };
+    return {
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      calendarClientWidth: element.parentElement.clientWidth,
+      calendarScrollWidth: element.parentElement.scrollWidth,
+      cardClientWidth: calendarCard.clientWidth,
+      cardScrollWidth: calendarCard.scrollWidth,
+      calendar: bounds(element.parentElement),
+      monthLabel: bounds(monthLabel),
+      gridTemplateAreas: getComputedStyle(element).gridTemplateAreas,
+    };
+  });
   expect(toolbar.scrollWidth, "calendar controls must not scroll horizontally").toBeLessThanOrEqual(toolbar.clientWidth + 1);
-  expect(toolbar.gridTemplateAreas).toContain("title title");
+  expect(toolbar.calendarScrollWidth, "calendar control container must not scroll horizontally").toBeLessThanOrEqual(toolbar.calendarClientWidth + 1);
+  expect(toolbar.cardScrollWidth, "calendar card must not scroll horizontally").toBeLessThanOrEqual(toolbar.cardClientWidth + 1);
+  expect(toolbar.monthLabel.left, "calendar month label needs comfortable left padding").toBeGreaterThanOrEqual(toolbar.calendar.left + 8);
+  expect(toolbar.monthLabel.right, "calendar month label must not be clipped").toBeLessThanOrEqual(toolbar.calendar.right - 8);
+  expect(toolbar.gridTemplateAreas).toContain("today today");
 
   await calendar.locator(".fc-prev-button").click();
   await calendar.locator(".fc-next-button").click();

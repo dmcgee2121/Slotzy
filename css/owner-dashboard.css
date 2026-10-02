@@ -2395,34 +2395,45 @@
   }
 
   .owner-page #calendar {
-    overflow-x: hidden;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
   }
 
   .owner-page #calendar .fc {
     min-width: 0;
+    max-width: 100%;
   }
 
   .owner-page #calendar .fc-header-toolbar {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
       "title title"
-      "navigation today";
+      "today today"
+      "navigation navigation";
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin: 0;
+    padding: 4px 8px 14px;
   }
 
   .owner-page #calendar .fc-header-toolbar .fc-toolbar-chunk:nth-child(1) {
     grid-area: navigation;
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0;
+    min-width: 0;
   }
 
   .owner-page #calendar .fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
     grid-area: title;
     min-width: 0;
     text-align: left;
+    padding: 4px 2px;
   }
 
   .owner-page #calendar .fc-header-toolbar .fc-toolbar-chunk:nth-child(3) {
@@ -2437,6 +2448,7 @@
   }
 
   .owner-page #calendar .fc-header-toolbar .fc-button {
+    width: 100%;
     min-height: 44px;
     padding: 8px 12px;
   }

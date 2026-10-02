@@ -20,6 +20,12 @@ Use only synthetic staging data. Record date, tester, browser/device, and any de
 - [ ] After the Netlify frontend deploy, verify the header and calendar toolbar on Android Chrome and installed mode with a real owner account. Confirm previous/next and Today are easy to tap and calendar days remain readable.
 - [x] No Render/backend, Supabase, booking persistence, appointment filtering/refresh, walk-in, export, cancellation, staging-data, or production change is included. Render redeploy is not required.
 
+## Owner calendar containment follow-up (2026-10-02)
+
+- [x] The Calendar card/control container has automated no-horizontal-overflow coverage, including a visible padded month label and 44px Today/previous/next controls across configured phone/tablet projects.
+- [ ] After Netlify deploy, verify the populated month view in Android Chrome and installed mode does not show a horizontal scroll line or clip the month label.
+- [x] This is frontend CSS/test/documentation only; no Render/backend, Supabase, persistence, staging-data, or production change is included.
+
 ## Automated staging smoke
 
 Run `npm run test:staging` only with `SLOTZY_ALLOW_STAGING_E2E=true`, `SLOTZY_STAGING_FRONTEND_URL`, and `SLOTZY_STAGING_API_URL` explicitly set to HTTPS hosts containing `staging`. The suite warms `/api/health` for up to 150 seconds for Render cold starts and refuses all writes unless health reports staging plus Postgres. Each run uses an `e2e-` identity containing base-36 timestamp, process ID, and a 64-bit UUID suffix; its username stays short while its shop, slug, service, and client values share that identity. It has no cleanup API; remove only matching synthetic records manually with staging-only operational tooling if needed. A future cleanup helper must scope every deletion to one exact run prefix, never all `e2e-` data.

@@ -40,6 +40,13 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - [ ] Confirm the revised header and calendar toolbar in Android Chrome and installed mode on physical phones, including month navigation and calendar day readability.
 - [x] No backend, booking persistence, appointment filtering/refresh, walk-in, export, cancellation, Supabase, or staging-data behavior changed.
 
+## Owner calendar containment follow-up (2026-10-02)
+
+- [x] Removed the remaining mobile calendar nested border and horizontal-scroll surface reported on Android Chrome/installed mode.
+- [x] Added padded month/year, a full-width Today row, and equal previous/next controls below it without changing calendar behavior.
+- [x] Extended mobile coverage to require the Calendar card and calendar control container to have no horizontal overflow, require a visible/unclipped padded month label, and retain 44px tappable controls.
+- [ ] Confirm the deployed layout on Android Chrome and installed mode with the month view populated by real appointments.
+
 ## Customer public booking pass (2026-10-01)
 
 - [x] Reframed the public page as a four-step guided flow: barber, service, date/time, and customer details, while preserving every existing form ID and booking behavior.

@@ -24,6 +24,12 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 - This is frontend presentation and test coverage only. Booking, appointment filtering/refresh, walk-ins, exports, cancellation, persistence, backend, Supabase, staging data, and production were not changed.
 - Validation: 48 mobile checks passed across iPhone SE, iPhone 15, Pixel 7, and iPad Mini; smoke discovery listed 25 tests in 7 files; `git diff --check` passed. The staging command remained blocked by its required opt-in mutation guard, so no staging data changed.
 
+## Owner mobile calendar containment follow-up (2026-10-02)
+
+- Resolved the remaining Android/installed-app calendar clipping report by removing the mobile calendar's nested border/scroll surface and containing it within the existing Calendar card.
+- The month label now has explicit horizontal padding; Today is a full-width row; previous/next controls use an equal two-button row below it. The controls and card cannot expose an internal horizontal scrollbar.
+- No navigation, Today, appointment, booking, persistence, backend, or Supabase behavior changed.
+
 ## Mobile state consistency pass (2026-10-01)
 
 - Added a small shared state-panel pattern for loading, error, success, empty, and retry presentation, including overflow-safe copy and 44px mobile actions.

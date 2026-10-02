@@ -12,6 +12,8 @@ Local validation passed 44 mobile checks across four viewports, listed 25 smoke 
 
 The owner dashboard no longer places the duplicate signed-in welcome pill between mobile navigation actions; the hero greeting is the sole username context. Its primary links now form a contained two-column grid, with a full-width Logout action and 44px targets. The owner Appointments calendar toolbar now places month/year above a compact previous/next pair and a properly sized Today control, without a mobile minimum-width overflow. This is a frontend-only layout/test pass: no backend, API, Supabase, persistence, booking, appointment, walk-in, export, or cancellation behavior changed. A Netlify frontend redeploy is required to publish it; Render does not require a redeploy. Physical iOS/Android validation remains required.
 
+The subsequent Android/installed-app follow-up removes the calendar's remaining nested mobile border/scroll surface. The padded month row, full-width Today row, and equal previous/next row are contained by the existing Calendar card. Calendar navigation behavior is unchanged; a Netlify frontend redeploy remains sufficient.
+
 ## Working in staging
 
 The Netlify staging frontend, Render staging API, and dedicated Supabase staging Postgres project are connected. Health reports the staging/Postgres adapter. On 2026-09-30, all three guarded hosted staging tests passed at commit `3db01ac`: the focused owner-setup API chain, the full synthetic owner-to-customer lifecycle, and synthetic negative checks.
