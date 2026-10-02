@@ -9,6 +9,15 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - Smoke coverage exercises setup resume, public booking, receipt/manage access, policy-aware cancellation and rescheduling, owner appointment actions, availability effects, branding, and the dashboard Today card.
 - These checks do not replace physical-device review of keyboard behavior, native controls, browser chrome, safe areas, installed mode, visual hierarchy, wording, or thumb reach.
 
+## Dashboard hierarchy pass (2026-10-01)
+
+- [x] Added a mobile-only, two-column dashboard jump bar with 44px targets for Today, Booking Link, Appointments, Services, Availability, and Settings.
+- [x] Added focusable section targets and automated checks that the in-page links focus and scroll Today, Booking Link, Appointments, Services, and Availability into view without document-level horizontal overflow.
+- [x] Reordered the existing dashboard presentation at widths up to 768px so the daily path is hero/status, quick navigation, Today, booking-link controls, appointments, services/settings shortcuts, Availability, then secondary Insights and Reports. Desktop retains its existing document order.
+- [x] Preserved all booking-link, appointment, service, availability, settings, authentication, and persistence behavior; no dashboard JavaScript was changed.
+- [ ] Validate the hierarchy, browser chrome, focus landing, thumb reach, and installed-PWA scroll behavior on physical iPhone and Android devices.
+- [ ] Consider collapsing or moving secondary Insights/Reports only if real pilot use still shows excessive scanning; this pass keeps all existing information available.
+
 ## Must fix before closed pilot
 
 ### Customer public booking
@@ -49,7 +58,7 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - [ ] Move or collapse secondary editors and reports so Availability and Reports do not require a long daily scroll past repeated navigation cards.
 - [ ] Confirm Today at a Glance and Insights do not duplicate or contradict each other when data is empty, loading, or stale.
 - [ ] Confirm owner versus barber scope is clear everywhere appointment/revenue data differs.
-- [ ] Provide persistent app-like access to the most common owner destinations without depending on a wide wrapping header.
+- [x] Provide a thumb-friendly dashboard quick-jump path to Today, Booking Link, Appointments, Services, Availability, and Settings without depending on the wide wrapping header.
 
 ### Appointments
 
@@ -124,4 +133,3 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 ## Recommended very next task
 
 Implement a focused **mobile owner dashboard hierarchy and navigation pass**. Scope it to `pages/business-owner.html`, the shared owner header/navigation used by owner pages, and responsive styles; preserve booking, availability, and persistence behavior. The acceptance target is a short daily-use dashboard at 375px with Today/next appointment, primary daily actions, and share booking link visible early, while Services, Availability, Settings, Team, and Reports remain easy to reach through a consistent mobile navigation pattern. Add or update tests only for the resulting presentation contract after the UI direction is chosen.
-

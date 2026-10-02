@@ -16,6 +16,16 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 6. Play Store / app packaging prep
 7. Production launch planning
 
+## Mobile owner dashboard hierarchy and navigation pass (2026-10-01)
+
+- Added a mobile-only two-column quick-jump bar for Today, Booking Link, Appointments, Services, Availability, and Settings. Each target is at least 44px tall; in-page targets are focusable and use native fragment navigation.
+- At widths up to 768px, the existing dashboard sections are visually ordered around daily work: hero/status, quick navigation, Today, booking-link controls, appointments, service/settings shortcuts, Availability, then Insights and Reports. Desktop retains the existing source order.
+- No booking, appointment, service, availability, settings, authentication, persistence, or dashboard JavaScript behavior changed.
+- Mobile readiness passed: **20 tests across four configured viewports**. Coverage now checks jump-link tap size, focus/scroll destination, section visibility, booking-link controls, Availability layout, and document-level horizontal overflow.
+- Staging E2E command was invoked without enabling its mutation guard: the first test stopped immediately with the expected `SLOTZY_ALLOW_STAGING_E2E=true` safety message and the remaining two did not run. No staging mutation occurred.
+- Smoke discovery passed: **24 tests in 7 files**.
+- Remaining risk: validate the new hierarchy, focus landing, browser back behavior, and installed-PWA scrolling on physical iPhone and Android devices; consider further collapsing secondary Insights/Reports only after that review.
+
 ## Result
 
 The OneDrive cloud-provider read failures are resolved in this clean clone at `C:\Dev\Slotzy`. `npm`, Node, Playwright test discovery, static-server startup within Playwright, and the backend all successfully read project files. No application code, booking logic, nested `slotzy/` directory, deployment configuration, or native/Capacitor files were changed.

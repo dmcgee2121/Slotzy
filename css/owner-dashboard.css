@@ -157,6 +157,10 @@
   display: block;
 }
 
+.owner-dashboard-jump-nav {
+  display: none;
+}
+
 .owner-page .dashboard-header {
   text-align: left;
   margin: 0;
@@ -1783,6 +1787,90 @@
   .owner-page .owner-layout {
     padding: 16px 0;
     gap: 16px;
+  }
+
+  .owner-page .owner-page-layout {
+    display: grid;
+  }
+
+  .owner-dashboard-hero {
+    order: 1;
+  }
+
+  .owner-dashboard-jump-nav {
+    order: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+
+  .owner-dashboard-jump-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--secondary);
+    color: var(--primary);
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  .owner-dashboard-jump-link:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  #owner-today-section {
+    order: 3;
+  }
+
+  .owner-dashboard-booking-link {
+    order: 4;
+  }
+
+  #owner-upcoming-section {
+    order: 5;
+  }
+
+  #owner-bookings-section {
+    order: 6;
+  }
+
+  #owner-services-section {
+    order: 7;
+  }
+
+  #owner-availability {
+    order: 8;
+  }
+
+  .owner-dashboard-insights {
+    order: 9;
+  }
+
+  .owner-dashboard-reports {
+    order: 10;
+  }
+
+  #owner-today-section,
+  #pilotModeBanner,
+  #owner-upcoming-section,
+  #owner-services-section,
+  #owner-availability {
+    scroll-margin-top: 16px;
   }
 
   .owner-page .owner-shell-header[data-mobile-nav-ready="true"] {

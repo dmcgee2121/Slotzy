@@ -311,6 +311,32 @@ test("logged-in barber dashboard weekly hours use the mobile card layout", async
 
   await expect(page).toHaveURL(/\/pages\/business-owner\.html$/);
   await expect(page.locator("#userBadge")).toContainText(BARBER_USERNAME);
+  const dashboardJumpNav = page.locator(".owner-dashboard-jump-nav");
+  await expect(dashboardJumpNav).toBeVisible();
+  await expectNoPageOverflow(page, "logged-in barber dashboard navigation");
+
+  const jumpTargets = [
+    { name: "Today", target: "#owner-today-section" },
+    { name: "Booking Link", target: "#pilotModeBanner" },
+    { name: "Appointments", target: "#owner-upcoming-section" },
+    { name: "Services", target: "#owner-services-section" },
+    { name: "Availability", target: "#owner-availability" },
+  ];
+
+  for (const { name, target } of jumpTargets) {
+    const link = dashboardJumpNav.getByRole("link", { name, exact: true });
+    await expectControlFits(page, link);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${target}$`));
+    await expect(page.locator(target)).toBeFocused();
+    await expect(page.locator(target)).toBeInViewport();
+  }
+
+  const settingsLink = dashboardJumpNav.getByRole("link", { name: "Settings", exact: true });
+  await expectControlFits(page, settingsLink);
+  await expect(settingsLink).toHaveAttribute("href", "settings.html");
+  await expectControlFits(page, "#pilotCopyBookingBtn");
+  await expectControlFits(page, "#pilotOpenBookingBtn");
   await expect(page.locator("#owner-availability")).toBeVisible();
   await expectMobileWeeklyHours(page, "logged-in barber dashboard");
   await expectNoPageOverflow(page, "logged-in barber dashboard Availability");

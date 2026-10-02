@@ -31,7 +31,7 @@
   </header>
 
   <main class="container owner-dashboard owner-page-layout owner-layout">
-    <section id="pilotModeBanner" class="card owner-panel hidden section-stack">
+    <section id="pilotModeBanner" class="card owner-panel owner-dashboard-booking-link hidden section-stack" tabindex="-1">
       <div class="card-head">
         <h2>Pilot Mode</h2>
         <p>Quick access for live testing and early pilot runs.</p>
@@ -54,7 +54,7 @@
       </div>
     </section>
 
-    <section class="dashboard-header owner-hero card">
+    <section class="dashboard-header owner-hero card owner-dashboard-hero">
       <div class="owner-hero-copy">
         <h1 id="ownerHeroTitle">Welcome, Your Shop</h1>
         <p>Manage your services, bookings, and earnings all in one place.</p>
@@ -66,7 +66,16 @@
       </div>
     </section>
 
-    <section class="card owner-today-glance-card" id="ownerTodayGlanceCard" aria-labelledby="ownerTodayGlanceTitle">
+    <nav class="owner-dashboard-jump-nav" aria-label="Dashboard sections">
+      <a class="owner-dashboard-jump-link" href="#owner-today-section">Today</a>
+      <a class="owner-dashboard-jump-link" href="#pilotModeBanner">Booking Link</a>
+      <a class="owner-dashboard-jump-link" href="#owner-upcoming-section">Appointments</a>
+      <a class="owner-dashboard-jump-link" href="#owner-services-section">Services</a>
+      <a class="owner-dashboard-jump-link" href="#owner-availability">Availability</a>
+      <a class="owner-dashboard-jump-link" href="settings.html">Settings</a>
+    </nav>
+
+    <section class="card owner-today-glance-card" id="owner-today-section" aria-labelledby="ownerTodayGlanceTitle" tabindex="-1">
       <div class="owner-today-glance-head">
         <div class="owner-today-glance-copy">
           <span class="owner-pill">Today</span>
@@ -85,7 +94,7 @@
       </div>
     </section>
 
-    <section class="owner-section card">
+    <section class="owner-section card owner-dashboard-insights">
       <div class="owner-section-head">
         <h2>Insights</h2>
         <p>Quick snapshot of bookings and revenue.</p>
@@ -117,7 +126,7 @@
       </div>
     </section>
 
-    <section class="owner-section card">
+    <section class="owner-section card" id="owner-services-section" tabindex="-1">
       <div class="owner-section-head">
         <h2>Services</h2>
         <p>Update offers, pricing, and client-facing details.</p>
@@ -136,7 +145,7 @@
       </div>
     </section>
 
-    <section class="owner-section card">
+    <section class="owner-section card" id="owner-bookings-section">
       <div class="owner-section-head">
         <h2>Bookings</h2>
         <p>Manage your daily schedule and customer activity.</p>
@@ -155,7 +164,7 @@
       </div>
     </section>
 
-    <section class="owner-section card" id="owner-upcoming-section">
+    <section class="owner-section card" id="owner-upcoming-section" tabindex="-1">
       <div class="owner-section-head">
         <h2>Upcoming Appointments</h2>
         <p>Bookings for your shop sorted by start time.</p>
@@ -163,7 +172,7 @@
       <div id="owner-upcoming-list" class="availability-timeoff-list"></div>
     </section>
 
-    <section id="owner-availability" class="owner-section card">
+    <section id="owner-availability" class="owner-section card" tabindex="-1">
       <div class="owner-section-head">
         <h2>Availability</h2>
         <p>Set weekly hours, booking buffer, and time off blocks.</p>
@@ -254,7 +263,7 @@
       </div>
     </section>
 
-    <section class="owner-section card">
+    <section class="owner-section card owner-dashboard-reports">
       <div class="owner-section-head">
         <h2>Reports</h2>
         <p>Review analytics and performance trends for your business.</p>
