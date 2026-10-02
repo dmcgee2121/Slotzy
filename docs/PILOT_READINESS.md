@@ -14,6 +14,10 @@ The owner dashboard no longer places the duplicate signed-in welcome pill betwee
 
 The subsequent Android/installed-app follow-up removes the calendar's remaining nested mobile border/scroll surface. The padded month row, full-width Today row, and equal previous/next row are contained by the existing Calendar card. Calendar navigation behavior is unchanged; a Netlify frontend redeploy remains sufficient.
 
+## Manage Appointments mobile polish, excluding Calendar (2026-10-02)
+
+The mobile Appointment Manager now uses a more compact hero, wrapped 44px view filters rather than a horizontal chip scrollbar, contained search/scope controls, and clearer contained empty-state/card actions. Calendar layout is intentionally parked as a separate known issue and was not changed by this pass. This remains frontend-only: booking, appointments, cancellation, persistence, backend, and Supabase behavior are unchanged. A Netlify deploy is required; Render is not.
+
 ## Working in staging
 
 The Netlify staging frontend, Render staging API, and dedicated Supabase staging Postgres project are connected. Health reports the staging/Postgres adapter. On 2026-09-30, all three guarded hosted staging tests passed at commit `3db01ac`: the focused owner-setup API chain, the full synthetic owner-to-customer lifecycle, and synthetic negative checks.

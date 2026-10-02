@@ -565,6 +565,69 @@ test("owner appointments refresh error keeps an empty state and tappable retry",
   await expectNoPageOverflow(page, "owner appointments retry state");
 });
 
+test("manage appointments mobile filters, empty state, and cards stay contained without relying on Calendar", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(10, 0, 0, 0);
+  const endsAt = new Date(tomorrow);
+  endsAt.setMinutes(endsAt.getMinutes() + 30);
+  seed.local.Slotzy_bookings = [{
+    id: "booking_mobile_appointments_layout",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    barberDisplayName: "E2E Mobile Owner",
+    serviceId: SERVICE_ID,
+    serviceName: "E2E Mobile Cut",
+    clientName: "E2E Appointment Client",
+    clientContact: CUSTOMER_CONTACT,
+    startISO: tomorrow.toISOString(),
+    endISO: endsAt.toISOString(),
+    durationMinutes: 30,
+    price: 35,
+    status: "booked",
+    createdAtISO: new Date().toISOString(),
+  }];
+  await seedStorage(page, seed, { includeSession: true });
+  await installCalendarToolbarStub(page);
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+
+  const filterChips = page.locator(".appointments-filter-panel .segment-btn");
+  await expect(filterChips).toHaveCount(5);
+  for (const chip of await filterChips.all()) {
+    await expectControlFits(page, chip);
+  }
+  const chipContainer = page.locator(".appointments-filter-panel .appointment-view-segments");
+  const chipLayout = await chipContainer.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    overflowX: getComputedStyle(element).overflowX,
+  }));
+  expect(chipLayout.scrollWidth, "appointment filter chips must not create a horizontal scroll strip").toBeLessThanOrEqual(chipLayout.clientWidth + 1);
+  expect(chipLayout.overflowX).not.toBe("auto");
+  await expectControlFits(page, "#appointment-search");
+  await expectControlFits(page, "#appointment-owner-filter");
+  await expectNoPageOverflow(page, "manage appointments filters and empty state");
+
+  await expect(page.getByRole("heading", { name: "You do not have appointments for this view yet" })).toBeVisible();
+  await expectControlFits(page, "#appointment-list .empty-state-cta[data-action='open-walkin']");
+  await expectControlFits(page, "#appointment-list .empty-state-cta[href='book.html']");
+
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const appointmentCard = page.locator(".appointment-row").filter({ hasText: "E2E Appointment Client" });
+  await expect(appointmentCard).toBeVisible();
+  const cardLayout = await appointmentCard.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { left: box.left, right: box.right, clientWidth: element.clientWidth, scrollWidth: element.scrollWidth };
+  });
+  expect(cardLayout.left, "appointment card starts within the viewport").toBeGreaterThanOrEqual(0);
+  expect(cardLayout.right, "appointment card fits within the viewport").toBeLessThanOrEqual(page.viewportSize().width + 1);
+  expect(cardLayout.scrollWidth, "appointment card must not scroll horizontally").toBeLessThanOrEqual(cardLayout.clientWidth + 1);
+  await expectControlFits(page, appointmentCard.getByRole("button", { name: "Confirm", exact: true }));
+  await expectNoPageOverflow(page, "manage appointments card list");
+});
+
 test("owner setup is guided and usable through completion on mobile", async ({ page }) => {
   const setupSeed = buildSeed();
   setupSeed.local.Slotzy_users[0].shopId = SHOP_ID;

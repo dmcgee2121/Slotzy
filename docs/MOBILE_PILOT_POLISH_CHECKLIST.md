@@ -47,6 +47,15 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - [x] Extended mobile coverage to require the Calendar card and calendar control container to have no horizontal overflow, require a visible/unclipped padded month label, and retain 44px tappable controls.
 - [ ] Confirm the deployed layout on Android Chrome and installed mode with the month view populated by real appointments.
 
+## Manage Appointments non-calendar mobile polish (2026-10-02)
+
+- [x] Tightened the Appointment Manager hero and section spacing while retaining its month summary and Add Walk-in action.
+- [x] Replaced the mobile filter-chip scroll strip with wrapped rows of 44px targets; search and scope controls remain contained and readable.
+- [x] Improved appointment-list and empty-state spacing, with contained/tappable Add Walk-in and Open Public Booking actions and contained appointment cards.
+- [x] Added mobile coverage for filter-chip containment, search/scope controls, empty-state actions, and a populated appointment card across all configured device projects.
+- [ ] Calendar mobile overflow is intentionally parked for a later focused task; do not treat this pass as Calendar validation or a Calendar fix.
+- [x] No appointment fetch/refresh, filters, search, scope, status updates, walk-ins, export, booking, cancellation, backend, or Supabase behavior changed.
+
 ## Customer public booking pass (2026-10-01)
 
 - [x] Reframed the public page as a four-step guided flow: barber, service, date/time, and customer details, while preserving every existing form ID and booking behavior.

@@ -26,6 +26,13 @@ Use only synthetic staging data. Record date, tester, browser/device, and any de
 - [ ] After Netlify deploy, verify the populated month view in Android Chrome and installed mode does not show a horizontal scroll line or clip the month label.
 - [x] This is frontend CSS/test/documentation only; no Render/backend, Supabase, persistence, staging-data, or production change is included.
 
+## Manage Appointments non-calendar mobile gate (2026-10-02)
+
+- [x] Automated mobile coverage verifies contained wrapped filter chips, 44px search/scope and empty-state actions, and a populated appointment card at all configured device sizes.
+- [ ] Verify the refined Appointment Manager hero, filter rows, empty state, and action/card density on Android Chrome and installed mode after Netlify deploy.
+- [ ] Calendar overflow remains a separately parked known issue; this gate does not assert that Calendar is fixed.
+- [x] No backend, Supabase, persistence, booking/cancellation, staging-data, or production change is included. Render redeploy is not required.
+
 ## Automated staging smoke
 
 Run `npm run test:staging` only with `SLOTZY_ALLOW_STAGING_E2E=true`, `SLOTZY_STAGING_FRONTEND_URL`, and `SLOTZY_STAGING_API_URL` explicitly set to HTTPS hosts containing `staging`. The suite warms `/api/health` for up to 150 seconds for Render cold starts and refuses all writes unless health reports staging plus Postgres. Each run uses an `e2e-` identity containing base-36 timestamp, process ID, and a 64-bit UUID suffix; its username stays short while its shop, slug, service, and client values share that identity. It has no cleanup API; remove only matching synthetic records manually with staging-only operational tooling if needed. A future cleanup helper must scope every deletion to one exact run prefix, never all `e2e-` data.

@@ -30,6 +30,14 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 - The month label now has explicit horizontal padding; Today is a full-width row; previous/next controls use an equal two-button row below it. The controls and card cannot expose an internal horizontal scrollbar.
 - No navigation, Today, appointment, booking, persistence, backend, or Supabase behavior changed.
 
+## Manage Appointments mobile polish, excluding Calendar (2026-10-02)
+
+- Tightened the mobile Appointment Manager hero, preserved the month summary and Add Walk-in action, and reduced unnecessary spacing between page sections.
+- Replaced the horizontal-scrolling appointment filter strip with a wrapped two-column 44px chip grid; search and scope controls now fill their available width cleanly.
+- Refined the appointment list/empty-state spacing and ensured empty-state actions and appointment cards remain contained and easy to tap.
+- The parked Calendar mobile overflow issue was intentionally not redesigned or fixed in this pass. No appointment behavior, booking/cancellation persistence, backend, or Supabase configuration changed.
+- Validation: 52 mobile checks passed across the configured iPhone SE, iPhone 15, Pixel 7, and iPad Mini projects; smoke discovery listed 25 tests in 7 files; `git diff --check` passed. Staging did not mutate because its explicit opt-in guard was not enabled.
+
 ## Mobile state consistency pass (2026-10-01)
 
 - Added a small shared state-panel pattern for loading, error, success, empty, and retry presentation, including overflow-safe copy and 44px mobile actions.
