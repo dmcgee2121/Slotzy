@@ -47,7 +47,7 @@ import * as dataStore from "./dataStore.js";
         <section class="empty-state">
           <span class="empty-state-icon" aria-hidden="true">S</span>
           <h3>No upcoming appointments</h3>
-          <p>New bookings will appear here automatically.</p>
+          <p>You do not have upcoming appointments yet. New bookings will appear here.</p>
         </section>
       `;
       return;

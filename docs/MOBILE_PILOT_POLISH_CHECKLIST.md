@@ -9,6 +9,19 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - Smoke coverage exercises setup resume, public booking, receipt/manage access, policy-aware cancellation and rescheduling, owner appointment actions, availability effects, branding, and the dashboard Today card.
 - These checks do not replace physical-device review of keyboard behavior, native controls, browser chrome, safe areas, installed mode, visual hierarchy, wording, or thumb reach.
 
+## Loading, empty, error, saved, and retry pass (2026-10-01)
+
+- [x] Added shared compact state panels, readable inline notices, 44px retry actions, and pending button labels without changing persistence behavior.
+- [x] Public booking covers shop-context loading/failure/retry, no services, no times, pending authoritative save, known conflict/network wording, and receipt-only-after-save behavior.
+- [x] Private manage booking covers loading, invalid-link error, retryable load failure, pending cancellation, and cancel success/failure wording.
+- [x] Owner appointments covers authoritative loading, refresh failure with retained stale data, retry, and a consistent empty state for Today, All, and filtered views.
+- [x] Owner setup covers pending shop/team/hours saves, finish progress, contained validation, `Saved.`, and retryable availability-save failure.
+- [x] Dashboard upcoming appointments uses the shared empty-state language. A synthetic loading state was intentionally not added to dashboard modules that render already-hydrated data.
+- [x] Validation completed locally: 44 mobile checks passed across four viewports, smoke discovery listed 25 tests in 7 files, and `git diff --check` passed. Hosted staging did not mutate because its explicit opt-in guard was not enabled.
+- [ ] On physical iPhone Safari and Android Chrome, throttle or interrupt connectivity and verify load/retry announcements, scroll position, duplicate-tap protection, and recovery after reconnecting.
+- [ ] In an installed PWA, verify the newly deployed HTML/JS/CSS state UI replaces the previous cached shell and that offline fallback does not imply a save succeeded.
+- [ ] Later polish: consider focus-to-error/retry and a non-blocking stale timestamp only if pilot observation shows the current notices are missed.
+
 ## Dashboard hierarchy pass (2026-10-01)
 
 - [x] Added a mobile-only, two-column dashboard jump bar with 44px targets for Today, Booking Link, Appointments, Services, Availability, and Settings.

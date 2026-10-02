@@ -63,6 +63,9 @@ export function initBookingEngine(options = {}) {
   const publicShopAddress = findElementById("publicShopAddress");
   const publicShopError = findElementById("publicShopError");
   const publicShopLogo = findElementById("publicShopLogo");
+  const publicBookingLoadState = findElementById("publicBookingLoadState");
+  const publicBookingLoadActions = findElementById("publicBookingLoadActions");
+  const publicBookingRetryBtn = findElementById("publicBookingRetryBtn");
   const shopSelectLabel = findElement('label[for="shopSelect"]');
   const changeBarberHelp = findElementById("changeBarberHelp");
   const changeBarberLink = findElementById("changeBarberLink");
@@ -101,6 +104,7 @@ export function initBookingEngine(options = {}) {
     engineRoot.dataset.bookingEngineInitialized = "1";
     engineRoot.dataset.bookingEngineMode = mode;
   }
+  publicBookingRetryBtn?.addEventListener("click", () => window.location.reload());
 
   return Promise.resolve()
     .then(() => (
@@ -146,7 +150,7 @@ export function initBookingEngine(options = {}) {
     }
     populateShops();
     if (publicShopSlugError) {
-      disableBookingFlow(publicShopSlugError);
+      disableBookingFlow(publicShopSlugError, { showLoadError: false });
       return;
     }
     populateBarbers();
@@ -208,6 +212,7 @@ export function initBookingEngine(options = {}) {
     bindBookingSyncListeners();
     updateChangeBarberHelp();
     updateBookButtonState();
+    setPublicBookingLoadState("ready");
   }
 
   function findElement(selector) {
@@ -1282,7 +1287,7 @@ export function initBookingEngine(options = {}) {
     }
   }
 
-  function disableBookingFlow(message) {
+  function disableBookingFlow(message, { showLoadError = true } = {}) {
     const disabled = true;
     [shopSelect, barberSelect, serviceSelect, bookingDate, clientNameInput, clientContactInput, depositAcknowledge, bookBtn]
       .forEach((field) => {
@@ -1307,6 +1312,33 @@ export function initBookingEngine(options = {}) {
     }
     updateBookButtonState();
     setStatus(String(message ?? "This booking link is currently unavailable."), false);
+    if (showLoadError) {
+      publicShopHero?.classList.add("hidden");
+      bookingPanel?.classList.add("hidden");
+      setPublicBookingLoadState("error", "We could not load this shop. Try again.");
+    } else {
+      setPublicBookingLoadState("ready");
+    }
+  }
+
+  function setPublicBookingLoadState(kind, message = "") {
+    if (!isPublicBookingPage || !publicBookingLoadState) return;
+    if (kind === "ready") {
+      publicBookingLoadState.classList.add("hidden");
+      return;
+    }
+
+    publicBookingLoadState.classList.remove("hidden", "state-panel-loading", "state-panel-error");
+    publicBookingLoadState.classList.add(kind === "error" ? "state-panel-error" : "state-panel-loading");
+    publicBookingLoadState.setAttribute("role", kind === "error" ? "alert" : "status");
+    const icon = publicBookingLoadState.querySelector(".state-panel-icon");
+    icon?.classList.toggle("state-spinner", kind !== "error");
+    if (icon && kind === "error") icon.textContent = "!";
+    const title = publicBookingLoadState.querySelector("h1, h2, h3");
+    const copy = publicBookingLoadState.querySelector("p");
+    if (title) title.textContent = kind === "error" ? (message || "We could not load this shop. Try again.") : "Loading this shop...";
+    if (copy) copy.textContent = kind === "error" ? "Check your connection, then retry." : "Checking services and available times.";
+    publicBookingLoadActions?.classList.toggle("hidden", kind !== "error");
   }
 
   function getShops() {
@@ -2065,6 +2097,22 @@ export function initBookingEngine(options = {}) {
       return;
     }
 
+    if (getServices().length === 0) {
+      const canChooseAnotherBarber = getBarbersForSelectedShop().length > 1;
+      slotList.innerHTML = `
+        <section class="empty-state">
+          <span class="empty-state-icon" aria-hidden="true">S</span>
+          <h3>No services available</h3>
+          <p>This barber does not have a bookable service yet.${canChooseAnotherBarber ? " Choose another barber." : " Check with the shop before booking."}</p>
+          ${canChooseAnotherBarber
+            ? '<button type="button" id="noServicesChangeBarberBtn" class="btn btn-ghost empty-state-cta">Choose another barber</button>'
+            : '<a href="book.html" id="noServicesBrowseShopsLink" class="btn btn-ghost empty-state-cta">Choose another shop</a>'}
+        </section>
+      `;
+      findElementById("noServicesChangeBarberBtn")?.addEventListener("click", scrollToBarberSection);
+      return;
+    }
+
     if (dateValue && !dateValidation.valid) {
       slotList.innerHTML = `
         <section class="empty-state">
@@ -2270,6 +2318,7 @@ export function initBookingEngine(options = {}) {
       setStatus("Enter your name to continue.", false);
       return;
     }
+
     if (!clientContact) {
       setStatus("Enter a phone number or email to continue.", false);
       return;
@@ -2340,6 +2389,7 @@ export function initBookingEngine(options = {}) {
     const bookings = getBookings();
     bookings.push(booking);
     let confirmedBooking = booking;
+    setButtonPending(bookBtn, true, "Saving...");
     try {
       const saveResult = await Promise.resolve(saveBookings(bookings));
       if (saveResult && typeof saveResult === "object" && !Array.isArray(saveResult) && saveResult.id) {
@@ -2360,8 +2410,11 @@ export function initBookingEngine(options = {}) {
         selectedSlotValue = "";
         renderSlots();
       }
+      setButtonPending(bookBtn, false);
+      updateBookButtonState();
       return;
     }
+    setButtonPending(bookBtn, false);
     setLastBookingId(confirmedBooking.id);
 
     showToast?.("Booked!", "success");
@@ -2376,6 +2429,20 @@ export function initBookingEngine(options = {}) {
       booking: confirmedBooking,
       manageLink: buildClientManageLink(confirmedBooking, getConfirmationCode(confirmedBooking.id)),
     });
+  }
+
+  function setButtonPending(button, pending, pendingText = "Saving...") {
+    if (!button) return;
+    if (pending) {
+      button.dataset.idleText = String(button.textContent ?? "").trim();
+      button.textContent = pendingText;
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      return;
+    }
+    button.textContent = button.dataset.idleText || "Confirm Appointment";
+    delete button.dataset.idleText;
+    button.removeAttribute("aria-busy");
   }
 
   function isSyntheticE2eShop(shop) {

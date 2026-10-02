@@ -1,5 +1,13 @@
 # Pilot readiness
 
+## Standardized mobile states (2026-10-01)
+
+Pilot-critical frontend screens now share compact loading, empty, error, saved, and retry treatments. Public booking has a real context-loading panel, retryable load failure, explicit no-services/no-times recovery, and a pending authoritative-save label; a receipt still appears only after persistence succeeds. Private manage booking has real loading/retry and pending cancellation feedback. Owner appointments has authoritative loading, a retained-data warning plus retry on refresh failure, and consistent empty wording. Owner setup exposes save/finish progress and catches availability-save failures. The dashboard upcoming empty state uses the same plain language, while already-hydrated dashboard modules intentionally do not pretend to load.
+
+This pass changes frontend markup, CSS, JavaScript, and mobile tests only. It does not alter storage adapters, API contracts, authentication, booking/cancellation persistence, service-worker caching rules, Supabase, or backend deployment. Physical-device validation is still required for slow/offline recovery, keyboard and native controls, installed-PWA cache rollover, screen-reader announcements, and repeated taps during poor connectivity.
+
+Local validation passed 44 mobile checks across four viewports, listed 25 smoke tests in 7 files, and passed `git diff --check`. The hosted staging command stopped at its explicit mutation guard because `SLOTZY_ALLOW_STAGING_E2E=true` was not provided; no staging data was changed.
+
 ## Working in staging
 
 The Netlify staging frontend, Render staging API, and dedicated Supabase staging Postgres project are connected. Health reports the staging/Postgres adapter. On 2026-09-30, all three guarded hosted staging tests passed at commit `3db01ac`: the focused owner-setup API chain, the full synthetic owner-to-customer lifecycle, and synthetic negative checks.

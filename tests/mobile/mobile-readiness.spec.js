@@ -264,6 +264,60 @@ test("login and registration modal fit the mobile viewport", async ({ page }) =>
   expect(modalState.scrollable).toBe(true);
 });
 
+test("public booking loading and retry error states fit mobile without a fake receipt", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }));
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+
+  let releaseContext;
+  const contextGate = new Promise((resolve) => { releaseContext = resolve; });
+  await page.route("**/api/public/booking-context**", async (route) => {
+    await contextGate;
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "synthetic unavailable" }),
+    });
+  });
+
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  await expect(page.locator("#publicBookingLoadState")).toContainText("Loading this shop");
+  await expectNoPageOverflow(page, "public booking loading state");
+  releaseContext();
+
+  await expect(page.locator("#publicBookingLoadState")).toContainText("We could not load this shop");
+  await expectControlFits(page, "#publicBookingRetryBtn");
+  await expectNoPageOverflow(page, "public booking retry state");
+  await expect(page.getByRole("heading", { name: "Booked!" })).toHaveCount(0);
+});
+
+test("public booking no-services state stays actionable on mobile", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  seed.local.Slotzy_services = [];
+  await seedStorage(page, seed);
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+
+  await expect(page.getByRole("heading", { name: "No services available" })).toBeVisible();
+  await expectControlFits(page, "#noServicesBrowseShopsLink");
+  await expectNoPageOverflow(page, "public booking no-services state");
+});
+
+test("public booking no-times state offers a mobile-safe next action", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  Object.values(seed.local.Slotzy_availability[OWNER_USERNAME].weekly).forEach((day) => {
+    day.enabled = false;
+  });
+  await seedStorage(page, seed);
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  await page.locator("#serviceSelect").selectOption(SERVICE_ID);
+  const bookingDate = new Date();
+  bookingDate.setDate(bookingDate.getDate() + 2);
+  await page.locator("#bookingDate").fill(toYmd(bookingDate));
+
+  await expect(page.getByRole("heading", { name: "No available times" })).toBeVisible();
+  await expectControlFits(page, "#noTimesChangeBarberBtn");
+  await expectNoPageOverflow(page, "public booking no-times state");
+});
+
 test("public booking receipt and manage cancellation work on mobile", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }));
   await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
@@ -476,7 +530,31 @@ test("invalid manage link state fits mobile", async ({ page }) => {
   await seedStorage(page, buildSeed());
   await page.goto("/pages/manage.html?shop=missing-mobile-shop&contact=e2e-mobile-invalid%40example.test");
   await expect(page.locator("#manageStatus")).toContainText("could not find a shop");
+  await expectReadableStatus(page, "#manageStatus");
   await expectNoPageOverflow(page, "invalid manage link page");
+});
+
+test("owner appointments refresh error keeps an empty state and tappable retry", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-mobile-owner-token");
+  });
+  await page.route("**/api/bookings", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "synthetic unavailable" }),
+    });
+  });
+
+  await page.goto("/pages/manage-appointments.html");
+  await expect(page.locator("#appointment-status")).toContainText("Could not refresh appointments");
+  await expectReadableStatus(page, "#appointment-status");
+  await expect(page.getByRole("heading", { name: "You do not have appointments for this view yet" })).toBeVisible();
+  await expectControlFits(page, "#appointment-retry");
+  await expectNoPageOverflow(page, "owner appointments retry state");
 });
 
 test("owner setup is guided and usable through completion on mobile", async ({ page }) => {

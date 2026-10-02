@@ -896,6 +896,117 @@ textarea:focus-visible,
   margin-top: 0;
 }
 
+.state-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.state-panel-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.state-panel-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.state-panel-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: var(--primary);
+  flex: 0 0 auto;
+}
+
+.state-spinner::before {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #bfdbfe;
+  border-top-color: var(--primary);
+  border-radius: 999px;
+  content: "";
+  animation: state-spin 0.8s linear infinite;
+}
+
+.state-panel-error .state-panel-icon {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.state-panel-copy {
+  min-width: 0;
+}
+
+.state-panel-copy h1,
+.state-panel-copy h2,
+.state-panel-copy h3,
+.state-panel-copy p {
+  margin: 0;
+}
+
+.state-panel-copy h1,
+.state-panel-copy h2,
+.state-panel-copy h3 {
+  font-size: 1rem;
+}
+
+.state-panel-copy p {
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.state-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.state-panel > .state-panel-actions {
+  grid-column: 1 / -1;
+  padding-left: 56px;
+}
+
+.state-panel-actions .btn {
+  min-height: 44px;
+}
+
+@keyframes state-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state-spinner::before { animation: none; }
+}
+
+@media (max-width: 520px) {
+  .state-panel {
+    grid-template-columns: 44px minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .state-panel > .state-panel-actions {
+    padding-left: 0;
+  }
+
+  .state-panel-actions .btn {
+    width: 100%;
+  }
+}
+
 .progress {
   width: 100%;
   height: 10px;

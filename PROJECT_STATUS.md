@@ -16,6 +16,19 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 6. Play Store / app packaging prep
 7. Production launch planning
 
+## Mobile state consistency pass (2026-10-01)
+
+- Added a small shared state-panel pattern for loading, error, success, empty, and retry presentation, including overflow-safe copy and 44px mobile actions.
+- Public booking now shows real shop-context loading and retry states, a distinct no-services state, the existing actionable no-times state, and `Saving...` only while the authoritative booking write is pending. A failed write still cannot display a receipt.
+- The private manage page now announces its real async load, offers retry after load failure, and labels a pending cancellation. Invalid links remain errors rather than loading indefinitely.
+- Owner appointments now expose the authoritative refresh, preserve any cached list with a visible stale-data warning on failure, and provide a real retry action. Empty Today/All/filter results use one clear owner-facing pattern.
+- Owner setup shop/team/hours actions now expose save/finish progress. Availability failures are caught and shown as `Could not save changes. Try again.`; successful explicit hour saves say `Saved.`
+- The dashboard upcoming empty state was aligned with the same plain-language pattern. Dashboard modules that render already-hydrated local state were intentionally not given a fake loading phase.
+- No persistence, API contract, authentication, booking/cancellation rules, service-worker policy, Supabase configuration, or backend behavior changed. This is a frontend-only deploy.
+- Automated mobile coverage now includes shop-context loading/error/retry, no services, no times, invalid manage links, no fake receipt after failure, and owner appointment refresh-error/empty/retry behavior at all configured viewports.
+- Validation: mobile readiness passed **44 tests across four configured viewports**; smoke discovery listed **25 tests in 7 files**; `git diff --check` passed. The hosted staging command was stopped by its required `SLOTZY_ALLOW_STAGING_E2E=true` mutation guard, so no staging data changed and two tests did not run.
+- Real-phone follow-up remains required for slow/offline transitions, virtual-keyboard positioning, native controls, retry after connectivity returns, duplicate-tap resistance, installed-PWA cache transitions, and screen-reader announcements.
+
 ## Owner setup mobile polish pass (2026-10-01)
 
 - Kept the existing five setup gates and all save behavior, but reframed the page as a concise Shop, Team, Services, Hours, and Ready flow with clearer titles and later-edit guidance.

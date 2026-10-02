@@ -21,6 +21,17 @@
   </header>
 
   <main class="container owner-layout page-stack public-booking-layout">
+    <section id="publicBookingLoadState" class="state-panel state-panel-loading" role="status" aria-live="polite" aria-atomic="true">
+      <span class="state-panel-icon state-spinner" aria-hidden="true"></span>
+      <div class="state-panel-copy">
+        <h1>Loading this shop...</h1>
+        <p>Checking services and available times.</p>
+      </div>
+      <div class="state-panel-actions hidden" id="publicBookingLoadActions">
+        <button id="publicBookingRetryBtn" class="btn btn-primary" type="button">Try again</button>
+      </div>
+    </section>
+
     <section class="card owner-panel public-shop-directory hidden section-stack" id="publicShopPickerSection" aria-labelledby="publicShopPickerTitle">
       <div class="public-shop-directory-copy">
         <p class="small public-shop-directory-tip">If your barber gave you a link or QR, use that for the fastest booking.</p>

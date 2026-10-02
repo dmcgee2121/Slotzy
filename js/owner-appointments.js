@@ -34,6 +34,8 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   const monthLabel = document.getElementById("calendar-month");
   const summaryLabel = document.getElementById("calendar-summary");
   const statusMessageEl = document.getElementById("appointment-status");
+  const appointmentRetryActionsEl = document.getElementById("appointment-retry-actions");
+  const appointmentRetryBtn = document.getElementById("appointment-retry");
   const ownerScopeEl = document.getElementById("appointment-owner-filter");
   const ownerSelectLabelEl = document.getElementById("appointment-owner-select-label");
   const ownerSelectEl = document.getElementById("appointment-owner-select");
@@ -97,22 +99,35 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     barbersInShop = getBarbersForCurrentScope();
     configureScopeControls();
     bindEventsOnce();
+    await refreshOwnerAppointments();
+    bindBookingSync();
+  }
+
+  async function refreshOwnerAppointments() {
+    appointmentRetryActionsEl?.classList.add("hidden");
+    if (appointmentRetryBtn) {
+      appointmentRetryBtn.disabled = true;
+      appointmentRetryBtn.setAttribute("aria-busy", "true");
+    }
     if (statusMessageEl) {
-      statusMessageEl.textContent = "Refreshing appointments...";
+      statusMessageEl.textContent = "Loading appointments...";
       statusMessageEl.setAttribute("role", "status");
+      statusMessageEl.classList.remove("status-success", "status-error");
     }
     try {
       await dataStore.getBookingsAsync({ fallbackOnError: false });
-      if (statusMessageEl?.textContent === "Refreshing appointments...") {
+      if (statusMessageEl?.textContent === "Loading appointments...") {
         statusMessageEl.textContent = "";
       }
     } catch {
-      if (statusMessageEl) {
-        statusMessageEl.textContent = "Could not refresh appointments. Check your connection and try again.";
-        statusMessageEl.setAttribute("role", "alert");
+      setInlineStatus("Could not refresh appointments. Try again.", false);
+      appointmentRetryActionsEl?.classList.remove("hidden");
+    } finally {
+      if (appointmentRetryBtn) {
+        appointmentRetryBtn.disabled = false;
+        appointmentRetryBtn.removeAttribute("aria-busy");
       }
     }
-    bindBookingSync();
     renderAll();
   }
 
@@ -231,6 +246,10 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   }
 
   function bindEventsOnce() {
+    if (appointmentRetryBtn && appointmentRetryBtn.dataset.bound !== "true") {
+      appointmentRetryBtn.addEventListener("click", () => void refreshOwnerAppointments());
+      appointmentRetryBtn.dataset.bound = "true";
+    }
     if (filterEl && filterEl.dataset.bound !== "true") {
       filterEl.addEventListener("change", () => {
         syncFilterButtons();
@@ -1830,7 +1849,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       listContainer.innerHTML = `
         <section class="empty-state empty-state-compact">
           <span class="empty-state-icon" aria-hidden="true">S</span>
-          <h3>No appointments found</h3>
+          <h3>You do not have appointments for this view yet</h3>
           <p>${escapeHtml(description)}</p>
           ${actionMarkup}
         </section>

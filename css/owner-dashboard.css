@@ -1196,6 +1196,25 @@
   color: var(--danger);
 }
 
+.owner-page .booking-status:not(:empty) {
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.owner-page .booking-status.status-success:not(:empty) {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.owner-page .booking-status.status-error:not(:empty) {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .owner-setup-page .booking-status:not(:empty) {
   min-height: 0;
   margin: 0;

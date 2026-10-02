@@ -111,14 +111,14 @@ import {
   }
 
   function bindEvents() {
-    document.getElementById("setupStep1Next")?.addEventListener("click", handleSaveShopStep);
+    document.getElementById("setupStep1Next")?.addEventListener("click", () => runWithPendingButton("setupStep1Next", "Saving...", handleSaveShopStep));
     document.getElementById("setupStep2Back")?.addEventListener("click", () => showStep(1));
-    document.getElementById("setupStep2Next")?.addEventListener("click", handleBarberStepNext);
+    document.getElementById("setupStep2Next")?.addEventListener("click", () => runWithPendingButton("setupStep2Next", "Saving...", handleBarberStepNext));
     document.getElementById("setupStep3Back")?.addEventListener("click", () => showStep(2));
     document.getElementById("setupStep3Next")?.addEventListener("click", handleServiceStepNext);
     document.getElementById("setupStep4Back")?.addEventListener("click", () => showStep(3));
-    document.getElementById("setupSaveAvailabilityBtn")?.addEventListener("click", () => saveAvailabilityForSelectedBarber({ showSuccess: true }));
-    document.getElementById("setupStep4Next")?.addEventListener("click", handleAvailabilityStepNext);
+    document.getElementById("setupSaveAvailabilityBtn")?.addEventListener("click", () => runWithPendingButton("setupSaveAvailabilityBtn", "Saving...", () => saveAvailabilityForSelectedBarber({ showSuccess: true })));
+    document.getElementById("setupStep4Next")?.addEventListener("click", () => runWithPendingButton("setupStep4Next", "Finishing...", handleAvailabilityStepNext));
     document.getElementById("setupAddBarberBtn")?.addEventListener("click", handleAddBarber);
     document.getElementById("setupAddServiceBtn")?.addEventListener("click", handleAddService);
     document.getElementById("setupCopyBookingLink")?.addEventListener("click", handleCopyBookingLink);
@@ -152,6 +152,22 @@ import {
     element.setAttribute("aria-live", "polite");
     element.setAttribute("aria-atomic", "true");
     element.classList.remove("status-success", "status-error");
+  }
+
+  async function runWithPendingButton(buttonId, pendingText, task) {
+    const button = document.getElementById(buttonId);
+    if (!button || button.getAttribute("aria-busy") === "true") return;
+    const idleText = String(button.textContent ?? "").trim();
+    button.disabled = true;
+    button.textContent = pendingText;
+    button.setAttribute("aria-busy", "true");
+    try {
+      await task();
+    } finally {
+      button.disabled = false;
+      button.textContent = idleText;
+      button.removeAttribute("aria-busy");
+    }
   }
 
   function renderOwnerOnlyState() {
@@ -410,13 +426,18 @@ import {
   async function handleAvailabilityStepNext() {
     const saved = await saveAvailabilityForSelectedBarber({ showSuccess: false });
     if (!saved) return;
-    await refreshSetupStatus();
-    applySetupStatus();
-    await renderReadyQr();
-    markSetupComplete({ shopId: state.shopId });
-    setStatus(ui.readyStatus, "Setup complete. Your booking page is ready to share.", true);
-    window.showToast?.("Setup complete.", { type: "success" });
-    showStep(5);
+    try {
+      await refreshSetupStatus();
+      applySetupStatus();
+      await renderReadyQr();
+      markSetupComplete({ shopId: state.shopId });
+      setStatus(ui.readyStatus, "Setup complete. Your booking page is ready to share.", true);
+      window.showToast?.("Setup complete.", { type: "success" });
+      showStep(5);
+    } catch (error) {
+      console.error("[Slotzy:owner-setup] Could not finish setup.", error);
+      setStatus(ui.availabilityStatus, "Your hours were saved, but setup could not finish loading. Try again.", false);
+    }
   }
 
   async function saveAvailabilityForSelectedBarber({ showSuccess }) {
@@ -440,20 +461,26 @@ import {
     if (DAY_KEYS.every((dayKey) => !weekly[dayKey].enabled)) errors.push("Enable at least one day before continuing.");
     if (errors.length > 0) return setStatus(ui.availabilityStatus, errors.join(" "), false), false;
 
-    const existing = await dataStore.getAvailabilityForBarberAsync(barberUsername);
-    await dataStore.saveAvailabilityForBarberAsync(barberUsername, {
-      ...existing,
-      timezone: String(ui.timezoneSelect?.value ?? "").trim() || "America/Chicago",
-      bufferMinutes: sanitizeBufferMinutes(ui.bufferMinutesSelect?.value),
-      weekly,
-      timeOff: Array.isArray(existing?.timeOff) ? existing.timeOff : [],
-    }, { fallbackOnError: false });
+    try {
+      const existing = await dataStore.getAvailabilityForBarberAsync(barberUsername);
+      await dataStore.saveAvailabilityForBarberAsync(barberUsername, {
+        ...existing,
+        timezone: String(ui.timezoneSelect?.value ?? "").trim() || "America/Chicago",
+        bufferMinutes: sanitizeBufferMinutes(ui.bufferMinutesSelect?.value),
+        weekly,
+        timeOff: Array.isArray(existing?.timeOff) ? existing.timeOff : [],
+      }, { fallbackOnError: false });
 
-    if (showSuccess) {
-      setStatus(ui.availabilityStatus, "Booking hours saved.", true);
-      window.showToast?.("Booking hours saved.", "success");
+      if (showSuccess) {
+        setStatus(ui.availabilityStatus, "Saved.", true);
+        window.showToast?.("Saved.", "success");
+      }
+      return true;
+    } catch (error) {
+      console.error("[Slotzy:owner-setup] Could not save booking hours.", error);
+      setStatus(ui.availabilityStatus, "Could not save changes. Try again.", false);
+      return false;
     }
-    return true;
   }
 
   async function handleCopyBookingLink() {

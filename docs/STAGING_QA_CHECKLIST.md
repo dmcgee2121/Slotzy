@@ -2,6 +2,17 @@
 
 Use only synthetic staging data. Record date, tester, browser/device, and any defect links for each run.
 
+## Mobile state presentation gate (2026-10-01)
+
+- [x] Automated mobile coverage verifies public booking loading/error/retry, no-services, no-times, and failure-without-receipt states across the configured viewports.
+- [x] Automated mobile coverage verifies invalid manage-link readability and owner appointment refresh-error, retained empty state, and 44px retry behavior.
+- [x] Existing hosted lifecycle requirements remain unchanged: authoritative booking before receipt, owner visibility, manage-link access, and persisted cancellation.
+- [x] Local validation passed 44 mobile checks, smoke discovery listed 25 tests in 7 files, and `git diff --check` passed. The hosted staging command stopped before mutation at the required opt-in guard; rerun after the frontend deploy with the approved staging variables.
+- [ ] On a real phone against staging, test a slow initial shop load, a disconnected retry, and recovery after reconnecting without submitting duplicate bookings.
+- [ ] On a real phone against staging, verify owner appointment refresh failure does not erase already visible appointments and retry refreshes from the server.
+- [ ] Verify setup save/finish pending labels and success/error notices remain visible with the keyboard open.
+- [ ] Verify installed-PWA cache rollover after the Netlify frontend redeploy. No Render/backend redeploy is expected for this frontend-only pass.
+
 ## Automated staging smoke
 
 Run `npm run test:staging` only with `SLOTZY_ALLOW_STAGING_E2E=true`, `SLOTZY_STAGING_FRONTEND_URL`, and `SLOTZY_STAGING_API_URL` explicitly set to HTTPS hosts containing `staging`. The suite warms `/api/health` for up to 150 seconds for Render cold starts and refuses all writes unless health reports staging plus Postgres. Each run uses an `e2e-` identity containing base-36 timestamp, process ID, and a 64-bit UUID suffix; its username stays short while its shop, slug, service, and client values share that identity. It has no cleanup API; remove only matching synthetic records manually with staging-only operational tooling if needed. A future cleanup helper must scope every deletion to one exact run prefix, never all `e2e-` data.

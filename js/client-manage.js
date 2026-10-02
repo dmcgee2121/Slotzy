@@ -13,6 +13,8 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   const manageStatus = document.getElementById("manageStatus");
   const manageContinueCard = document.getElementById("manageContinueCard");
   const manageContinueLink = document.getElementById("manageContinueLink");
+  const manageRetryActions = document.getElementById("manageRetryActions");
+  const manageRetryBtn = document.getElementById("manageRetryBtn");
   const manageUpcomingSection = document.getElementById("manageUpcomingSection");
   const manageUpcomingList = document.getElementById("manageUpcomingList");
   const manageUpcomingEmpty = document.getElementById("manageUpcomingEmpty");
@@ -78,6 +80,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     clientRescheduleSlot?.addEventListener("change", updateRescheduleConfirmState);
     clientRescheduleConfirm?.addEventListener("click", handleRescheduleConfirm);
     clientRescheduleClose?.addEventListener("click", closeRescheduleModal);
+    manageRetryBtn?.addEventListener("click", () => void renderClientManagePage());
     clientRescheduleModal?.addEventListener("click", (event) => {
       if (event.target === clientRescheduleModal) {
         closeRescheduleModal();
@@ -95,6 +98,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   async function renderClientManagePage() {
     currentQuery = getManageQueryState();
     renderContinueCard();
+    setManageRetryVisible(false);
 
     if (!currentQuery.shopSlug || !currentQuery.contact) {
       currentShop = null;
@@ -111,6 +115,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
 
     try {
+      setLoadingStatus("Loading your appointments...");
       const [shops, users, bookings] = await Promise.all([
         dataStore.getShopsAsync(),
         dataStore.getUsersAsync(),
@@ -178,7 +183,8 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       hideAppointmentSections();
       setHeaderShopName("Slotzy");
       manageIdentitySummary.textContent = "";
-      setStatus("Appointments are unavailable right now. Please refresh and try again.", false);
+      setStatus("We could not load your appointments. Try again.", false);
+      setManageRetryVisible(true);
     }
   }
 
@@ -305,6 +311,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
 
     if (action === "confirm-cancel-appointment") {
+      setButtonPending(actionButton, true, "Cancelling...");
       await handleCancelAppointment(bookingId);
       return;
     }
@@ -312,6 +319,33 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     if (action === "reschedule-appointment") {
       await openRescheduleModal(bookingId);
     }
+  }
+
+  function setLoadingStatus(message) {
+    if (!manageStatus) return;
+    manageStatus.textContent = String(message ?? "");
+    manageStatus.setAttribute("role", "status");
+    manageStatus.setAttribute("aria-live", "polite");
+    manageStatus.classList.remove("status-success", "status-error");
+  }
+
+  function setManageRetryVisible(visible) {
+    manageRetryActions?.classList.toggle("hidden", !visible);
+  }
+
+  function setButtonPending(button, pending, pendingText) {
+    if (!button) return;
+    if (pending) {
+      button.dataset.idleText = String(button.textContent ?? "").trim();
+      button.textContent = pendingText;
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      return;
+    }
+    button.textContent = button.dataset.idleText || "Confirm";
+    delete button.dataset.idleText;
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
   }
 
   async function handleCancelAppointment(bookingId) {
