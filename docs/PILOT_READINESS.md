@@ -116,3 +116,11 @@ Complete production-specific security review, separate production secrets/projec
 ## Recommended next pilot checks
 
 The recommended next milestone is **closed pilot readiness**. Use the dedicated mobile polish checklist, starting with a focused mobile owner dashboard hierarchy/navigation task and real-phone public booking and barber-dashboard reviews. Then close the Phase 3 authentication, notification, recovery, monitoring, security/privacy, manual-QA, and support gaps. Invite trusted barbers/customers only after those gates are met; defer Play Store preparation until their feedback has been incorporated.
+
+## Anonymous mobile booking persistence correction (2026-10-01)
+
+The reported real-phone error was not physically reproduced here, but the root cause was confirmed from the production path. Public booking used `saveBookingsAsync()`, whose API adapter required an owner/customer JWT before it would send `POST /api/bookings`; the server route also required authentication. The hosted lifecycle had hidden this because its public page shared the authenticated owner's browser context, while the mobile suite used local fixtures.
+
+Public booking now has a deliberately anonymous, privacy-limited context read and authoritative create route. The successful UI still requires HTTP 201 before showing a receipt, and the server validates provider/shop/service linkage and overlap conflicts. Safe browser diagnostics and customer-facing conflict/network/selection messages were added. The installed shell is bumped to `slotzy-shell-v3`, with public booking assets using network-first behavior.
+
+This change requires a coordinated staging rollout: deploy Render first, then Netlify, then run the guarded hosted tests. It is not production approval. Physical iOS Safari and Android Chrome validation remains required for service-worker activation, stale-slot conflict recovery, offline/reconnect behavior, duplicate-submit resistance, receipt/manage-link handoff, and persisted cancellation.

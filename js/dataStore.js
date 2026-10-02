@@ -232,10 +232,34 @@ function getApiErrorMessage(payload, fallback) {
   return fallback;
 }
 
-async function apiRequest(path, { method = "GET", body, headers = {} } = {}) {
+function createApiRequestError(message, details = {}) {
+  const error = new Error(String(message || "API request failed"));
+  error.name = "SlotzyApiRequestError";
+  error.code = String(details.code || "").trim();
+  error.requestAttempted = Boolean(details.requestAttempted);
+  error.endpointPath = String(details.endpointPath || "").trim();
+  error.httpStatus = Number(details.httpStatus || 0);
+  error.responseKeys = Array.isArray(details.responseKeys)
+    ? details.responseKeys.map((key) => String(key)).sort()
+    : [];
+  return error;
+}
+
+async function apiRequest(path, { method = "GET", body, headers = {}, requireAuth = true } = {}) {
   const token = getAuthToken();
-  if (!token) {
-    throw new Error("Missing auth token for API request");
+  const endpointPath = (() => {
+    try {
+      return new URL(buildApiUrl(path), window.location.origin).pathname;
+    } catch {
+      return `/api/${String(path ?? "").replace(/^\/+/, "")}`;
+    }
+  })();
+  if (requireAuth && !token) {
+    throw createApiRequestError("Missing auth token for API request", {
+      code: "missing_auth_token",
+      requestAttempted: false,
+      endpointPath,
+    });
   }
 
   let response;
@@ -244,13 +268,17 @@ async function apiRequest(path, { method = "GET", body, headers = {} } = {}) {
       method,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
   } catch (error) {
-    throw new Error(String(error?.message ?? "Network request failed"));
+    throw createApiRequestError(String(error?.message ?? "Network request failed"), {
+      code: "network_error",
+      requestAttempted: true,
+      endpointPath,
+    });
   }
 
   let payload = null;
@@ -261,10 +289,57 @@ async function apiRequest(path, { method = "GET", body, headers = {} } = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(getApiErrorMessage(payload, `API ${method} ${path} failed`));
+    throw createApiRequestError(getApiErrorMessage(payload, `API ${method} ${path} failed`), {
+      code: String(payload?.code ?? "http_error").trim(),
+      requestAttempted: true,
+      endpointPath,
+      httpStatus: response.status,
+      responseKeys: isObjectRecord(payload) ? Object.keys(payload) : [],
+    });
   }
 
   return payload ?? {};
+}
+
+export function shouldUsePublicBookingApi() {
+  if (isApiModeEnabled()) return true;
+  try {
+    const hostname = String(window.location.hostname ?? "").trim().toLowerCase();
+    return hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "[::1]";
+  } catch {
+    return false;
+  }
+}
+
+export async function getPublicBookingContextAsync({ shopSlug = "", shopId = "" } = {}) {
+  const params = new URLSearchParams();
+  const normalizedSlug = String(shopSlug ?? "").trim();
+  const normalizedId = String(shopId ?? "").trim();
+  if (normalizedSlug) params.set("shop", normalizedSlug);
+  if (normalizedId) params.set("shopId", normalizedId);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return apiRequest(`/public/booking-context${suffix}`, { requireAuth: false });
+}
+
+export async function createPublicBookingAsync(booking) {
+  const payload = await apiRequest("/bookings", {
+    method: "POST",
+    body: booking,
+    requireAuth: false,
+  });
+  const created = isObjectRecord(payload?.booking) ? payload.booking : null;
+  if (!created) {
+    throw createApiRequestError("Invalid booking response", {
+      code: "invalid_booking_response",
+      requestAttempted: true,
+      endpointPath: "/api/bookings",
+      httpStatus: 201,
+      responseKeys: isObjectRecord(payload) ? Object.keys(payload) : [],
+    });
+  }
+  const current = getBookings();
+  saveBookings([...current.filter((entry) => toRecordId(entry?.id) !== toRecordId(created.id)), created]);
+  return created;
 }
 
 export function safeParse(json, fallback) {

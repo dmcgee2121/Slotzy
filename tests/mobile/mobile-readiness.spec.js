@@ -319,6 +319,125 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await expect(page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" }).locator(".appointment-actions .badge")).toHaveText("Cancelled");
 });
 
+test("dashboard public link creates an authoritative anonymous booking under service-worker control", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+
+  const policy = buildSeed({ configuredOwner: true }).local.Slotzy_shops[0].bookingPolicy;
+  const weekly = Object.fromEntries(
+    ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+      .map((day) => [day, { enabled: true, start: "09:00", end: "17:00" }])
+  );
+  const publicContextPayload = {
+    shops: [{ id: SHOP_ID, name: "E2E Mobile Pilot Shop", businessName: "E2E Mobile Pilot Shop", slug: SHOP_SLUG, bookingPolicy: policy }],
+    providers: [{ username: OWNER_USERNAME, displayName: "E2E Mobile Owner", role: "owner", shopId: SHOP_ID }],
+    services: [{ id: SERVICE_ID, name: "E2E Mobile Cut", title: "E2E Mobile Cut", price: 35, duration: 30, durationMinutes: 30, active: true, shopId: SHOP_ID, barberUsername: OWNER_USERNAME, ownerUsername: OWNER_USERNAME }],
+    availabilityByBarber: { [OWNER_USERNAME]: { timezone: "America/Chicago", bufferMinutes: 0, weekly, timeOff: [] } },
+    bookings: [],
+  };
+
+  let bookingPostAttempted = false;
+  let bookingPostHadAuthorization = false;
+  let bookingShouldConflict = false;
+  let safeFailureDiagnostic = null;
+  page.on("console", async (message) => {
+    if (message.type() !== "error" || !message.text().includes("[Slotzy:public-booking] Save failed")) return;
+    safeFailureDiagnostic = await message.args()[1]?.jsonValue().catch(() => null);
+  });
+  await page.route("**/api/public/booking-context**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(publicContextPayload) });
+  });
+  await page.route("**/api/bookings", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    bookingPostAttempted = true;
+    bookingPostHadAuthorization = Boolean(route.request().headers().authorization);
+    const submitted = route.request().postDataJSON();
+    if (bookingShouldConflict) {
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "selected time is no longer available", code: "booking_conflict" }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({ booking: { ...submitted, id: "11111111-1111-4111-8111-111111111111", status: "booked" } }),
+    });
+  });
+
+  await page.goto("/pages/index.html");
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await page.goto("/pages/business-owner.html");
+  const bookingLink = await page.locator("#pilotBookingLink").inputValue();
+  expect(bookingLink).toContain(`/pages/book.html?shop=${SHOP_SLUG}`);
+
+  await page.evaluate(() => {
+    sessionStorage.clear();
+    localStorage.removeItem("Slotzy_auth_token");
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_mobile_readiness_seeded", "1");
+  });
+  await page.goto(bookingLink);
+  await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("slotzy-shell-v3"))).toBe(true);
+
+  await page.locator("#serviceSelect").selectOption(SERVICE_ID);
+  const bookingDate = new Date();
+  bookingDate.setDate(bookingDate.getDate() + 2);
+  await page.locator("#bookingDate").fill(toYmd(bookingDate));
+  const firstSlotValue = await page.locator("#time-slot-select option[value]:not([value=''])").first().getAttribute("value");
+  expect(firstSlotValue).toBeTruthy();
+  await page.locator("#time-slot-select").selectOption(String(firstSlotValue));
+  await page.locator("#clientName").fill("E2E Anonymous Mobile Client");
+  await page.locator("#clientContact").fill("anonymous-mobile@example.test");
+
+  const saveResponsePromise = page.waitForResponse((response) => (
+    response.request().method() === "POST"
+    && new URL(response.url()).pathname === "/api/bookings"
+  ));
+  await page.locator("#bookBtn").click();
+  const saveResponse = await saveResponsePromise;
+  expect(saveResponse.status()).toBe(201);
+  expect(bookingPostAttempted).toBe(true);
+  expect(bookingPostHadAuthorization).toBe(false);
+  await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
+  await expect(page.locator("#bookingReceiptManageLink")).toHaveAttribute("href", /\/pages\/manage\.html\?shop=/);
+  await expectControlFits(page, "#bookingReceiptManageLink");
+  await expectNoPageOverflow(page, "authoritative anonymous booking receipt");
+
+  bookingShouldConflict = true;
+  await page.goto(bookingLink);
+  await page.locator("#serviceSelect").selectOption(SERVICE_ID);
+  await page.locator("#bookingDate").fill(toYmd(bookingDate));
+  const conflictSlot = await page.locator("#time-slot-select option[value]:not([value=''])").first().getAttribute("value");
+  await page.locator("#time-slot-select").selectOption(String(conflictSlot));
+  await page.locator("#clientName").fill("E2E Diagnostic Client");
+  await page.locator("#clientContact").fill("diagnostic-client@example.test");
+  await page.locator("#bookBtn").click();
+  await expect(page.locator("#bookingStatus")).toHaveText("That time was just taken. Choose another time.");
+  await expectReadableStatus(page, "#bookingStatus");
+  await expect.poll(() => safeFailureDiagnostic).toEqual(expect.objectContaining({
+    postAttempted: true,
+    endpointPath: "/api/bookings",
+    httpStatus: 409,
+    responseKeys: ["code", "error"],
+    errorCode: "booking_conflict",
+    selectedProviderExists: true,
+    selectedServiceExists: true,
+    selectedDatePresent: true,
+    selectedTimePresent: true,
+    selectedSlotShape: "iso-utc",
+    serviceWorkerControlled: true,
+    frontendCacheVersion: "slotzy-shell-v3",
+  }));
+  expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("E2E Diagnostic Client");
+  expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("diagnostic-client@example.test");
+});
+
 test("invalid manage link state fits mobile", async ({ page }) => {
   await seedStorage(page, buildSeed());
   await page.goto("/pages/manage.html?shop=missing-mobile-shop&contact=e2e-mobile-invalid%40example.test");

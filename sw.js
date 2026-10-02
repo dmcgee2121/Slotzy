@@ -1,10 +1,11 @@
 // Bump whenever a cache-first shell asset changes so installed phones/PWAs do
 // not keep an older stylesheet or script after a deploy.
-const SHELL_CACHE_NAME = "slotzy-shell-v2";
+const SHELL_CACHE_NAME = "slotzy-shell-v3";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
   "/pages/index.html",
+  "/pages/book.html",
   "/css/styles.css",
   "/css/owner-dashboard.css",
   "/js/main.js",
@@ -12,6 +13,10 @@ const SHELL_ASSETS = [
   "/js/auth.js",
   "/js/core.js",
   "/js/dataStore.js",
+  "/js/api-config.js",
+  "/js/public-config.js",
+  "/js/public-book.js",
+  "/js/booking-engine.js",
   "/js/nav.js",
   "/js/session-ui.js",
   "/assets/images/slotzy-logo.png",

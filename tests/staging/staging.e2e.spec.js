@@ -744,7 +744,7 @@ test("focused staging owner setup API chain", async ({ request }) => {
   // lifecycle test that follows remains responsible for the real wizard/UI.
 });
 
-test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context, request }) => {
+test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context, browser, request }) => {
   const browserErrors = collectBrowserDiagnostics(page);
   const tomorrow = new Date(Date.now() + 86400000);
   const bookingDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][tomorrow.getDay()];
@@ -922,8 +922,17 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     throw new Error(`Owner dashboard did not expose its public booking URL: ${JSON.stringify({ ...dashboardDiagnostics, assertionError: safeDiagnosticText(error?.message) })}`);
   }
   const bookingLink = await bookingLinkInput.inputValue();
-  const publicPage = await context.newPage();
+  const publicContext = await browser.newContext();
+  const publicPage = await publicContext.newPage();
+  const publicContextResponse = publicPage.waitForResponse((response) => (
+    response.request().method() === "GET"
+    && new URL(response.url()).origin === expectedApiOrigin
+    && new URL(response.url()).pathname === "/api/public/booking-context"
+  ));
   await publicPage.goto(bookingLink);
+  const publicContextLoad = await publicContextResponse;
+  expect(publicContextLoad.status()).toBe(200);
+  expect(await publicPage.evaluate(() => Boolean(localStorage.getItem("Slotzy_auth_token")))).toBe(false);
   await selectSyntheticBarber(publicPage, identity.username);
   await selectSyntheticService(publicPage, identity.serviceName);
   await publicPage.locator("#bookingDate").fill(tomorrow.toISOString().slice(0, 10));
@@ -939,6 +948,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   ));
   await publicPage.getByRole("button", { name: /book|confirm/i }).click();
   const bookingSave = await bookingSaveResponse;
+  expect(bookingSave.request().headers().authorization).toBeUndefined();
   let bookingPayload = null;
   try { bookingPayload = await bookingSave.json(); } catch { /* safe response shape below */ }
   const bookingReceipt = publicPage.locator("#bookingReceiptTitle");
@@ -957,6 +967,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   if (bookingSave.status() !== 201 || !receiptState.manageLinkExists || !receiptState.syntheticClientVisibleOnReceipt || !receiptState.syntheticServiceVisibleOnReceipt) {
     throw new Error(`Public booking did not create a verifiable receipt/manage link: ${JSON.stringify(receiptState)}`);
   }
+  await publicContext.close();
 
   await page.goto(`${frontendUrl}/pages/manage-appointments.html`);
   await expect(page.getByText(identity.clientName)).toBeVisible();

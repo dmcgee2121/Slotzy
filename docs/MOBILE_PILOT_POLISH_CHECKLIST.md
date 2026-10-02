@@ -156,3 +156,14 @@ Separate pilot-blocker candidate: a manual mobile customer booking save error re
 ## Recommended very next task
 
 Implement a focused **mobile owner dashboard hierarchy and navigation pass**. Scope it to `pages/business-owner.html`, the shared owner header/navigation used by owner pages, and responsive styles; preserve booking, availability, and persistence behavior. The acceptance target is a short daily-use dashboard at 375px with Today/next appointment, primary daily actions, and share booking link visible early, while Services, Availability, Settings, Team, and Reports remain easy to reach through a consistent mobile navigation pattern. Add or update tests only for the resulting presentation contract after the UI direction is chosen.
+
+## Public booking save diagnosis (2026-10-01)
+
+- [x] The manual phone's exact failure was not reproduced on a physical device in this workspace, but its deterministic application path was reproduced in code: a public visitor without an owner JWT reached an API adapter that required authentication before fetch, so `POST /api/bookings` was never attempted and the generic save message was shown.
+- [x] The public page now loads a privacy-limited booking context and creates bookings through anonymous server endpoints. A receipt is still rendered only after HTTP 201 and the authoritative booking response is available.
+- [x] The server validates the selected shop/provider/service relationship, canonical service duration/price/deposit fields, future time, and overlap conflicts. Known conflict, connection, and invalid-selection failures now have customer-safe messages.
+- [x] Failure diagnostics contain only POST-attempt state, endpoint path, HTTP status, response-key names, sanitized code/message, selection booleans/value shapes, service-worker control state, and frontend cache version. They exclude customer details, bodies, credentials, headers, and manage-link values.
+- [x] `slotzy-shell-v3` adds the public booking HTML/JavaScript/configuration to the installed shell and keeps HTML/JavaScript network-first, removing the old shell during activation.
+- [x] Mobile coverage now opens the dashboard's real booking link in API mode without an auth token, under service-worker control, and requires anonymous `POST /api/bookings` HTTP 201, receipt, manage link, no document overflow, and no Authorization header across all four configured viewports.
+- [ ] After coordinated Render then Netlify staging deploys, rerun the guarded hosted lifecycle. Its customer booking page now uses a separate anonymous browser context rather than inheriting the owner's storage.
+- [ ] Repeat the original flow on the affected phone after the new service worker activates; verify the old cache is removed, try a genuinely fresh slot, test a deliberate same-slot conflict, and test an offline/reconnect retry without double submission.

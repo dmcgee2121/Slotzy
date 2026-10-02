@@ -2337,13 +2337,30 @@ export function initBookingEngine(options = {}) {
 
     const bookings = getBookings();
     bookings.push(booking);
+    let confirmedBooking = booking;
     try {
-      await Promise.resolve(saveBookings(bookings));
-    } catch {
-      setStatus("Could not save your appointment right now. Please try again.", false);
+      const saveResult = await Promise.resolve(saveBookings(bookings));
+      if (saveResult && typeof saveResult === "object" && !Array.isArray(saveResult) && saveResult.id) {
+        confirmedBooking = { ...booking, ...saveResult };
+        const pendingIndex = bookings.findIndex((entry) => String(entry?.id ?? "") === String(booking.id));
+        if (pendingIndex >= 0) bookings[pendingIndex] = confirmedBooking;
+      }
+    } catch (error) {
+      console.error("[Slotzy:public-booking] Save failed", buildSafeBookingFailureDiagnostic(error, {
+        barber,
+        service,
+        shop,
+        dateYmd,
+        selectedSlotValue,
+      }));
+      setStatus(getPublicBookingFailureMessage(error), false);
+      if (Number(error?.httpStatus) === 409 || String(error?.code ?? "") === "booking_conflict") {
+        selectedSlotValue = "";
+        renderSlots();
+      }
       return;
     }
-    setLastBookingId(booking.id);
+    setLastBookingId(confirmedBooking.id);
 
     showToast?.("Booked!", "success");
     selectedSlotValue = "";
@@ -2352,11 +2369,97 @@ export function initBookingEngine(options = {}) {
     renderSlots();
     renderClientAppointments();
     renderLastBookingPrompt();
-    renderBookingReceipt(booking);
+    renderBookingReceipt(confirmedBooking);
     queueBookingNotification("booking", {
-      booking,
-      manageLink: buildClientManageLink(booking, getConfirmationCode(booking.id)),
+      booking: confirmedBooking,
+      manageLink: buildClientManageLink(confirmedBooking, getConfirmationCode(confirmedBooking.id)),
     });
+  }
+
+  function getPublicBookingFailureMessage(error) {
+    const code = String(error?.code ?? "").trim().toLowerCase();
+    const status = Number(error?.httpStatus ?? 0);
+    if (status === 409 || code === "booking_conflict" || code === "slot_unavailable") {
+      return "That time was just taken. Choose another time.";
+    }
+    if (code === "network_error" || (error?.requestAttempted && status === 0)) {
+      return "We could not reach the booking server. Check your connection and try again.";
+    }
+    if (status === 400 && [
+      "invalid_booking",
+      "invalid_service",
+      "invalid_provider",
+      "invalid_shop",
+      "slot_unavailable",
+    ].includes(code)) {
+      return "Please choose a service and time before confirming.";
+    }
+    return "Could not save your appointment right now. Please try again.";
+  }
+
+  function buildSafeBookingFailureDiagnostic(error, selection) {
+    return {
+      postAttempted: Boolean(error?.requestAttempted),
+      endpointPath: normalizeDiagnosticEndpoint(error?.endpointPath),
+      httpStatus: Number(error?.httpStatus ?? 0) || null,
+      responseKeys: Array.isArray(error?.responseKeys)
+        ? error.responseKeys.map((key) => String(key)).filter(isSafeDiagnosticKey).slice(0, 12)
+        : [],
+      errorCode: sanitizeDiagnosticText(error?.code, 48),
+      errorMessage: sanitizeDiagnosticText(error?.message, 160),
+      selectedProviderExists: Boolean(selection?.barber),
+      selectedServiceExists: Boolean(selection?.service),
+      selectedDatePresent: Boolean(String(selection?.dateYmd ?? "").trim()),
+      selectedTimePresent: Boolean(String(selection?.selectedSlotValue ?? "").trim()),
+      selectedSlotShape: describeSlotShape(selection?.selectedSlotValue),
+      shopIdShape: describeIdShape(selection?.shop?.id),
+      serviceIdShape: describeIdShape(selection?.service?.id),
+      serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
+      frontendCacheVersion: sanitizeDiagnosticText(
+        bookingContext?.frontendCacheVersion || document.documentElement.dataset.publicBookingBuild,
+        48
+      ),
+    };
+  }
+
+  function normalizeDiagnosticEndpoint(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "/api/bookings";
+    try {
+      return new URL(raw, window.location.origin).pathname;
+    } catch {
+      return raw.startsWith("/") && !raw.includes("?") ? raw.slice(0, 80) : "/api/bookings";
+    }
+  }
+
+  function isSafeDiagnosticKey(value) {
+    return /^[a-z][a-z0-9_-]{0,47}$/i.test(String(value ?? ""));
+  }
+
+  function sanitizeDiagnosticText(value, maxLength) {
+    return String(value ?? "")
+      .replace(/https?:\/\/\S+/gi, "[redacted-url]")
+      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
+      .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, "[redacted-number]")
+      .replace(/bearer\s+\S+/gi, "[redacted-token]")
+      .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[redacted-token]")
+      .slice(0, maxLength);
+  }
+
+  function describeSlotShape(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "missing";
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(raw)) return "iso-utc";
+    if (/^\d{2}:\d{2}$/.test(raw)) return "time-hhmm";
+    return "other";
+  }
+
+  function describeIdShape(value) {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "missing";
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) return "uuid";
+    if (/^[a-z]+_[a-z0-9_-]+$/i.test(raw)) return "prefixed";
+    return "opaque";
   }
 
   function renderClientAppointments() {

@@ -143,3 +143,11 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - [x] Use test data only; no customer or pilot data.
 - [x] Staging Supabase project is separate from production.
 - [ ] Confirm no secrets are committed, logged, or client-visible.
+
+## Anonymous public booking regression (2026-10-01)
+
+- Root cause category: application authorization mismatch plus an automated-test session-isolation gap. The public page required a JWT before its booking POST, and the server required authentication; the hosted test's customer tab inherited the owner's authenticated context.
+- The manual phone itself was not available for exact reproduction. The failing unauthenticated path was confirmed deterministically from the client/server code and is now covered by an anonymous mobile API-mode test.
+- After deployment, the hosted lifecycle must load `/api/public/booking-context` with HTTP 200 from a separate browser context, prove no frontend auth token is present, send `POST /api/bookings` without Authorization, require HTTP 201, and require the receipt/manage link before continuing to the existing owner-visible booking and persisted cancellation checks.
+- Deploy order is Render first, then Netlify. Running the strengthened hosted suite against the pre-change deployment is expected to fail because the anonymous public context/create contract is not deployed yet.
+- Real-phone follow-up: allow the `slotzy-shell-v3` worker to activate, reopen the dashboard-generated link, create a fresh-slot booking, verify a deliberate conflict message, toggle connectivity before submission, and confirm the manage link/cancellation still persists after reload.

@@ -1243,6 +1243,91 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+app.get("/api/public/booking-context", async (req, res) => {
+  try {
+    const db = await readStore();
+    const requestedShopId = normalizeUsername(req.query.shopId);
+    const requestedSlug = String(req.query.shop ?? "").trim().toLowerCase();
+    let shops = [...db.shops];
+
+    if (requestedShopId) {
+      shops = shops.filter((shop) => normalizeUsername(shop?.id) === requestedShopId);
+    } else if (requestedSlug) {
+      shops = shops.filter((shop) => String(shop?.slug ?? "").trim().toLowerCase() === requestedSlug);
+    }
+    if ((requestedShopId || requestedSlug) && shops.length === 0) {
+      return res.status(404).json({ error: "shop not found", code: "invalid_shop" });
+    }
+
+    const shopIds = new Set(shops.map((shop) => normalizeUsername(shop?.id)).filter(Boolean));
+    const providers = db.users
+      .filter((user) => isProviderRole(user?.role))
+      .map((user) => ({
+        username: normalizeUsername(user?.username),
+        displayName: String(user?.displayName ?? user?.username ?? "").trim(),
+        role: normalizeRole(user?.role),
+        shopId: getUserShopId(db, user),
+      }))
+      .filter((user) => shopIds.has(user.shopId));
+    const providerNames = new Set(providers.map((provider) => provider.username));
+    const services = db.services
+      .filter((service) => service?.active !== false)
+      .filter((service) => shopIds.has(normalizeUsername(service?.shopId)))
+      .filter((service) => providerNames.has(normalizeUsername(service?.barberUsername ?? service?.ownerUsername)))
+      .map((service) => ({
+        id: normalizeUsername(service?.id),
+        name: String(service?.name ?? service?.title ?? "Service").trim(),
+        title: String(service?.title ?? service?.name ?? "Service").trim(),
+        price: normalizePrice(service?.price, 0),
+        durationMinutes: normalizeDuration(service?.durationMinutes ?? service?.duration, 30),
+        duration: normalizeDuration(service?.durationMinutes ?? service?.duration, 30),
+        shopId: normalizeUsername(service?.shopId),
+        barberUsername: normalizeUsername(service?.barberUsername ?? service?.ownerUsername),
+        ownerUsername: normalizeUsername(service?.barberUsername ?? service?.ownerUsername),
+        active: true,
+      }));
+    const availabilityByBarber = Object.fromEntries(
+      providers.map((provider) => [provider.username, normalizeAvailabilityEntry(db.availability?.[provider.username])])
+    );
+    const bookings = db.bookings
+      .filter((booking) => shopIds.has(resolveBookingShopId(db, booking)))
+      .filter((booking) => {
+        const status = normalizeBookingStatus(booking?.status);
+        return status === "booked" || status === "confirmed";
+      })
+      .map((booking) => ({
+        shopId: resolveBookingShopId(db, booking),
+        ownerUsername: normalizeUsername(booking?.ownerUsername ?? booking?.barberUsername),
+        barberUsername: normalizeUsername(booking?.barberUsername ?? booking?.ownerUsername),
+        startISO: toIsoOrNull(booking?.startISO ?? booking?.startAtISO),
+        endISO: toIsoOrNull(booking?.endISO),
+        durationMinutes: normalizeDuration(booking?.durationMinutes, 30),
+        status: normalizeBookingStatus(booking?.status),
+      }));
+
+    return res.json({
+      shops: shops.map((shop) => ({
+        id: normalizeUsername(shop?.id),
+        name: String(shop?.name ?? shop?.businessName ?? "Shop").trim(),
+        businessName: String(shop?.businessName ?? shop?.name ?? "Shop").trim(),
+        slug: String(shop?.slug ?? "").trim(),
+        shopPhone: String(shop?.shopPhone ?? shop?.phone ?? "").trim(),
+        address: String(shop?.address ?? "").trim(),
+        logo: String(shop?.logo ?? shop?.logoDataUrl ?? "").trim(),
+        cover: String(shop?.cover ?? shop?.coverDataUrl ?? "").trim(),
+        branding: shop?.branding && typeof shop.branding === "object" ? shop.branding : {},
+        bookingPolicy: normalizeBookingPolicy(shop?.bookingPolicy),
+      })),
+      providers,
+      services,
+      availabilityByBarber,
+      bookings,
+    });
+  } catch {
+    return res.status(500).json({ error: "booking page is temporarily unavailable", code: "booking_context_unavailable" });
+  }
+});
+
 app.get("/api/auth/me", requireAuth, (req, res) => {
   return res.json({ user: buildAuthUser(req.user) });
 });
@@ -1403,6 +1488,31 @@ function logStagingShopFailure(marker, fields) {
   const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
   if (environment !== "staging" && environment !== "development") return;
   console.error(`[Slotzy:shops] ${marker}`, fields);
+}
+
+async function optionalAuth(req, res, next) {
+  try {
+    const db = await readStore();
+    const token = getBearerToken(req);
+    req.db = db;
+    req.user = null;
+    if (!token) return next();
+
+    const payload = jwt.verify(token, JWT_SECRET);
+    const username = normalizeUsername(payload?.username);
+    const user = username ? findUserByUsername(db, username) : null;
+    if (!user) {
+      return res.status(401).json({ error: "invalid or expired token", code: "invalid_auth" });
+    }
+    req.user = {
+      ...user,
+      username: normalizeUsername(user.username),
+      role: normalizeRole(user.role),
+    };
+    return next();
+  } catch {
+    return res.status(401).json({ error: "invalid or expired token", code: "invalid_auth" });
+  }
 }
 
 app.get("/api/services", requireAuth, (req, res) => {
@@ -1816,31 +1926,32 @@ app.get("/api/bookings", requireAuth, (req, res) => {
   return res.json({ bookings });
 });
 
-app.post("/api/bookings", requireAuth, async (req, res) => {
+app.post("/api/bookings", optionalAuth, async (req, res) => {
   try {
     const db = req.db;
     const user = req.user;
+    const isAnonymous = !user;
 
     let targetBarberUsername = normalizeUsername(req.body?.barberUsername ?? req.body?.ownerUsername);
-    if (isBarber(user)) {
+    if (user && isBarber(user)) {
       targetBarberUsername = user.username;
-    } else if (isOwner(user) && !targetBarberUsername) {
+    } else if (user && isOwner(user) && !targetBarberUsername) {
       targetBarberUsername = user.username;
     }
     if (!targetBarberUsername) {
-      return res.status(400).json({ error: "barberUsername is required" });
+      return res.status(400).json({ error: "barberUsername is required", code: "invalid_provider" });
     }
 
     const provider = findUserByUsername(db, targetBarberUsername);
     if (!provider || !isProviderRole(provider.role)) {
-      return res.status(400).json({ error: "barberUsername must reference a barber/owner account" });
+      return res.status(400).json({ error: "selected provider is unavailable", code: "invalid_provider" });
     }
 
     const requestedShopId = normalizeUsername(req.body?.shopId);
     const providerShopId = getUserShopId(db, provider);
     let shopId = requestedShopId || providerShopId;
 
-    if (isOwner(user)) {
+    if (user && isOwner(user)) {
       const ownerShopId = getUserShopId(db, user);
       if (!ownerShopId) {
         return res.status(400).json({ error: "owner must have a shop before creating bookings" });
@@ -1852,7 +1963,7 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
       if (shopId !== ownerShopId) {
         return res.status(403).json({ error: "booking shopId must match owner's shop" });
       }
-    } else if (isBarber(user)) {
+    } else if (user && isBarber(user)) {
       const barberShopId = getUserShopId(db, user);
       if (!usernamesEqual(provider.username, user.username)) {
         return res.status(403).json({ error: "barber can only create bookings for self" });
@@ -1862,30 +1973,93 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
         return res.status(403).json({ error: "booking shopId must match barber's shop" });
       }
     } else if (requestedShopId && providerShopId && requestedShopId !== providerShopId) {
-      return res.status(400).json({ error: "shopId does not match selected provider" });
+      return res.status(400).json({ error: "shop does not match selected provider", code: "invalid_shop" });
     }
 
     if (!shopId) {
-      return res.status(400).json({ error: "unable to resolve shopId for booking" });
+      return res.status(400).json({ error: "unable to resolve shop for booking", code: "invalid_shop" });
+    }
+
+    const shop = findShopById(db, shopId);
+    if (!shop) {
+      return res.status(400).json({ error: "selected shop is unavailable", code: "invalid_shop" });
+    }
+
+    const serviceId = normalizeUsername(req.body?.serviceId);
+    const service = db.services.find((entry) => normalizeUsername(entry?.id) === serviceId) || null;
+    if (isAnonymous) {
+      const serviceProvider = normalizeUsername(service?.barberUsername ?? service?.ownerUsername);
+      if (
+        !service
+        || service?.active === false
+        || normalizeUsername(service?.shopId) !== shopId
+        || !usernamesEqual(serviceProvider, provider.username)
+      ) {
+        return res.status(400).json({ error: "selected service is unavailable", code: "invalid_service" });
+      }
+      if (!String(req.body?.clientName ?? "").trim() || !String(req.body?.clientContact ?? "").trim()) {
+        return res.status(400).json({ error: "customer details are required", code: "invalid_booking" });
+      }
     }
 
     const startISO = toIsoOrNull(req.body?.startISO ?? req.body?.start);
     const endISO = toIsoOrNull(req.body?.endISO ?? req.body?.end);
     if (req.body?.startISO !== undefined && !startISO) {
-      return res.status(400).json({ error: "startISO must be a valid date" });
+      return res.status(400).json({ error: "startISO must be a valid date", code: "invalid_booking" });
     }
     if (req.body?.endISO !== undefined && !endISO) {
-      return res.status(400).json({ error: "endISO must be a valid date" });
+      return res.status(400).json({ error: "endISO must be a valid date", code: "invalid_booking" });
+    }
+    if (isAnonymous && (!startISO || !endISO || new Date(startISO) >= new Date(endISO))) {
+      return res.status(400).json({ error: "a valid appointment time is required", code: "invalid_booking" });
+    }
+    if (isAnonymous && new Date(startISO).getTime() <= Date.now()) {
+      return res.status(409).json({ error: "selected time is no longer available", code: "slot_unavailable" });
+    }
+
+    const canonicalDuration = service
+      ? normalizeDuration(service?.durationMinutes ?? service?.duration, 30)
+      : normalizeDuration(req.body?.durationMinutes, 30);
+    if (isAnonymous && new Date(endISO).getTime() - new Date(startISO).getTime() !== canonicalDuration * 60 * 1000) {
+      return res.status(400).json({ error: "appointment duration does not match service", code: "invalid_service" });
+    }
+
+    const policy = normalizeBookingPolicy(shop?.bookingPolicy);
+    const requestedStart = startISO ? new Date(startISO) : null;
+    const requestedEnd = endISO ? new Date(endISO) : null;
+    if (isAnonymous && requestedStart && requestedEnd) {
+      const conflict = db.bookings.some((existing) => {
+        const status = normalizeBookingStatus(existing?.status);
+        if (status !== "booked" && status !== "confirmed") return false;
+        if (!usernamesEqual(existing?.barberUsername ?? existing?.ownerUsername, provider.username)) return false;
+        const existingStart = getBookingStartDate(existing);
+        const existingEnd = getBookingEndDate(existing);
+        if (!existingStart || !existingEnd) return false;
+        const bufferMs = policy.bufferMinutes * 60 * 1000;
+        return requestedStart.getTime() < existingEnd.getTime() + bufferMs
+          && requestedEnd.getTime() > existingStart.getTime() - bufferMs;
+      });
+      if (conflict) {
+        return res.status(409).json({ error: "selected time is no longer available", code: "booking_conflict" });
+      }
     }
 
     let customerUsername = normalizeUsername(req.body?.customerUsername);
-    if (isCustomer(user)) {
+    if (isAnonymous) {
+      customerUsername = "";
+    } else if (isCustomer(user)) {
       customerUsername = user.username;
     }
 
     const now = new Date().toISOString();
-    const deposit = normalizeDepositFields(req.body);
-    const status = normalizeBookingStatus(req.body?.status);
+    const deposit = isAnonymous
+      ? normalizeDepositFields({
+        depositRequired: policy.requireDeposit && policy.depositAmount > 0,
+        depositAmount: policy.depositAmount,
+        depositStatus: policy.requireDeposit && policy.depositAmount > 0 ? "unpaid" : "not_required",
+      })
+      : normalizeDepositFields(req.body);
+    const status = isAnonymous ? "booked" : normalizeBookingStatus(req.body?.status);
 
     const booking = {
       ...req.body,
@@ -1895,6 +2069,13 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
       barberUsername: provider.username,
       customerUsername: customerUsername || null,
       status,
+      ...(service ? {
+        serviceId: normalizeUsername(service.id),
+        serviceName: String(service?.name ?? service?.title ?? "Service").trim(),
+        serviceTitle: String(service?.title ?? service?.name ?? "Service").trim(),
+        durationMinutes: canonicalDuration,
+        price: normalizePrice(service?.price, 0),
+      } : {}),
       ...deposit,
       createdAtISO: String(req.body?.createdAtISO ?? req.body?.createdAt ?? now),
       updatedAtISO: now,
@@ -1915,8 +2096,13 @@ app.post("/api/bookings", requireAuth, async (req, res) => {
     }
 
     return res.status(201).json({ booking });
-  } catch {
-    return res.status(500).json({ error: "internal server error" });
+  } catch (error) {
+    const code = String(error?.code ?? "").toLowerCase();
+    const message = String(error?.message ?? "").toLowerCase();
+    if (code.includes("23p01") || message.includes("booking_overlap")) {
+      return res.status(409).json({ error: "selected time is no longer available", code: "booking_conflict" });
+    }
+    return res.status(500).json({ error: "booking could not be saved", code: "booking_save_failed" });
   }
 });
 
