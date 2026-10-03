@@ -48,6 +48,13 @@ function describeIdShape(value) {
   return "opaque";
 }
 
+function toLocalYmd(date) {
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function collectBrowserDiagnostics(page) {
   const errors = [];
   const add = (source, message) => {
@@ -754,7 +761,9 @@ test("focused staging owner setup API chain", async ({ request }) => {
 
 test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context, browser, request }) => {
   const browserErrors = collectBrowserDiagnostics(page);
-  const tomorrow = new Date(Date.now() + 86400000);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowYmd = toLocalYmd(tomorrow);
   const bookingDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][tomorrow.getDay()];
   // The health guard above completes before this test can write any data.
   await page.goto(`${frontendUrl}/pages/index.html`);
@@ -959,9 +968,47 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   expect(await publicPage.evaluate(() => Boolean(localStorage.getItem("Slotzy_auth_token")))).toBe(false);
   await selectSyntheticBarber(publicPage, identity.username);
   await selectSyntheticService(publicPage, identity.serviceName);
-  await publicPage.locator("#bookingDate").fill(tomorrow.toISOString().slice(0, 10));
+  await publicPage.locator("#bookingDate").fill(tomorrowYmd);
   const slot = publicPage.locator("#time-slot-select option[value]:not([value=''])").first();
-  await expect(slot).toBeAttached();
+  try {
+    await expect(slot).toBeAttached();
+  } catch (error) {
+    let contextPayload = null;
+    try { contextPayload = await publicContextLoad.json(); } catch { /* response shape below */ }
+    const selected = await publicPage.evaluate(() => ({
+      shopId: String(document.querySelector("#shopSelect")?.value || ""),
+      providerId: String(document.querySelector("#barberSelect")?.value || ""),
+      serviceId: String(document.querySelector("#serviceSelect")?.value || ""),
+      date: String(document.querySelector("#bookingDate")?.value || ""),
+      slotCount: document.querySelectorAll("#time-slot-select option[value]:not([value=''])").length,
+      slotPanelText: String(document.querySelector("#slotList")?.textContent || "").trim().slice(0, 180),
+      browserLocalDate: new Date().toString().slice(0, 80),
+    }));
+    const provider = (Array.isArray(contextPayload?.providers) ? contextPayload.providers : [])
+      .find((item) => String(item?.username || "") === selected.providerId);
+    const service = (Array.isArray(contextPayload?.services) ? contextPayload.services : [])
+      .find((item) => String(item?.id || "") === selected.serviceId);
+    const dayAvailability = contextPayload?.availabilityByBarber?.[selected.providerId]?.weekly?.[bookingDay] || null;
+    throw new Error(`Public booking produced no slots: ${JSON.stringify({
+      responseStatus: publicContextLoad.status(),
+      responseKeys: contextPayload && typeof contextPayload === "object" ? Object.keys(contextPayload).sort() : [],
+      selectedShopIdShape: describeIdShape(selected.shopId),
+      selectedProviderIdShape: describeIdShape(selected.providerId),
+      selectedServiceIdShape: describeIdShape(selected.serviceId),
+      selectedDate: selected.date,
+      providerCount: Array.isArray(contextPayload?.providers) ? contextPayload.providers.length : 0,
+      serviceCount: Array.isArray(contextPayload?.services) ? contextPayload.services.length : 0,
+      providerFound: Boolean(provider),
+      serviceFound: Boolean(service),
+      serviceDurationValid: Number.isFinite(Number(service?.durationMinutes)) && Number(service.durationMinutes) > 0,
+      tomorrowAvailabilityEnabled: dayAvailability?.enabled === true,
+      tomorrowAvailabilityHasTimes: Boolean(dayAvailability?.start && dayAvailability?.end),
+      generatedSlotCount: selected.slotCount,
+      slotPanelText: safeDiagnosticText(selected.slotPanelText),
+      browserLocalDate: safeDiagnosticText(selected.browserLocalDate),
+      assertion: safeDiagnosticText(error?.message),
+    })}`);
+  }
   await publicPage.selectOption("#time-slot-select", await slot.getAttribute("value"));
   await publicPage.fill("#clientName", identity.clientName);
   await publicPage.fill("#clientContact", identity.clientEmail);

@@ -326,6 +326,37 @@ test("public booking no-times state offers a mobile-safe next action", async ({ 
   await expectNoPageOverflow(page, "public booking no-times state");
 });
 
+test.describe("local-calendar public booking slots", () => {
+  test.use({ timezoneId: "America/Los_Angeles" });
+
+  test("public booking generates future-date slots from a local calendar date", async ({ page }) => {
+    const seed = buildSeed({ configuredOwner: true });
+    Object.entries(seed.local.Slotzy_availability[OWNER_USERNAME].weekly).forEach(([dayKey, day]) => {
+      day.enabled = false;
+    });
+    await seedStorage(page, seed);
+    await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+    const futureDate = await page.evaluate(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 2);
+      const ymd = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+      return { ymd, day: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][date.getDay()] };
+    });
+    await page.evaluate(({ day }) => {
+      const availability = JSON.parse(localStorage.getItem("Slotzy_availability") || "{}");
+      Object.entries(availability["owner_mobile_pilot"].weekly).forEach(([dayKey, value]) => {
+        value.enabled = dayKey === day;
+      });
+      localStorage.setItem("Slotzy_availability", JSON.stringify(availability));
+    }, futureDate);
+    await page.reload();
+    await page.locator("#serviceSelect").selectOption(SERVICE_ID);
+    await page.locator("#bookingDate").fill(futureDate.ymd);
+
+    await expect(page.locator("#time-slot-select option[value]:not([value=''])").first()).toBeAttached();
+  });
+});
+
 test("public booking receipt and manage cancellation work on mobile", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }));
   await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);

@@ -2213,14 +2213,19 @@ export function initBookingEngine(options = {}) {
 
     const bookedWindows = getBookedWindowsForBarber(barberUsername, availability.bufferMinutes);
     const timeOffWindows = getTimeOffWindows(availability);
-    const nowTs = Date.now();
+    // A date input is a calendar date, not a UTC instant.  Only apply the
+    // clock-based past-slot check when that calendar date is today; otherwise
+    // a valid future day must not be discarded because of an instant/timezone
+    // comparison.
+    const isToday = dateYmd === toYmd(new Date());
+    const nowTs = isToday ? Date.now() : 0;
     const slots = [];
 
     for (let startMin = dayStartMin; startMin + durationMinutes <= dayEndMin; startMin += SLOT_INCREMENT_MINUTES) {
       const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, startMin, 0, 0);
       const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
 
-      if (startDate.getTime() < nowTs) continue;
+      if (isToday && startDate.getTime() < nowTs) continue;
       if (overlapsAnyWindow(startDate, endDate, bookedWindows)) continue;
       if (overlapsAnyWindow(startDate, endDate, timeOffWindows)) continue;
 
