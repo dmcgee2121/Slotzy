@@ -678,6 +678,18 @@ export function initBookingEngine(options = {}) {
   }
 
   function buildClientManageLink(booking, confirmationId) {
+    const manageToken = String(booking?.manageToken ?? "").trim();
+    if (manageToken) {
+      try {
+        const url = new URL("./manage.html", window.location.href);
+        // A fragment is not sent in HTTP requests or Referer headers. The manage
+        // page exchanges it directly with the API after it has loaded.
+        url.hash = `token=${encodeURIComponent(manageToken)}`;
+        return url.toString();
+      } catch {
+        return "";
+      }
+    }
     const shopSlug = getBookingShopSlug(booking);
     const contact = String(booking?.clientContact ?? "").trim();
     if (!shopSlug || !contact) return "";

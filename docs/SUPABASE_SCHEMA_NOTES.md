@@ -52,6 +52,8 @@ The existing file has top-level `users`, `shops`, `services`, `availability` (ob
 
 The existing local route authorizes by shop slug plus contact query text. That is not sufficient for hosted client data.
 
+Hosted routes use a 32-byte random opaque token returned exactly once on booking creation. It is placed in the browser URL fragment and verified server-side against the SHA-256 hash in `booking_manage_tokens`; contact-query access is not accepted by the hosted API. No additional schema migration is required when the checked-in schema (including `booking_manage_tokens`) is already applied.
+
 When a booking is created in the hosted flow, Express should:
 
 1. Generate at least 32 random bytes using `crypto.randomBytes` (base64url encoded).

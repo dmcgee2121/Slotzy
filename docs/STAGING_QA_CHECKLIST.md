@@ -1,5 +1,12 @@
 # Staging QA checklist
 
+## Manage-token authorization gate (2026-10-02)
+
+- [ ] After Render and Netlify deploy, create a synthetic anonymous booking and confirm its receipt manage URL contains `#token=` and no contact query.
+- [ ] Open that link: exactly its appointment loads and a permitted cancellation persists after refresh.
+- [ ] Confirm a contact-only URL cannot load hosted appointments; invalid and altered tokens cannot read or cancel a booking.
+- [ ] Confirm the owner still sees the anonymous booking. Do not record tokens in QA notes, screenshots, console captures, or logs.
+
 Use only synthetic staging data. Record date, tester, browser/device, and any defect links for each run.
 
 ## Public Booking visual polish Phase 2 gate (2026-10-02)

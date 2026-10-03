@@ -337,9 +337,27 @@ export async function createPublicBookingAsync(booking) {
       responseKeys: isObjectRecord(payload) ? Object.keys(payload) : [],
     });
   }
+  // Keep the one-time secret available to the receipt without adding it to the
+  // local booking cache (or any generic diagnostics / serialization path).
+  const manageToken = String(payload?.manageToken ?? "").trim();
+  if (manageToken) {
+    Object.defineProperty(created, "manageToken", { value: manageToken, enumerable: false });
+  }
   const current = getBookings();
   saveBookings([...current.filter((entry) => toRecordId(entry?.id) !== toRecordId(created.id)), created]);
   return created;
+}
+
+export async function getPublicManageBookingAsync(manageToken) {
+  const token = String(manageToken ?? "").trim();
+  if (!token) throw createApiRequestError("This manage link is invalid or has expired.", { code: "invalid_manage_token" });
+  return apiRequest("/public/manage", { requireAuth: false, headers: { "X-Slotzy-Manage-Token": token } });
+}
+
+export async function cancelPublicManageBookingAsync(manageToken) {
+  const token = String(manageToken ?? "").trim();
+  if (!token) throw createApiRequestError("This manage link is invalid or has expired.", { code: "invalid_manage_token" });
+  return apiRequest("/public/manage/cancel", { method: "PATCH", requireAuth: false, headers: { "X-Slotzy-Manage-Token": token } });
 }
 
 export function safeParse(json, fallback) {

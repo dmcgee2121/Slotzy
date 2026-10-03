@@ -3,10 +3,10 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { randomUUID } from "crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, writeStore } from "./storage/index.js";
+import { STORAGE_ADAPTER, readStore, storeManageToken, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 
 dotenv.config();
@@ -67,6 +67,29 @@ const EMPTY_DB = {
   emails: [],
 };
 
+// Opaque manage credentials are deliberately separate from confirmation codes.
+// Only this hash is persisted; the raw token exists only in the create response.
+function createManageToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+function hashManageToken(token) {
+  return createHash("sha256").update(String(token ?? "")).digest("hex");
+}
+
+function hasManageToken(booking, token) {
+  const expected = String(booking?.manageTokenHash ?? "").trim();
+  const actual = hashManageToken(token);
+  if (!expected || expected.length !== actual.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(actual));
+}
+
+function publicManageBooking(booking) {
+  if (!booking) return null;
+  const { manageTokenHash, ...safeBooking } = booking;
+  return safeBooking;
+}
+
 function resolveJwtSecret() {
   const configuredSecret = String(process.env.JWT_SECRET || "").trim();
   if (configuredSecret) {
@@ -95,7 +118,7 @@ function getCorsOptions() {
       return callback(new Error("CORS origin is not allowed"));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Slotzy-Notify-Mode"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Slotzy-Notify-Mode", "X-Slotzy-Manage-Token"],
   };
 }
 
@@ -1942,6 +1965,55 @@ app.get("/api/bookings", requireAuth, (req, res) => {
   return res.json({ bookings });
 });
 
+// These routes intentionally accept no contact, shop, booking id, or account
+// identifiers. Possession of the opaque token is the complete public authority.
+app.get("/api/public/manage", async (req, res) => {
+  try {
+    const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
+    if (!token || token.length < 32) {
+      return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
+    }
+    const db = await readStore();
+    const booking = db.bookings.find((entry) => hasManageToken(entry, token));
+    if (!booking) {
+      return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
+    }
+    const shop = findShopById(db, resolveBookingShopId(db, booking));
+    if (!shop) return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
+    return res.json({ booking: publicManageBooking(booking), shop: {
+      id: shop.id, name: String(shop.name ?? shop.businessName ?? "Shop"), slug: String(shop.slug ?? ""),
+      bookingPolicy: normalizeBookingPolicy(shop.bookingPolicy),
+    } });
+  } catch {
+    return res.status(500).json({ error: "We could not load this appointment. Try again.", code: "manage_lookup_failed" });
+  }
+});
+
+app.patch("/api/public/manage/cancel", async (req, res) => {
+  try {
+    const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
+    const db = await readStore();
+    const index = db.bookings.findIndex((entry) => hasManageToken(entry, token));
+    if (index < 0) return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
+    const booking = db.bookings[index];
+    const shop = findShopById(db, resolveBookingShopId(db, booking));
+    const start = getBookingStartDate(booking);
+    const policy = normalizeBookingPolicy(shop?.bookingPolicy);
+    if (!shop || !start || !["booked", "confirmed"].includes(normalizeBookingStatus(booking.status))) {
+      return res.status(409).json({ error: "This appointment cannot be cancelled.", code: "cancellation_unavailable" });
+    }
+    if (Date.now() >= start.getTime() - policy.cancelHours * 60 * 60 * 1000) {
+      return res.status(409).json({ error: `Cancellations must be made at least ${policy.cancelHours} hours before.`, code: "cancellation_policy" });
+    }
+    const next = { ...booking, status: "cancelled", updatedAtISO: new Date().toISOString() };
+    db.bookings[index] = next;
+    await writeStore(db);
+    return res.json({ booking: publicManageBooking(next) });
+  } catch {
+    return res.status(500).json({ error: "Could not cancel this appointment. Please try again.", code: "manage_cancel_failed" });
+  }
+});
+
 app.post("/api/bookings", optionalAuth, async (req, res) => {
   try {
     const db = req.db;
@@ -2077,6 +2149,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
       : normalizeDepositFields(req.body);
     const status = isAnonymous ? "booked" : normalizeBookingStatus(req.body?.status);
 
+    const manageToken = isAnonymous ? createManageToken() : "";
     const booking = {
       ...req.body,
       id: randomUUID(),
@@ -2095,6 +2168,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
       ...deposit,
       createdAtISO: String(req.body?.createdAtISO ?? req.body?.createdAt ?? now),
       updatedAtISO: now,
+      ...(manageToken ? { manageTokenHash: hashManageToken(manageToken) } : {}),
     };
 
     if (startISO) booking.startISO = startISO;
@@ -2104,6 +2178,9 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
 
     db.bookings.push(booking);
     await writeStore(db);
+    if (manageToken && STORAGE_ADAPTER === "postgres") {
+      await storeManageToken(booking.id, booking.manageTokenHash, new Date(new Date(endISO).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString());
+    }
     if (!shouldSkipRouteBookingNotify(req)) {
       await sendBookingNotifications(db, {
         type: "booking_created",
@@ -2111,7 +2188,9 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
       });
     }
 
-    return res.status(201).json({ booking });
+    // The token is returned once and is never included in logs, owner reads, or
+    // subsequent booking responses. The browser turns it into the receipt URL.
+    return res.status(201).json({ booking: publicManageBooking(booking), manageToken });
   } catch (error) {
     const code = String(error?.code ?? "").toLowerCase();
     const message = String(error?.message ?? "").toLowerCase();

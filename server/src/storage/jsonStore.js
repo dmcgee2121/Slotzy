@@ -91,6 +91,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     appendOutboxEmail,
     listOutboxEmails,
     clearOutboxEmails,
+    async storeManageToken() {},
   };
 }
 
@@ -101,3 +102,4 @@ export const writeStore = defaultJsonStore.writeStore;
 export const appendOutboxEmail = defaultJsonStore.appendOutboxEmail;
 export const listOutboxEmails = defaultJsonStore.listOutboxEmails;
 export const clearOutboxEmails = defaultJsonStore.clearOutboxEmails;
+export const storeManageToken = defaultJsonStore.storeManageToken;

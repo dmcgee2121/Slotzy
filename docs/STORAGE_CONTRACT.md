@@ -16,6 +16,10 @@ The canonical selector exports these named functions and `STORAGE_ADAPTER`. `SLO
 
 ## Required store shape
 
+## Public manage authorization
+
+Anonymous booking creation generates a cryptographically random bearer token and returns it once. The browser puts it in the manage URL fragment; the API receives it only on explicit token-scoped lookup/cancel routes. Contact, shop slug, booking id, and confirmation code are not public authorization inputs in API/hosted mode. Postgres stores only a SHA-256 hash in `booking_manage_tokens`; JSON demo storage retains only the hash alongside its booking. Owner and barber booking reads remain authenticated and do not require this token.
+
 ```js
 {
   users: [],

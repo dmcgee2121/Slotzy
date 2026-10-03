@@ -36,6 +36,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     shopSlug: "",
     contact: "",
     code: "",
+    token: "",
   };
   let currentShop = null;
   let userMapByUsername = new Map();
@@ -99,6 +100,37 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     currentQuery = getManageQueryState();
     renderContinueCard();
     setManageRetryVisible(false);
+
+    if (currentQuery.token) {
+      try {
+        setLoadingStatus("Loading your appointment...");
+        const payload = await dataStore.getPublicManageBookingAsync(currentQuery.token);
+        const booking = payload?.booking;
+        const shop = payload?.shop;
+        if (!booking || !shop) throw new Error("invalid_manage_response");
+        currentShop = normalizeShop(shop);
+        userMapByUsername = new Map();
+        setHeaderShopName(currentShop.name);
+        manageIdentitySummary.textContent = "Showing the appointment linked to this private manage link.";
+        storeCurrentManageLink();
+        // Token scope currently authorizes read/cancel only. Do not route a
+        // token-holder through the staff-authenticated reschedule workflow.
+        const row = { ...decorateBooking(booking, currentShop), canReschedule: false };
+        const upcoming = row.start.getTime() >= Date.now() && isScheduledStatus(row.status) ? [row] : [];
+        const past = upcoming.length ? [] : [row];
+        showAppointmentSections();
+        renderAppointmentList({ container: manageUpcomingList, emptyState: manageUpcomingEmpty, rows: upcoming });
+        renderAppointmentList({ container: managePastList, emptyState: managePastEmpty, rows: past });
+        clearStatus();
+      } catch (error) {
+        currentShop = null;
+        hideAppointmentSections();
+        setHeaderShopName("Slotzy");
+        manageIdentitySummary.textContent = "";
+        setStatus("This manage link is invalid or has expired. Return to your booking receipt for the private link.", false);
+      }
+      return;
+    }
 
     if (!currentQuery.shopSlug || !currentQuery.contact) {
       currentShop = null;
@@ -190,17 +222,19 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
 
   function getManageQueryState() {
     const params = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(String(window.location.hash ?? "").replace(/^#/, ""));
     return {
       shopSlug: normalizeSlug(params.get("shop")),
       contact: String(params.get("contact") ?? "").trim(),
       code: String(params.get("code") ?? "").trim().toUpperCase(),
+      token: String(hash.get("token") ?? "").trim(),
     };
   }
 
   function renderContinueCard() {
     const storedLink = getStoredManageLink();
     if (!manageContinueCard || !manageContinueLink) return;
-    if (!storedLink || (currentQuery.shopSlug && currentQuery.contact)) {
+    if (!storedLink || currentQuery.token || (currentQuery.shopSlug && currentQuery.contact)) {
       manageContinueCard.classList.add("hidden");
       manageContinueLink.setAttribute("href", "#");
       return;
@@ -349,6 +383,20 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   }
 
   async function handleCancelAppointment(bookingId) {
+    if (currentQuery.token) {
+      try {
+        const payload = await dataStore.cancelPublicManageBookingAsync(currentQuery.token);
+        if (!payload?.booking || normalizeStatus(payload.booking.status) !== "cancelled") throw new Error("cancel_failed");
+        pendingCancelBookingId = "";
+        await renderClientManagePage();
+        setStatus("Appointment cancelled. Your appointment list has been updated.", true);
+        showToast?.("Appointment cancelled.", "success", 2000);
+      } catch {
+        pendingCancelBookingId = "";
+        setStatus("Could not cancel this appointment. Please try again.", false);
+      }
+      return;
+    }
     const runtime = dataStore.getApiRuntimeState();
     const requireApi = runtime.apiEnabled || runtime.authTokenPresent;
     markCancelStage("confirm-handler-entered", { bookingId, runtime, requireApi });

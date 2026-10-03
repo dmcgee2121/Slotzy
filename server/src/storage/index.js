@@ -21,3 +21,4 @@ export const writeStore = activeStore.writeStore;
 export const appendOutboxEmail = activeStore.appendOutboxEmail;
 export const listOutboxEmails = activeStore.listOutboxEmails;
 export const clearOutboxEmails = activeStore.clearOutboxEmails;
+export const storeManageToken = activeStore.storeManageToken;

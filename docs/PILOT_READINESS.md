@@ -1,5 +1,9 @@
 # Pilot readiness
 
+## Manage-token authorization hardening (2026-10-02)
+
+Hosted manage links now use a high-entropy private token in the URL fragment, not shop/contact query text. Lookup and cancellation are token-scoped; invalid tokens receive safe customer wording. Deploy both backend and frontend before staging validation. Apply the existing schema's `booking_manage_tokens` table if it is absent; no database reset is permitted.
+
 ## Owner Dashboard North Star — Phase 1 mobile layout (2026-10-02)
 
 ## Public Booking visual polish Phase 2 (2026-10-02)

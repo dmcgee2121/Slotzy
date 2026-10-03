@@ -1,5 +1,11 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Manage-token authorization hardening (2026-10-02)
+
+- Hosted anonymous booking now receives a one-time opaque manage token. Receipt links use a URL fragment, and token-scoped API endpoints load or cancel only that booking. Hosted contact-query authorization is removed.
+- The server persists only a SHA-256 token hash (JSON demo booking field or Supabase `booking_manage_tokens`), never the raw token; owner appointment access remains authenticated and unchanged.
+- Render and Netlify redeploys are required. Supabase migration is required only if the existing `booking_manage_tokens` table from `docs/SUPABASE_SCHEMA.sql` has not already been applied.
+
 ## Public Booking visual polish Phase 2 (2026-10-02)
 
 - The public shop chooser, direct booking flow, receipt, and manage-link handoff now have explicit mobile containment checks. The chooser action, service/date/time/details controls, receipt link, and manage actions remain easy to tap without horizontal scrolling.

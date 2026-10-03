@@ -127,10 +127,11 @@ export function createPostgresStore(env = process.env) {
       ["read availability", () => client.from("availability").select("*").order("id")],
       ["read time off", () => client.from("time_off").select("*").order("id")],
       ["read bookings", () => client.from("bookings").select("*").order("id")],
+      ["read manage tokens", () => client.from("booking_manage_tokens").select("booking_id, token_hash, revoked_at, expires_at").is("revoked_at", null)],
       ["read email outbox", () => client.from("email_outbox").select("*").order("id")],
       ["read canonical identity mappings", () => client.from("legacy_source_ids").select("entity_type,source_id,target_id").eq("is_canonical", true).order("entity_type").order("source_id")],
     ];
-    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, emails, canonicalMappings] = await Promise.all(
+    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, manageTokens, emails, canonicalMappings] = await Promise.all(
       reads.map(([operation, buildQuery]) => readAllRows(operation, buildQuery))
     );
     const canonicalSourceByTarget = new Map(canonicalMappings.map((row) => [`${row.entity_type}:${row.target_id}`, row.source_id]));
@@ -154,6 +155,7 @@ export function createPostgresStore(env = process.env) {
       rows.forEach((row) => { weekly[days[row.weekday]] = { enabled: row.is_enabled, start: String(row.start_time).slice(0, 5), end: String(row.end_time).slice(0, 5) }; });
       availability[user.username] = { timezone: rows[0]?.timezone ?? "America/Chicago", bufferMinutes: rows[0]?.buffer_minutes ?? 0, weekly, timeOff: offByMember.get(member.id) ?? [] };
     });
+    const tokenHashByBookingId = new Map(manageTokens.map((row) => [row.booking_id, row.token_hash]));
     const providerByService = new Map(); providerServices.forEach((row) => {
       const user = usersById.get(membersById.get(row.provider_member_id)?.user_id); if (user && !providerByService.has(row.service_id)) providerByService.set(row.service_id, user.username);
     });
@@ -162,7 +164,7 @@ export function createPostgresStore(env = process.env) {
       shops: shops.map((row) => ({ id: sourceId("shop", row.id), name: row.name, businessName: row.name, slug: row.slug, ownerUsername: usersById.get(row.owner_user_id)?.username ?? "", shopPhone: row.phone ?? "", shopEmail: row.email ?? "", logo: row.logo_url ?? "", cover: row.cover_url ?? "", createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at), bookingPolicy: legacyPolicy(settingsByShop.get(row.id)) })),
       services: services.map((row) => { const provider = providerByService.get(row.id) ?? ""; return { id: sourceId("service", row.id), name: row.name, title: row.name, price: dollars(row.price_cents), durationMinutes: row.duration_minutes, duration: row.duration_minutes, shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, active: row.is_active, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at) }; }),
       availability,
-      bookings: bookings.map((row) => { const provider = usersById.get(membersById.get(row.provider_member_id)?.user_id)?.username ?? ""; return { id: sourceId("booking", row.id), shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, serviceName: row.service_snapshot?.name ?? "Service", serviceTitle: row.service_snapshot?.name ?? "Service", clientName: row.client_name, clientContact: row.client_contact, clientEmail: row.client_email, clientPhone: row.client_phone, startISO: iso(row.start_at), endISO: iso(row.end_at), durationMinutes: row.duration_minutes, status: row.status, confirmationCode: row.confirmation_code, depositRequired: row.deposit_required, depositAmount: dollars(row.deposit_amount_cents), depositStatus: row.deposit_status, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at) }; }),
+      bookings: bookings.map((row) => { const provider = usersById.get(membersById.get(row.provider_member_id)?.user_id)?.username ?? ""; return { id: sourceId("booking", row.id), shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, serviceName: row.service_snapshot?.name ?? "Service", serviceTitle: row.service_snapshot?.name ?? "Service", clientName: row.client_name, clientContact: row.client_contact, clientEmail: row.client_email, clientPhone: row.client_phone, startISO: iso(row.start_at), endISO: iso(row.end_at), durationMinutes: row.duration_minutes, status: row.status, confirmationCode: row.confirmation_code, depositRequired: row.deposit_required, depositAmount: dollars(row.deposit_amount_cents), depositStatus: row.deposit_status, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at), ...(tokenHashByBookingId.get(row.id) ? { manageTokenHash: tokenHashByBookingId.get(row.id) } : {}) }; }),
       emails: emails.map((row) => ({ id: row.id, createdAtISO: iso(row.created_at), to: row.recipient_email, subject: row.subject, html: row.payload?.html ?? "", text: row.payload?.text ?? "", tags: row.payload?.tags ?? [], meta: row.payload?.meta ?? {} })),
     });
   }
@@ -196,7 +198,15 @@ export function createPostgresStore(env = process.env) {
     beginOperation();
     const { data, error } = await client.rpc("slotzy_create_booking", { payload }); fail(error, "create booking atomically", networkFailures); return data;
   }
-  return { readStore, writeStore, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, cents };
+  async function storeManageToken(bookingSourceId, tokenHash, expiresAt) {
+    beginOperation();
+    const { data: mapping, error: mapError } = await client.from("legacy_source_ids").select("target_id").eq("entity_type", "booking").eq("source_id", bookingSourceId).eq("is_canonical", true).maybeSingle();
+    fail(mapError, "resolve manage token booking", networkFailures);
+    const bookingId = mapping?.target_id ?? bookingSourceId;
+    const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
+    fail(error, "store manage token", networkFailures);
+  }
+  return { readStore, writeStore, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
