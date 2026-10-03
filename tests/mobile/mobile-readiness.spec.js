@@ -459,6 +459,8 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   await expect(page.locator("#publicShopPickerSection")).toBeVisible();
   await expect(page.locator("#publicShopPickerList")).toContainText("Pilot Neighborhood Barbers");
   await expect(page.locator("#publicShopPickerList")).not.toContainText("E2E Mobile Pilot Shop");
+  await expectNoPageOverflow(page, "public shop chooser");
+  await expectControlFits(page, page.locator(".public-shop-directory-card-action").first().locator("xpath=.."));
 
   await page.goto(bookingLink);
   await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
@@ -488,6 +490,12 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   await expect(page.locator("#bookingReceiptManageLink")).toHaveAttribute("href", /\/pages\/manage\.html\?shop=/);
   await expectControlFits(page, "#bookingReceiptManageLink");
   await expectNoPageOverflow(page, "authoritative anonymous booking receipt");
+  const receiptPanel = page.locator(".booking-receipt-manage-link-panel");
+  const receiptPanelBounds = await receiptPanel.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(receiptPanelBounds.scrollWidth, "manage link card must not scroll horizontally").toBeLessThanOrEqual(receiptPanelBounds.clientWidth + 1);
 
   bookingShouldConflict = true;
   await page.goto(bookingLink);
@@ -537,7 +545,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
 test("invalid manage link state fits mobile", async ({ page }) => {
   await seedStorage(page, buildSeed());
   await page.goto("/pages/manage.html?shop=missing-mobile-shop&contact=e2e-mobile-invalid%40example.test");
-  await expect(page.locator("#manageStatus")).toContainText("could not find a shop");
+  await expect(page.locator("#manageStatus")).toContainText("manage link is not available anymore");
   await expectReadableStatus(page, "#manageStatus");
   await expectNoPageOverflow(page, "invalid manage link page");
 });

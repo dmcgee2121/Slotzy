@@ -109,7 +109,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       if (getStoredManageLink()) {
         clearStatus();
       } else {
-        setStatus("A manage link is required to view appointments.", false);
+        setStatus("This manage link is missing or incomplete. Return to your booking receipt and open the private manage link there.", false);
       }
       return;
     }
@@ -141,7 +141,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         setHeaderShopName("Shop not found");
         manageIdentitySummary.textContent = "";
         hideAppointmentSections();
-        setStatus(`We could not find a shop for "${currentQuery.shopSlug}".`, false);
+        setStatus("This manage link is not available anymore. Return to the shop's booking page to make a new appointment.", false);
         return;
       }
 
@@ -402,10 +402,9 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         booking: nextBooking,
         previousBooking,
       });
-      const statusMessage = notifyResult?.ok
-        ? "Appointment cancelled."
-        : `Appointment cancelled. ${notifyResult?.offline ? "Email not sent (server offline)." : (String(notifyResult?.error ?? "").trim() || "Email not sent right now.")}`;
-      setStatus(statusMessage, true);
+      // Cancellation is already confirmed by the authoritative update above.
+      // Email delivery is best-effort and should not make a customer doubt that result.
+      setStatus("Appointment cancelled. Your appointment list has been updated.", true);
       showToast?.("Appointment cancelled.", "success", 2000);
     } catch (error) {
       markCancelStage("authoritative-update-failed", { bookingId, runtime, requireApi });

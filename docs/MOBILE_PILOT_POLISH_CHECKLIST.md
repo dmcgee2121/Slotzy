@@ -2,6 +2,14 @@
 
 This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It is planning-only: check an item only after it has been exercised on a physical iPhone and Android phone, or after a specifically named automated check covers it. The next milestone is closed pilot readiness; Play Store packaging is not part of this gate.
 
+## Public Booking visual polish Phase 2 (2026-10-02)
+
+- [x] Added explicit mobile containment coverage for the public shop chooser, direct booking flow, authoritative anonymous receipt, and private manage-link card.
+- [x] Retained 44px customer controls where applicable and made raw manage URLs wrap safely instead of widening the receipt.
+- [x] Reworded unavailable/missing manage-link and cancellation-success states in plain customer language; no persistence or backend behavior changed.
+- [ ] On physical iPhone Safari and Android Chrome, verify the chooser, native date/select controls, receipt link wrapping, Open Manage Page handoff, and cancelled state with real long shop/contact values.
+- [x] Calendar mobile overflow remains parked. Batch this frontend-only work with the next approved Netlify deploy; Render does not require deployment.
+
 ## Evidence already available
 
 - The mobile Playwright suite covers 375x667, 393x852, 412x915, and 768x1024 Chromium viewports.

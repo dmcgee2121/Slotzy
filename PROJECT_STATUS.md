@@ -1,5 +1,12 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Public Booking visual polish Phase 2 (2026-10-02)
+
+- The public shop chooser, direct booking flow, receipt, and manage-link handoff now have explicit mobile containment checks. The chooser action, service/date/time/details controls, receipt link, and manage actions remain easy to tap without horizontal scrolling.
+- Customer-facing error copy no longer exposes a raw shop identifier for an unavailable manage link. Cancellation success confirms the saved appointment state without making an optional notification delivery issue sound like a failed cancellation.
+- Authoritative save-before-receipt, anonymous booking creation, manage-link format, cancellation persistence, owner visibility, and all backend/Supabase behavior are unchanged. Calendar mobile overflow remains parked.
+- This is a frontend-only batch for the next approved Netlify deploy; Render does not require a redeploy.
+
 ## Current roadmap position (2026-10-01)
 
 Slotzy is no longer in core staging rescue. Hosted staging E2E is green against the verified Netlify -> Render -> Supabase staging stack. Authoritative public booking persistence, manage-link access, cancellation, and cancellation persistence after reload are covered. The mobile readiness suite passes across its representative viewports; mobile Availability has been redesigned into readable day cards; and the service-worker stale CSS path was corrected.

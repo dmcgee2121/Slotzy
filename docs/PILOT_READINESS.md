@@ -2,6 +2,10 @@
 
 ## Owner Dashboard North Star — Phase 1 mobile layout (2026-10-02)
 
+## Public Booking visual polish Phase 2 (2026-10-02)
+
+Public Booking visual polish Phase 2 is complete locally: the public chooser, booking steps, receipt, and private manage-link handoff have mobile containment and tap-target coverage; missing/unavailable manage-link and cancellation-success copy use customer wording. Authoritative booking creation, receipt-after-save, manage-link format, cancellation persistence, owner visibility, backend, and Supabase behavior remain unchanged. Calendar overflow remains parked. This frontend-only work should be batched for a Netlify deploy; Render does not require deployment.
+
 The owner dashboard now has a more product-ready mobile hierarchy: a shop-focused hero, five contained icon-supported quick actions, a scan-friendly Today card, a clearer booking-link/QR card, and a direct appointment-manager handoff after the upcoming preview. It uses only existing appointment, services, availability, and booking-link data; no metrics were invented and no new data source was added. Dashboard link copy now leaves an on-card result. Calendar overflow remains parked. This is frontend-only and should be batched with a later Netlify deploy; no Render deploy is required.
 
 ## Settings / Business Profile mobile polish (2026-10-02)

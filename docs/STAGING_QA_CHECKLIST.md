@@ -2,6 +2,13 @@
 
 Use only synthetic staging data. Record date, tester, browser/device, and any defect links for each run.
 
+## Public Booking visual polish Phase 2 gate (2026-10-02)
+
+- [x] Local mobile automation verifies no document overflow in the public chooser, direct booking flow, authoritative anonymous receipt, and private manage-link card; relevant controls retain 44px targets.
+- [x] Local coverage retains authoritative anonymous booking creation, owner visibility, receipt-only-after-save, and cancellation/reload behavior. No backend, persistence, Supabase, or manage-link route changes were made.
+- [ ] After the next Netlify frontend deploy, use synthetic data on iPhone Safari and Android Chrome to check a long shop name, chooser action, native service/date/time controls, receipt link wrapping, Open Manage Page, invalid/missing manage link, and cancellation success/failure wording.
+- [x] Calendar overflow remains parked. This is frontend-only and should be batched with other approved frontend work; Render does not require deployment.
+
 ## Owner Dashboard North Star — Phase 1 mobile gate (2026-10-02)
 
 - [x] Local mobile automation verifies the shop-focused dashboard hero, five contained 44px quick actions, Today/upcoming/booking-link card containment, and the Open Appointments handoff.

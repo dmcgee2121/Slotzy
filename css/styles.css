@@ -789,6 +789,18 @@ textarea:focus-visible,
   display: flex;
   align-items: center;
   min-height: 44px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.public-shop-directory,
+.public-shop-directory-list,
+.public-shop-directory-card,
+.booking-receipt,
+.booking-receipt-manage-link-panel,
+.manage-page-layout {
+  min-width: 0;
 }
 
 .walkin-modal-panel {
@@ -1942,6 +1954,19 @@ textarea:focus-visible,
 
   .public-shop-directory-card-action {
     width: 100%;
+    min-height: 44px;
+  }
+
+  .public-booking-page .public-shop-directory,
+  .manage-page-layout .owner-panel {
+    overflow-wrap: anywhere;
+  }
+
+  .booking-receipt-manage-link {
+    flex-basis: auto;
+    width: 100%;
+    font-size: 0.82rem;
+    line-height: 1.4;
   }
 }
 
