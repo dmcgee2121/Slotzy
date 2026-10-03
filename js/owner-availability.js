@@ -159,6 +159,7 @@ function renderWeeklyTable(weekly) {
         <td class="availability-enabled-cell">
           <label class="availability-enabled-control">
             <span class="availability-mobile-label">Enabled</span>
+            <span class="availability-day-state ${row.enabled ? "availability-day-state-open" : "availability-day-state-closed"}" data-day-state="${day}">${row.enabled ? "Open" : "Closed"}</span>
             <input
               type="checkbox"
               aria-label="${dayLabel} enabled"
@@ -245,6 +246,11 @@ function handleWeeklyFieldChange(event) {
   row.querySelectorAll('input[type="time"]').forEach((timeInput) => {
     timeInput.disabled = !enabled;
   });
+  const state = row.querySelector("[data-day-state]");
+  if (state) {
+    state.textContent = enabled ? "Open" : "Closed";
+    state.className = `availability-day-state ${enabled ? "availability-day-state-open" : "availability-day-state-closed"}`;
+  }
 }
 
 function saveWeeklyAvailability() {
@@ -263,9 +269,9 @@ function saveWeeklyAvailability() {
 
     if (enabled) {
       if (!start || !end) {
-        errors.push(`${DAY_LABELS[day]} requires both start and end times.`);
+        errors.push(`${DAY_LABELS[day]} needs both a start and end time.`);
       } else if (start >= end) {
-        errors.push(`${DAY_LABELS[day]} start must be before end.`);
+        errors.push(`${DAY_LABELS[day]} needs an end time later than its start time.`);
       }
     }
 
@@ -283,15 +289,23 @@ function saveWeeklyAvailability() {
 
   if (errors.length > 0) {
     showWeeklyError(errors.join("<br />"));
+    setWeeklyStatus("", "");
     return;
   }
 
   availability.timezone = timezone;
   availability.bufferMinutes = bufferMinutes;
   availability.weekly = weekly;
-  saveAvailability(availability);
-  clearWeeklyError();
-  renderAvailability();
+  setWeeklyStatus("Saving availability…", "saving");
+  try {
+    saveAvailability(availability);
+    clearWeeklyError();
+    renderAvailability();
+    setWeeklyStatus("Saved. Your weekly hours are ready for new bookings.", "success");
+  } catch (error) {
+    console.error("[Slotzy:availability] Could not save weekly availability.", error);
+    setWeeklyStatus("We couldn’t save your weekly hours. Please try again.", "error");
+  }
 }
 
 function addTimeOffBlock() {
@@ -553,6 +567,18 @@ function showWeeklyError(messageHtml) {
   if (!el) return;
   el.innerHTML = messageHtml;
   el.classList.remove("hidden");
+}
+
+function setWeeklyStatus(message, type) {
+  const el = document.getElementById("availability-weekly-status");
+  if (!el) return;
+  if (!message) {
+    el.textContent = "";
+    el.className = "availability-save-status hidden";
+    return;
+  }
+  el.textContent = message;
+  el.className = `availability-save-status availability-save-status-${type}`;
 }
 
 function clearWeeklyError() {

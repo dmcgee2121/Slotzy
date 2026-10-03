@@ -585,6 +585,48 @@
   margin: 0;
 }
 
+.availability-day-state {
+  margin-left: auto;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.availability-day-state-open {
+  color: #166534;
+}
+
+.availability-day-state-closed {
+  color: #991b1b;
+}
+
+.availability-save-status {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.availability-save-status-saving {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.availability-save-status-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.availability-save-status-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
 .availability-timeoff-list {
   margin-top: 10px;
 }
@@ -2482,6 +2524,10 @@
     width: 24px;
     height: 24px;
     flex: 0 0 24px;
+  }
+
+  .owner-page .availability-day-state {
+    margin-left: auto;
   }
 
   .owner-page .availability-time-control {

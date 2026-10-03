@@ -31,6 +31,13 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 - The no-services state still leads directly to Add Service, and the existing delete confirmation clearly explains that removal stops client selection and cannot be undone.
 - This is frontend markup, CSS, JavaScript, mobile-test, and documentation work only. Service persistence, public booking service reads/selection, owner setup, staging lifecycle, backend, Supabase, and Calendar were not changed. Calendar mobile overflow remains parked.
 
+## Availability and Hours mobile polish (2026-10-02)
+
+- Weekly Hours retains its seven contained mobile day cards with 44px Open/Closed, Start, and End controls; each card now explicitly states whether the day is Open or Closed.
+- Saving weekly hours now provides durable Saving, Saved, and plain-language failure messages. Missing start/end times and invalid time ranges remain visible in the contained inline error panel.
+- Local mobile coverage verifies all day controls, validation, saved-hour refresh, overflow containment, and selectable public-booking times after a valid hours save. Calendar overflow remains parked.
+- This is a frontend-only batch for a later Netlify deploy. Availability persistence, public booking calculations, setup hours, staging lifecycle, backend, Supabase, and production were not changed; Render does not require redeployment.
+
 ## Owner mobile calendar containment follow-up (2026-10-02)
 
 - Resolved the remaining Android/installed-app calendar clipping report by removing the mobile calendar's nested border/scroll surface and containing it within the existing Calendar card.

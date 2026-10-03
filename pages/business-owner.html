@@ -215,7 +215,8 @@
             </table>
           </div>
 
-          <div id="availability-weekly-error" class="service-form-error hidden"></div>
+          <div id="availability-weekly-error" class="service-form-error hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
+          <div id="availability-weekly-status" class="availability-save-status hidden" role="status" aria-live="polite" aria-atomic="true"></div>
           <button id="availability-save-weekly" class="btn btn-primary" type="button">Save Availability</button>
         </article>
 
@@ -254,7 +255,7 @@
           <label for="availability-timeoff-note">Note (optional)</label>
           <input id="availability-timeoff-note" type="text" placeholder="Vacation, break, personal time..." />
 
-          <div id="availability-timeoff-error" class="service-form-error hidden"></div>
+          <div id="availability-timeoff-error" class="service-form-error hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
           <button id="availability-add-timeoff" class="btn btn-primary" type="button">Add Time Off</button>
 
           <div id="availability-timeoff-list" class="availability-timeoff-list"></div>

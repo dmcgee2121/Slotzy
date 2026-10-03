@@ -138,10 +138,11 @@ Separate pilot-blocker candidate: a manual mobile customer booking save error re
 
 ### Availability
 
-- [ ] Verify all seven mobile day cards, enabled toggles, native time controls, timezone, and buffer on iOS and Android.
-- [ ] Confirm save success/failure is visible near the action and unsaved changes cannot be mistaken for published hours.
+- [x] Automated coverage verifies all seven day cards, explicit Open/Closed state, 44px toggle/time controls, timezone/buffer controls, contained validation, saved-hour refresh, and public-booking time selection across the configured mobile viewports.
+- [x] Weekly Hours now provides visible Saving, Saved, and friendly failure feedback near Save Availability; missing and invalid time ranges use plain inline wording.
 - [ ] Verify quick breaks, custom breaks, full-day blocks, overlapping/invalid ranges, and deletion consequences.
 - [ ] Confirm the same concepts and wording are used in setup and the dashboard editor.
+- [ ] On physical iPhone Safari and Android Chrome, verify native time pickers, keyboard/browser chrome, and save feedback. Calendar mobile overflow remains separately parked.
 
 ### Settings and policies
 

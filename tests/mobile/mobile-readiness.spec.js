@@ -782,6 +782,45 @@ test("logged-in barber dashboard weekly hours use the mobile card layout", async
   await expectControlFits(page, "#availability-save-weekly");
 });
 
+test("owner weekly hours validation, save state, refresh, and booking times stay mobile-safe", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/business-owner.html");
+
+  await expectMobileWeeklyHours(page, "owner availability save state");
+  await expectNoPageOverflow(page, "owner availability weekly hours");
+  for (const day of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) {
+    await expectControlFits(page, page.locator(`input[data-day='${day}'][data-field='enabled']`).locator("xpath=.."));
+    await expectControlFits(page, `input[data-day='${day}'][data-field='start']`);
+    await expectControlFits(page, `input[data-day='${day}'][data-field='end']`);
+  }
+
+  await page.locator("input[data-day='mon'][data-field='end']").fill("09:00");
+  await page.locator("#availability-save-weekly").click();
+  await expect(page.locator("#availability-weekly-error")).toContainText("Monday needs an end time later");
+  await expectReadableStatus(page, "#availability-weekly-error");
+  await expectNoPageOverflow(page, "owner availability validation state");
+
+  await page.locator("input[data-day='mon'][data-field='start']").fill("10:00");
+  await page.locator("input[data-day='mon'][data-field='end']").fill("17:00");
+  await page.locator("#availability-save-weekly").click();
+  await expect(page.locator("#availability-weekly-status")).toContainText("Saved.");
+  await page.reload();
+  await expect(page.locator("input[data-day='mon'][data-field='start']")).toHaveValue("10:00");
+  await expect(page.locator("input[data-day='mon'][data-field='end']")).toHaveValue("17:00");
+
+  const bookingDate = new Date();
+  const daysUntilMonday = (8 - bookingDate.getDay()) % 7 || 7;
+  bookingDate.setDate(bookingDate.getDate() + daysUntilMonday);
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  await page.locator("#serviceSelect").selectOption(SERVICE_ID);
+  await page.locator("#bookingDate").fill(toYmd(bookingDate));
+  const slots = page.locator("#time-slot-select option[value]:not([value=''])");
+  await expect(slots).not.toHaveCount(0);
+  await page.locator("#time-slot-select").selectOption(await slots.first().getAttribute("value"));
+  await expect(page.locator("#time-slot-select")).not.toHaveValue("");
+  await expectNoPageOverflow(page, "public booking with saved weekly hours");
+});
+
 test("owner dashboard navigation and calendar toolbar stay polished on mobile", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await installCalendarToolbarStub(page);

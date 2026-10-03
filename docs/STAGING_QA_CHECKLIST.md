@@ -20,6 +20,13 @@ Use only synthetic staging data. Record date, tester, browser/device, and any de
 - [ ] On staging with a physical phone, add, edit, and remove a synthetic service with the keyboard open; confirm save/failure wording, long-name wrapping, and the public booking impact. Calendar mobile overflow remains outside this gate.
 - [ ] After the Netlify frontend deploy, validate the installed-PWA shell receives the updated Services CSS/JS. No Render/backend redeploy is expected.
 
+## Availability and Hours mobile gate (2026-10-02)
+
+- [x] Local mobile automation covers seven readable Weekly Hours cards, explicit Open/Closed state, contained 44px controls, invalid-range feedback, saved-hour refresh, no page overflow, and public booking time selection after a valid save.
+- [x] Existing staging availability requirements remain unchanged: owner setup receives the authoritative availability write before completion, and the existing browser/public booking lifecycle remains required.
+- [ ] On staging with physical iPhone and Android devices, save normal hours, try a missing/invalid range, and verify native time controls plus Saved/failure messages. Calendar overflow remains outside this gate.
+- [ ] Batch this frontend-only CSS/JS/markup change with the next approved Netlify deploy; do not treat current deployed staging as validation of these local changes. No Render/backend redeploy is expected.
+
 ## Owner mobile header and calendar controls gate (2026-10-02)
 
 - [x] Local mobile coverage passed 48 checks: it verifies the dashboard navigation has no duplicate welcome badge or horizontal overflow, keeps all primary links and Logout at least 44px, and exercises the owner Appointments calendar's Today/previous/next controls across the configured phone/tablet projects.
