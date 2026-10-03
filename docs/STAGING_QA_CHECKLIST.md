@@ -6,7 +6,7 @@
 - [x] The runbook links the temporary owner recovery and isolated backup/restore procedures; it does not authorize a staging reset, production access, or disclosure of secrets/tokens/customer data.
 - [ ] Before inviting named testers, the pilot owner records the approved private support channel, incident decision maker, and authorized staging operator outside the repository, and briefs those people on the runbook.
 - [ ] Confirm support/incident notes use redacted references only; never attach private manage links/tokens, credentials, exports, unredacted logs, or customer contact data.
-- [ ] Treat real-device UAT, the isolated backup/restore rehearsal, the password-recovery/JWT-session limitation, and any still-open mobile booking-save/Calendar candidate as separate readiness gates.
+- [ ] Treat the remaining real-device UAT, the isolated backup/restore rehearsal, the password-recovery/JWT-session limitation, and the parked Calendar issue as separate readiness gates. One installed-phone PWA run on 2026-10-03 cleared the booking-save candidate for its exercised path; it does not replace remaining device/browser coverage.
 
 ## Manage-token authorization gate (2026-10-02)
 

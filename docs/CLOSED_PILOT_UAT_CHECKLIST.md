@@ -2,6 +2,18 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
+## Recorded result — 2026-10-03
+
+- Environment: installed phone PWA; exact phone/browser was not recorded.
+- Customer booking: **Pass**.
+- Manage link: **Pass**.
+- Cancellation: **Pass**.
+- Owner appointment visibility: **Pass**.
+- Booking-save issue: **No issue observed**; this clears the prior save-error candidate for this exercised hosted/device path.
+- Page-wide horizontal scrolling: **None observed where it should not occur**.
+- Screenshots/weird behavior: **None so far**.
+- Remaining scope: this is one device-mode result only. Complete the unchecked device/browser and recovery/cache cases below before declaring full internal staged UAT complete.
+
 ## Devices to cover
 
 - [ ] Android Chrome

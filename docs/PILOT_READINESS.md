@@ -21,8 +21,8 @@
 
 - [ ] Self-service owner password reset is not implemented. For the named closed pilot, temporary operator-mediated recovery is defined in `docs/CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md`; it requires out-of-band identity verification and carries a documented existing-session limitation. Token-based recovery remains future work.
 - [ ] Backup/restore procedure is documented in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`; an isolated non-production restore rehearsal has **not** been performed yet.
-- [ ] Real-device UAT has not passed on target Android and iOS/browser-installed modes.
-- [ ] The manually observed mobile customer booking-save-error candidate needs reproduction and diagnosis, or a documented clear result on the target hosted/device path.
+- [ ] Real-device UAT is partially complete: one installed-phone PWA run passed the critical customer booking, manage/cancel, and owner-appointment path. Target Android Chrome, iPhone Safari, and installed iOS coverage remains.
+- [x] The manually observed mobile customer booking-save-error candidate is cleared for the exercised installed-PWA/hosted path: booking saved successfully, with no save issue observed. Continue to watch this path during remaining device coverage.
 
 The privacy/support/incident **documentation** blocker is removed by the new runbook. Before any invitation, the pilot owner must still name the private support channel, incident decision maker, and authorized staging operator outside the repository; this is an operating prerequisite, not a claim of production privacy or retention readiness.
 
