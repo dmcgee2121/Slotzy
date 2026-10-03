@@ -16,6 +16,13 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 6. Play Store / app packaging prep
 7. Production launch planning
 
+## Owner Dashboard North Star — Phase 1 mobile layout (2026-10-02)
+
+- The dashboard now leads with a clearer shop-focused hero, compact icon-supported quick-action cards, a scan-friendly Today card, a polished share-booking-page card, and a direct Open Appointments handoff below the upcoming preview.
+- Existing real dashboard data is retained: today/upcoming appointments, services, availability, and booking-link/QR controls. No new metrics or data sources were added.
+- Copying the dashboard booking link now leaves plain on-card feedback. Calendar remains a separately parked issue.
+- This is frontend markup/CSS/JavaScript/test/documentation work only. No backend, Supabase, persistence, booking, or appointment-refresh behavior changed. Batch it with the next approved Netlify deploy; Render does not require a redeploy.
+
 ## Settings / Business Profile mobile polish (2026-10-02)
 
 - The owner Settings page now uses plain Business Profile wording, keeps every profile/policy control at least 44px tall, and contains save and booking-link feedback without horizontal overflow.

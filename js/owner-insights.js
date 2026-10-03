@@ -47,6 +47,7 @@ import * as dataStore from "./dataStore.js";
     const pilotSettingsBtn = document.getElementById("pilotSettingsBtn");
     const pilotOpenBookingBtn = document.getElementById("pilotOpenBookingBtn");
     const pilotCopyBookingBtn = document.getElementById("pilotCopyBookingBtn");
+    const pilotBookingStatus = document.getElementById("pilotBookingStatus");
     const pilotResetDemoBtn = document.getElementById("pilotResetDemoBtn");
 
     viewBtn?.addEventListener("click", () => {
@@ -69,7 +70,10 @@ import * as dataStore from "./dataStore.js";
       if (!link) return;
       const copied = await copyText(link);
       if (copied) {
+        if (pilotBookingStatus) pilotBookingStatus.textContent = "Booking link copied. It is ready to share with clients.";
         window.showToast?.("Link copied", "success", 2000);
+      } else if (pilotBookingStatus) {
+        pilotBookingStatus.textContent = "Could not copy the link. Please copy it from the field above.";
       }
     });
     pilotResetDemoBtn?.addEventListener("click", () => {

@@ -177,6 +177,20 @@
   color: var(--muted);
 }
 
+.owner-page .owner-dashboard-kicker {
+  margin: 0 0 6px;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.owner-page .owner-dashboard-section-action {
+  justify-self: start;
+  margin: 0;
+}
+
 .owner-page .card::before,
 .owner-page .btn-primary::before {
   content: none;
@@ -2067,10 +2081,11 @@
   .owner-dashboard-jump-link {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 8px;
     min-width: 0;
     min-height: 44px;
-    padding: 8px 10px;
+    padding: 8px 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--secondary);
@@ -2078,9 +2093,25 @@
     font-size: 0.86rem;
     font-weight: 700;
     line-height: 1.2;
-    text-align: center;
+    text-align: left;
     text-decoration: none;
     overflow-wrap: anywhere;
+  }
+
+  .owner-dashboard-jump-link > span[aria-hidden="true"] {
+    display: inline-grid;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--primary);
+    font-size: 1rem;
+  }
+
+  .owner-dashboard-jump-link-wide {
+    grid-column: 1 / -1;
   }
 
   .owner-dashboard-jump-link:focus-visible {
@@ -2094,6 +2125,23 @@
 
   .owner-dashboard-booking-link {
     order: 4;
+  }
+
+  .owner-dashboard-booking-link .card-head h2 {
+    font-size: 1.25rem;
+  }
+
+  .owner-dashboard-booking-link #pilotBookingLink {
+    min-height: 48px;
+    background: var(--secondary);
+    font-size: 0.9rem;
+  }
+
+  .owner-dashboard-booking-link #pilotBookingStatus:not(:empty) {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--secondary);
+    overflow-wrap: anywhere;
   }
 
   #owner-upcoming-section {

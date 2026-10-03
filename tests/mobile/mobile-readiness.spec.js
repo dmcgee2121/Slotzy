@@ -771,9 +771,6 @@ test("logged-in barber dashboard weekly hours use the mobile card layout", async
     await expect(page.locator(target)).toBeInViewport();
   }
 
-  const settingsLink = dashboardJumpNav.getByRole("link", { name: "Settings", exact: true });
-  await expectControlFits(page, settingsLink);
-  await expect(settingsLink).toHaveAttribute("href", "settings.html");
   await expectControlFits(page, "#pilotCopyBookingBtn");
   await expectControlFits(page, "#pilotOpenBookingBtn");
   await expect(page.locator("#owner-availability")).toBeVisible();
@@ -841,6 +838,17 @@ test("owner dashboard navigation and calendar toolbar stay polished on mobile", 
   }));
   expect(dashboardNavBounds.scrollWidth, "dashboard navigation must not scroll horizontally").toBeLessThanOrEqual(dashboardNavBounds.clientWidth + 1);
   await expectNoPageOverflow(page, "owner dashboard header navigation");
+
+  const dashboardQuickActions = page.locator(".owner-dashboard-jump-nav");
+  await expect(dashboardQuickActions).toBeVisible();
+  await expect(dashboardQuickActions.getByRole("link")).toHaveCount(5);
+  for (const name of ["Today", "Appointments", "Services", "Availability", "Booking Link"]) {
+    await expectControlFits(page, dashboardQuickActions.getByRole("link", { name, exact: true }));
+  }
+  await expect(page.locator(".owner-dashboard-jump-link-wide")).toHaveCount(1);
+  await expect(page.locator(".owner-dashboard-section-action")).toHaveText("Open Appointments");
+  await expectControlFits(page, ".owner-dashboard-section-action");
+  await expectNoPageOverflow(page, "owner dashboard quick-action cards");
 
   await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
   const calendar = page.locator("#calendar");

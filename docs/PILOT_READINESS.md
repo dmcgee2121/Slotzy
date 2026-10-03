@@ -1,5 +1,9 @@
 # Pilot readiness
 
+## Owner Dashboard North Star — Phase 1 mobile layout (2026-10-02)
+
+The owner dashboard now has a more product-ready mobile hierarchy: a shop-focused hero, five contained icon-supported quick actions, a scan-friendly Today card, a clearer booking-link/QR card, and a direct appointment-manager handoff after the upcoming preview. It uses only existing appointment, services, availability, and booking-link data; no metrics were invented and no new data source was added. Dashboard link copy now leaves an on-card result. Calendar overflow remains parked. This is frontend-only and should be batched with a later Netlify deploy; no Render deploy is required.
+
 ## Settings / Business Profile mobile polish (2026-10-02)
 
 Settings now presents a plain-language Business Profile, contained 44px form controls, a clear share-link area, and readable mobile sections for contact details, booking rules, deposits, reminders, and branding. Saving announces progress, success, validation, and failure in the form; link copy/open actions leave a durable result. Local mobile automation also confirms that a saved cancellation policy remains visible on the public booking page. No persistence, API, backend, Supabase, or Calendar behavior changed. This frontend-only pass should be batched for a later Netlify deploy; Render does not require deployment.

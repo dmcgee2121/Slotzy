@@ -2,6 +2,13 @@
 
 Use only synthetic staging data. Record date, tester, browser/device, and any defect links for each run.
 
+## Owner Dashboard North Star — Phase 1 mobile gate (2026-10-02)
+
+- [x] Local mobile automation verifies the shop-focused dashboard hero, five contained 44px quick actions, Today/upcoming/booking-link card containment, and the Open Appointments handoff.
+- [x] Existing dashboard data and booking controls remain in place; no backend, persistence, appointment-refresh, or Calendar behavior changed.
+- [ ] On staging with physical iPhone and Android devices, check dashboard action reach, long shop names/booking links, copy feedback, and transition into Appointments. Calendar overflow remains outside this gate.
+- [ ] Batch this frontend-only pass with the next approved Netlify deploy; do not use current deployed staging as proof of local changes. No Render/backend redeploy is expected.
+
 ## Settings / Business Profile mobile gate (2026-10-02)
 
 - [x] Local mobile automation verifies Settings has no document overflow, profile/policy/link controls fit phone widths with 44px targets, validation stays contained, save/copy feedback is visible, and Open Booking Page reaches the expected public URL.

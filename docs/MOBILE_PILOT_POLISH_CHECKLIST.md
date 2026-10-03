@@ -9,6 +9,14 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - Smoke coverage exercises setup resume, public booking, receipt/manage access, policy-aware cancellation and rescheduling, owner appointment actions, availability effects, branding, and the dashboard Today card.
 - These checks do not replace physical-device review of keyboard behavior, native controls, browser chrome, safe areas, installed mode, visual hierarchy, wording, or thumb reach.
 
+## Owner Dashboard North Star — Phase 1 mobile layout (2026-10-02)
+
+- [x] Reworked the dashboard’s mobile hierarchy with a shop-focused hero, five 44px quick-action cards, contained Today/upcoming previews, a clearer booking-link card, and a direct Open Appointments action.
+- [x] Kept real existing data only: appointment, services, availability, booking-link, and QR views; no revenue/no-show values were added or changed.
+- [x] Automation verifies the quick actions, booking controls, appointment handoff, card containment, and document overflow across all configured viewports.
+- [ ] Review the new hierarchy, action labels, QR/link handoff, and preview density on physical iPhone Safari and Android Chrome. Calendar overflow remains separately parked.
+- [x] No backend, Supabase, persistence, booking, cancellation, or appointment-refresh behavior changed. Batch this frontend-only pass for a later Netlify deploy; Render does not require a deploy.
+
 ## Settings / Business Profile mobile pass (2026-10-02)
 
 - [x] Settings uses clear Business Profile wording, mobile single-column sections, 44px controls, contained validation/save/link feedback, and no document-level overflow.

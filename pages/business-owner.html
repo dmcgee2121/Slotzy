@@ -15,7 +15,7 @@
         <img src="../assets/images/slotzy-logo.png" alt="Slotzy logo" class="logo" />
         <div class="owner-brand-copy">
           <h2>Owner Dashboard</h2>
-          <p>Business Control Center</p>
+          <p>Your daily schedule and booking tools</p>
         </div>
       </div>
       <nav class="owner-header-actions owner-dashboard-header-nav" aria-label="Owner navigation">
@@ -32,8 +32,8 @@
   <main class="container owner-dashboard owner-page-layout owner-layout">
     <section id="pilotModeBanner" class="card owner-panel owner-dashboard-booking-link hidden section-stack" tabindex="-1">
       <div class="card-head">
-        <h2>Pilot Mode</h2>
-        <p>Quick access for live testing and early pilot runs.</p>
+        <h2>Share your booking page</h2>
+        <p>Give clients this link or QR code so they can book with your shop.</p>
       </div>
       <div class="form-grid-2">
         <div class="field">
@@ -51,27 +51,27 @@
         <button id="pilotSettingsBtn" class="btn btn-ghost" type="button">QR &amp; Link Settings</button>
         <button id="pilotResetDemoBtn" class="btn btn-ghost hidden" type="button">Reset Demo</button>
       </div>
+      <p id="pilotBookingStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
 
     <section class="dashboard-header owner-hero card owner-dashboard-hero">
       <div class="owner-hero-copy">
+        <p class="owner-dashboard-kicker">Shop dashboard</p>
         <h1 id="ownerHeroTitle">Welcome, Your Shop</h1>
-        <p>Manage your services, bookings, and earnings all in one place.</p>
+        <p>See today’s schedule, share your booking page, and keep your shop ready for clients.</p>
       </div>
       <div class="owner-hero-meta">
         <span class="owner-pill">Today</span>
-        <span class="owner-pill">Open</span>
         <button id="quickAddServiceBtn" class="btn btn-primary" type="button">+ Add Service</button>
       </div>
     </section>
 
     <nav class="owner-dashboard-jump-nav" aria-label="Dashboard sections">
-      <a class="owner-dashboard-jump-link" href="#owner-today-section">Today</a>
-      <a class="owner-dashboard-jump-link" href="#pilotModeBanner">Booking Link</a>
-      <a class="owner-dashboard-jump-link" href="#owner-upcoming-section">Appointments</a>
-      <a class="owner-dashboard-jump-link" href="#owner-services-section">Services</a>
-      <a class="owner-dashboard-jump-link" href="#owner-availability">Availability</a>
-      <a class="owner-dashboard-jump-link" href="settings.html">Settings</a>
+      <a class="owner-dashboard-jump-link" href="#owner-today-section"><span aria-hidden="true">◷</span><span>Today</span></a>
+      <a class="owner-dashboard-jump-link" href="#owner-upcoming-section"><span aria-hidden="true">▤</span><span>Appointments</span></a>
+      <a class="owner-dashboard-jump-link" href="#owner-services-section"><span aria-hidden="true">✦</span><span>Services</span></a>
+      <a class="owner-dashboard-jump-link" href="#owner-availability"><span aria-hidden="true">◴</span><span>Availability</span></a>
+      <a class="owner-dashboard-jump-link owner-dashboard-jump-link-wide" href="#pilotModeBanner"><span aria-hidden="true">↗</span><span>Booking Link</span></a>
     </nav>
 
     <section class="card owner-today-glance-card" id="owner-today-section" aria-labelledby="ownerTodayGlanceTitle" tabindex="-1">
@@ -169,6 +169,7 @@
         <p>Bookings for your shop sorted by start time.</p>
       </div>
       <div id="owner-upcoming-list" class="availability-timeoff-list"></div>
+      <a href="manage-appointments.html" class="btn btn-ghost owner-dashboard-section-action">Open Appointments</a>
     </section>
 
     <section id="owner-availability" class="owner-section card" tabindex="-1">
