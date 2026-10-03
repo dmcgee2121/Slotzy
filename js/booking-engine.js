@@ -690,6 +690,9 @@ export function initBookingEngine(options = {}) {
         return "";
       }
     }
+    // Hosted public bookings are authorized only by their one-time token.
+    // Never fall back to contact/shop query authority when that token is absent.
+    if (dataStore.shouldUsePublicBookingApi()) return "";
     const shopSlug = getBookingShopSlug(booking);
     const contact = String(booking?.clientContact ?? "").trim();
     if (!shopSlug || !contact) return "";
@@ -2410,7 +2413,7 @@ export function initBookingEngine(options = {}) {
     try {
       const saveResult = await Promise.resolve(saveBookings(bookings));
       if (saveResult && typeof saveResult === "object" && !Array.isArray(saveResult) && saveResult.id) {
-        confirmedBooking = { ...booking, ...saveResult };
+        confirmedBooking = mergeBookingWithManageToken(booking, saveResult);
         const pendingIndex = bookings.findIndex((entry) => String(entry?.id ?? "") === String(booking.id));
         if (pendingIndex >= 0) bookings[pendingIndex] = confirmedBooking;
       }
@@ -2448,6 +2451,18 @@ export function initBookingEngine(options = {}) {
     });
   }
 
+  function mergeBookingWithManageToken(pendingBooking, savedBooking) {
+    const merged = { ...pendingBooking, ...savedBooking };
+    const manageToken = String(savedBooking?.manageToken ?? "").trim();
+    if (manageToken) {
+      // dataStore deliberately keeps this one-time secret non-enumerable so it
+      // cannot enter generic caches or diagnostics. Preserve that property
+      // through the receipt-only merge without serializing it.
+      Object.defineProperty(merged, "manageToken", { value: manageToken, enumerable: false });
+    }
+    return merged;
+  }
+
   function setButtonPending(button, pending, pendingText = "Saving...") {
     if (!button) return;
     if (pending) {
@@ -2477,6 +2492,9 @@ export function initBookingEngine(options = {}) {
   function getPublicBookingFailureMessage(error) {
     const code = String(error?.code ?? "").trim().toLowerCase();
     const status = Number(error?.httpStatus ?? 0);
+    if (code === "missing_manage_token") {
+      return "Your appointment was saved, but its private manage link is unavailable. Please contact the shop.";
+    }
     if (status === 409 || code === "booking_conflict" || code === "slot_unavailable") {
       return "That time was just taken. Choose another time.";
     }

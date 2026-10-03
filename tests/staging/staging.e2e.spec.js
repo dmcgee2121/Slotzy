@@ -1046,6 +1046,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     bookingPostObserved: true,
     bookingStatus: bookingSave.status(),
     bookingResponseKeys: bookingPayload && typeof bookingPayload === "object" ? Object.keys(bookingPayload).sort() : [],
+    manageTokenReturned: Boolean(String(bookingPayload?.manageToken ?? "").trim()),
     returnedBookingIdShape: describeIdShape(createdBooking?.id),
     returnedBookingStatus: String(createdBooking?.status ?? ""),
     returnedShopIdShape: describeIdShape(createdBooking?.shopId),
@@ -1058,10 +1059,21 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     manageLinkExists: Boolean(manageLink),
     manageLinkPath: (() => { try { return new URL(String(manageLink || ""), publicPage.url()).pathname; } catch { return ""; } })(),
     manageLinkQueryKeys: (() => { try { return Array.from(new URL(String(manageLink || ""), publicPage.url()).searchParams.keys()).sort(); } catch { return []; } })(),
+    manageLinkHasTokenFragment: (() => { try { return Boolean(new URLSearchParams(new URL(String(manageLink || ""), publicPage.url()).hash.slice(1)).get("token")); } catch { return false; } })(),
     syntheticClientVisibleOnReceipt: await publicPage.getByText(identity.clientName, { exact: true }).isVisible().catch(() => false),
     syntheticServiceVisibleOnReceipt: await publicPage.getByText(identity.serviceName, { exact: true }).isVisible().catch(() => false),
   };
-  if (bookingSave.status() !== 201 || !createdBookingId || !receiptState.manageLinkExists || !receiptState.syntheticClientVisibleOnReceipt || !receiptState.syntheticServiceVisibleOnReceipt) {
+  if (
+    bookingSave.status() !== 201
+    || !createdBookingId
+    || !receiptState.manageTokenReturned
+    || !receiptState.manageLinkExists
+    || !receiptState.manageLinkHasTokenFragment
+    || receiptState.manageLinkQueryKeys.includes("contact")
+    || receiptState.manageLinkQueryKeys.includes("shop")
+    || !receiptState.syntheticClientVisibleOnReceipt
+    || !receiptState.syntheticServiceVisibleOnReceipt
+  ) {
     throw new Error(`Public booking did not create a verifiable receipt/manage link: ${JSON.stringify(receiptState)}`);
   }
   await publicContext.close();
@@ -1128,19 +1140,19 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
   const managePage = await context.newPage();
   const manageBrowserErrors = collectBrowserDiagnostics(managePage);
-  const manageBookingsResponse = managePage.waitForResponse((response) => (
+  const manageBookingResponse = managePage.waitForResponse((response) => (
     response.request().method() === "GET"
     && new URL(response.url()).origin === expectedApiOrigin
-    && new URL(response.url()).pathname === "/api/bookings"
+    && new URL(response.url()).pathname === "/api/public/manage"
   ));
   await managePage.goto(new URL(manageLink, frontendUrl).toString());
-  const manageBookings = await manageBookingsResponse;
+  const manageBooking = await manageBookingResponse;
   try {
     await expect(managePage.getByText(identity.serviceName, { exact: true })).toBeVisible();
     await expect(managePage.locator(".appointment-datetime span").first()).toBeVisible();
     await expect(managePage.getByRole("button", { name: /^Cancel$/i })).toBeVisible();
   } catch (error) {
-    throw new Error(`Manage link did not render the booked appointment: ${JSON.stringify({ receiptState, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, manageBookings), assertionError: safeDiagnosticText(error?.message) })}`);
+    throw new Error(`Manage link did not render the booked appointment: ${JSON.stringify({ receiptState, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, manageBooking), assertionError: safeDiagnosticText(error?.message) })}`);
   }
   const managedCancelButton = managePage.getByRole("button", { name: /^Cancel$/i });
   const managedCard = managePage.locator(".client-manage-card").filter({
@@ -1158,7 +1170,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const cancelUpdateResponse = managePage.waitForResponse((response) => (
     response.request().method() === "PATCH"
     && new URL(response.url()).origin === expectedApiOrigin
-    && /^\/api\/bookings\/[^/]+$/.test(new URL(response.url()).pathname)
+    && new URL(response.url()).pathname === "/api/public/manage/cancel"
   ), { timeout: 15000 }).then((response) => ({ response }), (error) => ({ error }));
   const confirmCancelButton = managePage.getByRole("button", { name: /^Confirm Cancel$/i });
   await confirmCancelButton.click();
@@ -1253,6 +1265,7 @@ test("staging negative checks use synthetic context", async ({ page }) => {
   await expect(page.locator("#auth-error")).toBeVisible();
   await page.goto(`${frontendUrl}/pages/manage.html?shop=${identity.slug}&contact=invalid@example.test&code=INVALID`);
   await expect(page.getByText(/not found|invalid|unable/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Cancel$/i })).toHaveCount(0);
 });
 
 // No cleanup API exists. Records are intentionally prefixed with `e2e-` and

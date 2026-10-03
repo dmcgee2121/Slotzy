@@ -146,6 +146,18 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       return;
     }
 
+    // Query-string identity was local/demo compatibility only. Hosted public
+    // access requires the private fragment token handled above.
+    if (dataStore.shouldUsePublicBookingApi()) {
+      currentShop = null;
+      closeRescheduleModal();
+      setHeaderShopName("Slotzy");
+      manageIdentitySummary.textContent = "";
+      hideAppointmentSections();
+      setStatus("This manage link is invalid or has expired. Return to your booking receipt for the private link.", false);
+      return;
+    }
+
     try {
       setLoadingStatus("Loading your appointments...");
       const [shops, users, bookings] = await Promise.all([

@@ -433,6 +433,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
 
   let bookingPostAttempted = false;
   let bookingPostHadAuthorization = false;
+  const manageToken = "x".repeat(48);
   let bookingShouldConflict = false;
   let safeFailureDiagnostic = null;
   let authoritativeBooking = null;
@@ -468,7 +469,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     await route.fulfill({
       status: 201,
       contentType: "application/json",
-      body: JSON.stringify({ booking: authoritativeBooking }),
+      body: JSON.stringify({ booking: authoritativeBooking, manageToken }),
     });
   });
 
@@ -518,7 +519,18 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   expect(bookingPostAttempted).toBe(true);
   expect(bookingPostHadAuthorization).toBe(false);
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
-  await expect(page.locator("#bookingReceiptManageLink")).toHaveAttribute("href", /\/pages\/manage\.html\?shop=/);
+  const receiptManageLink = page.locator("#bookingReceiptManageLink");
+  await expect(receiptManageLink).toHaveAttribute("href", /\/pages\/manage\.html#token=/);
+  const receiptManageShape = await receiptManageLink.evaluate((link) => {
+    const url = new URL(link.href);
+    return {
+      queryKeys: Array.from(url.searchParams.keys()),
+      hasTokenFragment: new URLSearchParams(url.hash.slice(1)).has("token"),
+    };
+  });
+  expect(receiptManageShape.queryKeys).not.toContain("contact");
+  expect(receiptManageShape.queryKeys).not.toContain("shop");
+  expect(receiptManageShape.hasTokenFragment).toBe(true);
   await expectControlFits(page, "#bookingReceiptManageLink");
   await expectNoPageOverflow(page, "authoritative anonymous booking receipt");
   const receiptPanel = page.locator(".booking-receipt-manage-link-panel");
@@ -575,8 +587,8 @@ test("dashboard public link creates an authoritative anonymous booking under ser
 
 test("invalid manage link state fits mobile", async ({ page }) => {
   await seedStorage(page, buildSeed());
-  await page.goto("/pages/manage.html?shop=missing-mobile-shop&contact=e2e-mobile-invalid%40example.test");
-  await expect(page.locator("#manageStatus")).toContainText("manage link is not available anymore");
+  await page.goto("/pages/manage.html#token=invalid");
+  await expect(page.locator("#manageStatus")).toContainText("invalid or has expired");
   await expectReadableStatus(page, "#manageStatus");
   await expectNoPageOverflow(page, "invalid manage link page");
 });

@@ -340,9 +340,16 @@ export async function createPublicBookingAsync(booking) {
   // Keep the one-time secret available to the receipt without adding it to the
   // local booking cache (or any generic diagnostics / serialization path).
   const manageToken = String(payload?.manageToken ?? "").trim();
-  if (manageToken) {
-    Object.defineProperty(created, "manageToken", { value: manageToken, enumerable: false });
+  if (!manageToken) {
+    throw createApiRequestError("Your appointment was saved, but its private manage link is unavailable. Please contact the shop.", {
+      code: "missing_manage_token",
+      requestAttempted: true,
+      endpointPath: "/api/bookings",
+      httpStatus: 201,
+      responseKeys: isObjectRecord(payload) ? Object.keys(payload) : [],
+    });
   }
+  Object.defineProperty(created, "manageToken", { value: manageToken, enumerable: false });
   const current = getBookings();
   saveBookings([...current.filter((entry) => toRecordId(entry?.id) !== toRecordId(created.id)), created]);
   return created;
