@@ -14,6 +14,13 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - Screenshots/weird behavior: **None so far**.
 - Remaining scope: this is one device-mode result only. Complete the unchecked device/browser and recovery/cache cases below before declaring full internal staged UAT complete.
 
+### Owner-side UAT follow-up
+
+- Availability lunch/break/time-off delete: **Pass** after commit `58dbe8e`; manual verification confirmed that accepting the prompt removes the block as expected.
+- Branding upload: **Pass** for the updated limit; logo and cover uploads accept JPG, PNG, and WEBP up to 5 MB (raised from 1 MB).
+- Dashboard redundancy: **Parked, non-blocking** for Owner Dashboard 2.0.
+- Hosted post-commit evidence: focused owner-setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks: **3 passed**.
+
 ### Android Chrome real-device UAT
 
 - Environment: Android Chrome on a real device.

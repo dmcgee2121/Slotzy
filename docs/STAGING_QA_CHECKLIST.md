@@ -11,6 +11,11 @@
 
 The final category is **Ready for tiny trusted closed pilot with strict limits**: one trusted barber/operator and one to three trusted customer testers, staging only, no payments, and no sensitive real customer information beyond what is needed for testing. Owner recovery remains manual/operator-mediated; app-level validation against the isolated restore target was not performed. This is not a production or broader-pilot gate.
 
+- [x] Owner-side UAT follow-up verified after commit `58dbe8e`: a confirmed Availability lunch/break/time-off deletion now removes the block; branding logo/cover upload limit is 5 MB for JPG/PNG/WEBP. The focused owner-setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks passed after the commit (3/3).
+- [ ] Dashboard navigation/action redundancy is non-blocking and deferred to Owner Dashboard 2.0.
+
+Use `docs/CLOSED_PILOT_GO_NO_GO.md` as the final invitation and day-one decision record. If its synthetic booking, owner-visibility, manage-link, or cancellation check fails, do not send invitations or continue the pilot.
+
 ## Closed-pilot privacy, support, and incident gate (2026-10-02)
 
 - [x] Privacy, restricted support intake, customer cancellation/support, owner-lockout escalation, correction/deletion requests, incident severity, pilot pause, and tester communication are documented in `docs/CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md`.

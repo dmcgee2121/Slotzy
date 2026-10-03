@@ -16,6 +16,7 @@
 - [x] Legacy notify endpoint restriction outside development/test.
 - [x] Guarded hosted staging passing 3/3.
 - [x] Privacy/support/incident process documented in `docs/CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md`.
+- [x] Owner-side UAT follow-up verified: commit `58dbe8e` fixes confirmed Availability lunch/break/time-off deletion; manual verification passed. Branding logo/cover uploads now allow JPG/PNG/WEBP files up to 5 MB instead of 1 MB.
 
 ### Remaining limitations and operating prerequisites
 
@@ -56,8 +57,10 @@ The privacy/support/incident **documentation** blocker is removed by the new run
 - Mobile Calendar overflow remains parked and is outside this closed-pilot gate.
 - A richer multi-provider invite/account and hours-assignment workflow remains future work; the pilot supports the setup-created provider only.
 - iPad/tablet visual polish follow-up: center/alignment on the owner dashboard and alignment of Settings/Profile branding upload previews and controls. These observations did not block the exercised UAT flows.
+- Dashboard navigation/action redundancy is parked as a non-blocking Owner Dashboard 2.0 follow-up.
 
 See `docs/CLOSED_PILOT_UAT_CHECKLIST.md` for the non-developer test script and copyable result template.
+See `docs/CLOSED_PILOT_GO_NO_GO.md` for the final decision record, strict limits, day-one gate, and invitation scripts. Its go recommendation is limited to the stated trusted staging cohort.
 
 ## Manage-token authorization hardening (2026-10-02)
 
