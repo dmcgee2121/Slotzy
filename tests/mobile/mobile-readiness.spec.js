@@ -1227,12 +1227,66 @@ test("branding accepts modern-photo-sized images and clearly rejects larger file
   await expect(page.locator("#shopCoverInputStatus")).toContainText("5 MB or smaller");
 });
 
+test("saved shop branding appears in the public chooser and selected booking page", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/settings.html");
+  await page.locator("#businessNameInput").fill("Pilot Neighborhood Barbers");
+
+  await page.locator("#shopLogoInput").setInputFiles({
+    name: "shop-logo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from([137, 80, 78, 71]),
+  });
+  await page.locator("#shopCoverInput").setInputFiles({
+    name: "shop-cover.webp",
+    mimeType: "image/webp",
+    buffer: Buffer.from([82, 73, 70, 70]),
+  });
+  await page.locator("#saveShopBtn").click();
+  await expect(page.locator("#shopStatus")).toContainText("Shop settings saved successfully.");
+
+  await page.goto("/pages/book.html");
+  const shopCard = page.locator(".public-shop-directory-card").filter({ hasText: "Pilot Neighborhood Barbers" });
+  await expect(shopCard.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+  await shopCard.click();
+  await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
+  await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+});
+
+test("public booking recognizes API logo and cover branding fields", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  await seedStorage(page, seed);
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+  await page.route("**/api/public/booking-context**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        shops: [{
+          ...seed.local.Slotzy_shops[0],
+          logo: "data:image/png;base64,iVBORw0KGgo=",
+          cover: "data:image/webp;base64,UklGRg==",
+        }],
+        providers: seed.local.Slotzy_users,
+        services: seed.local.Slotzy_services,
+        bookings: [],
+        availabilityByBarber: seed.local.Slotzy_availability,
+      }),
+    });
+  });
+
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
+  await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+});
+
 test("team provider page is honest for the pilot and preserves public provider booking", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await page.goto("/pages/manage-barbers.html");
 
   await expect(page.getByRole("heading", { name: "Provider management is coming later" })).toBeVisible();
   await expect(page.getByText("Customers can continue booking with the provider created during setup.")).toBeVisible();
+  await expect(page.getByText("Only the shop owner can add team members during the pilot.")).toBeVisible();
   await expect(page.locator("#barberName, #addBarberBtn, #barberList, button[data-action]")).toHaveCount(0);
   await expectControlFits(page, page.getByRole("link", { name: "Review Hours" }));
   await expectControlFits(page, page.getByRole("link", { name: "Open Booking Link" }));

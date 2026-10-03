@@ -1208,7 +1208,9 @@ export function initBookingEngine(options = {}) {
     const persistedShop = shopId ? getShopByIdSource(shopId) : null;
     return String(
       persistedShop?.coverDataUrl ??
+      persistedShop?.cover ??
       shop?.coverDataUrl ??
+      shop?.cover ??
       getLegacyShopCoverDataUrl(shopId) ??
       ""
     ).trim();

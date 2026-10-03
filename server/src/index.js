@@ -146,7 +146,11 @@ async function logStagingSupabaseDnsProbe() {
   }
 }
 
-app.use(express.json({ limit: "5mb" }));
+// Shop branding is stored as image data URLs during the pilot. Two allowed
+// 5 MiB source images expand when encoded as JSON, so the request ceiling
+// must accommodate the documented client limit without rejecting a valid
+// owner profile save.
+app.use(express.json({ limit: "15mb" }));
 app.use(cors(getCorsOptions()));
 
 app.get("/api/health", (_req, res) => {

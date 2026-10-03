@@ -10,6 +10,14 @@
 - Owner dashboard cramped top area and long-scroll feedback is recorded for Owner Dashboard 2.0 polish. No dashboard redesign is included in this focused fix.
 - This is frontend-only and requires a Netlify deploy. Render, Supabase, staging data, and production are unchanged.
 
+## Pilot Round 2 profile, branding, and team follow-up (2026-10-03)
+
+- Shop settings could fail after an otherwise accepted logo/cover upload because a 5 MiB source image expands as a data URL; saving sends the complete shop record and exceeded the server's prior 5 MB JSON request limit. The server limit is raised to 15 MB to support the documented two-image 5 MiB maximum.
+- Public booking already accepts the public `logo` field, but cover rendering only checked `coverDataUrl`; it now accepts the public `cover` field too. Saved branding is covered in the chooser and selected-shop mobile flow.
+- Team management remains owner-only and the pilot still does not offer a complete multi-provider invite/onboarding workflow. Team now explicitly tells barber accounts: “Only the shop owner can add team members during the pilot.”
+- Recurring weekly lunch/break blocks, confirmation email/text and manage-link recovery, and optional client accounts/history remain roadmap work. Current time-off blocks are explicitly date/time-range specific.
+- This batch requires Netlify and Render deployment; no Supabase migration is required.
+
 - **Ready for internal staged UAT:** **Yes.** Guarded hosted staging is passing **3/3**: focused staging owner setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks.
 - **Verified owner-side UAT fixes:** commit `58dbe8e` fixes the Availability lunch/break/time-off delete path; manual verification confirmed a confirmed delete removes the block as expected. Branding logo and cover uploads now accept JPG/PNG/WEBP files up to 5 MB (previously 1 MB). Dashboard action redundancy remains a non-blocking Owner Dashboard 2.0 follow-up.
 - **Ready for a trusted barber/customer pilot:** **Yes, with strict limits.** The final assessment is **Ready for tiny trusted closed pilot with strict limits**: one named barber/operator and one to three named customer testers, staging only. This is not production readiness or authorization to expand.

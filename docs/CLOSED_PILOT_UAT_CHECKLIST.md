@@ -11,6 +11,14 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - First-load chooser flash: **Fixed locally.** The loading state now hides shop and booking information until shop context resolves; direct booking links remain supported.
 - Owner dashboard cramped top and long-scroll feedback: **Recorded for Owner Dashboard 2.0 polish.** No full dashboard redesign is included in this follow-up.
 
+### Pilot Round 2 profile, branding, and team follow-up
+
+- Shop profile save: **Fixed locally.** A 5 MiB source image expands when sent as a data URL; the former 5 MB server JSON ceiling rejected valid branding saves. The server now allows the documented logo/cover payload.
+- Public branding: **Fixed locally.** The chooser uses a saved logo and the selected booking page now recognizes the public API cover field; default Slotzy branding remains the fallback.
+- Team: **Clarified.** Only the shop owner can add team members during the pilot. A barber account cannot add members, and the larger multi-provider invite/onboarding workflow is not included.
+- Time Off: **Clarified.** One-off blocks apply only to their selected date/time range. Recurring weekly lunch/break blocks remain future work.
+- Future roadmap only: confirmation email/text carrying the private manage link, resend/recovery of that link, and optional client accounts/history.
+
 - Environment: installed phone PWA; exact phone/browser was not recorded.
 - Customer booking: **Pass**.
 - Manage link: **Pass**.

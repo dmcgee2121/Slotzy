@@ -12,6 +12,15 @@
 - [ ] Owner Dashboard 2.0: assess top-of-page density and long-scroll reduction as future polish; no functional dashboard change was made here.
 - Frontend-only change: deploy Netlify before hosted validation. Render and Supabase deployment/configuration are not required.
 
+## Pilot Round 2 profile, branding, and team follow-up (2026-10-03)
+
+- [x] Fix owner shop-profile saves with allowed logo/cover uploads: the server JSON limit now accommodates Base64 expansion for two 5 MiB source images.
+- [x] Fix public selected-shop cover rendering by accepting the API's public `cover` field; chooser and selected-page logo/cover fall back to Slotzy branding when absent.
+- [x] Clarify Team: only the shop owner can add team members during the pilot. A barber account cannot add members; the complete multi-provider invite/onboarding workflow remains future work.
+- [x] Clarify Time Off: current blocks apply only to a selected date/time range. Recurring weekly lunch/break blocks remain roadmap work.
+- [ ] Roadmap: confirmation email/text with private manage link, manage-link resend/recovery, and optional client accounts/history.
+- Deploy Render and Netlify, then run guarded staging validation. No Supabase migration is required.
+
 - **Ready for internal staged UAT:** **Yes.** The guarded hosted staging suite passes **3/3**: focused owner setup API chain, synthetic owner-to-customer booking lifecycle, and negative checks.
 - **Readiness category:** **Ready for tiny trusted closed pilot with strict limits.** Invite only after the day-one checks below and after the responsible pilot owner has explicitly accepted the stated limitations. This is not production approval or readiness for a broader pilot.
 

@@ -10,6 +10,15 @@
 - [ ] Owner Dashboard 2.0 polish follow-up: review cramped top spacing and long-scroll feedback separately; no dashboard behavior was changed.
 - Deploy Netlify, then run `npm run test:staging -- --workers=1 --reporter=list` with the approved staging mutation guard. Render deployment is not required.
 
+## Pilot Round 2 profile, branding, and team follow-up (2026-10-03)
+
+- [ ] As an owner, save Shop Settings with permitted logo and cover images; require authoritative success and persisted values after reload.
+- [ ] Confirm the public chooser shows the saved logo and the selected direct booking page shows its saved cover. Confirm default Slotzy branding remains when either image is absent.
+- [ ] Confirm a barber/non-owner sees the Team limitation: “Only the shop owner can add team members during the pilot.” Do not treat local staff entries as bookable providers.
+- [ ] Confirm Time Off states that each block is for the selected date/time range; recurring weekly breaks are not part of this pilot.
+- [ ] Record email/text confirmation, manage-link recovery, and client accounts/history as roadmap only; do not weaken private manage tokens.
+- Deploy Render first, then Netlify, and run `npm run test:staging -- --workers=1 --reporter=list` with the approved mutation guard. No Supabase migration is required.
+
 - [ ] Run the approved guarded hosted staging E2E before invitations; use synthetic data only.
 - [ ] Confirm the private support channel, named barber/operator, authorized staging operator, and incident decision maker are recorded outside the repository.
 - [ ] Create a synthetic test booking and verify the owner can see it.

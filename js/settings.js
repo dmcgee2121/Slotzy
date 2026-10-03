@@ -940,6 +940,7 @@ import { wireLogoutButton } from "./logout.js";
         ...existingShopRecord,
         id: nextShopId,
         name: businessName,
+        businessName,
         slug: toSlug(businessName),
         logoDataUrl: persistedLogoDataUrl,
         coverDataUrl: persistedCoverDataUrl,
@@ -1026,7 +1027,7 @@ import { wireLogoutButton } from "./logout.js";
       showToast?.("Settings saved.", { type: "success" });
     } catch (error) {
       console.error("[Slotzy:settings] Failed to save shop settings.", error);
-      setShopStatus("Could not save shop settings right now. Please try again.", false);
+      setShopStatus(getShopSaveErrorMessage(error), false);
     } finally {
       if (saveShopBtn) {
         saveShopBtn.disabled = false;
@@ -1430,6 +1431,17 @@ import { wireLogoutButton } from "./logout.js";
     }
     setPublicBookingLinkStatus("Opening your public booking page in a new tab.", true);
     window.open(value, "_blank", "noopener,noreferrer");
+  }
+
+  function getShopSaveErrorMessage(error) {
+    const status = Number(error?.httpStatus ?? 0);
+    if (status === 403) {
+      return "Only the shop owner can save shop settings during the pilot.";
+    }
+    if (status === 413) {
+      return "Shop photos are too large to save together. Choose smaller images and try again.";
+    }
+    return "Could not save shop settings right now. Please try again.";
   }
 
   async function renderPublicBookingQr(bookingUrl) {
