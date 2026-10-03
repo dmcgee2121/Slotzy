@@ -249,6 +249,14 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - [x] Capture safe owner-list diagnostics: endpoint/method/status/key names, count, authoritative ID/service/client match booleans, statuses, and shop/provider shape comparisons.
 - [x] Select the actual All view and still require the owner-visible card to contain the synthetic client and service plus a scheduled status. This does not weaken owner-side verification.
 - [ ] Confirm the strengthened lifecycle against deployed Netlify code; no Render change is required for this correction.
+## Latest guarded hosted result (2026-10-02)
+
+- [x] Focused staging owner setup API chain passed.
+- [x] Synthetic owner-to-customer booking lifecycle passed.
+- [x] Staging negative checks passed.
+- [x] The hosted result covers secure token-based manage lookup/cancellation, authoritative save-before-receipt/cancellation success, hosted-write fallback hardening, and staging `404` restrictions for dev-email and legacy notify routes.
+- [ ] This result does **not** replace the real-device checklist in `docs/CLOSED_PILOT_UAT_CHECKLIST.md`, password recovery, backup/restore rehearsal, privacy/support readiness, or the parked Calendar overflow issue.
+
 # Hosted hardening checks
 
 - Confirm a rejected setup, service, availability, or settings request shows a retry message and does not advance or show a saved state from `localStorage`.

@@ -1,5 +1,14 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Closed-pilot operational gate (2026-10-02)
+
+- **Ready for internal staged UAT:** **Yes.** Guarded hosted staging is passing **3/3**: focused staging owner setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks.
+- **Ready for a trusted barber/customer pilot:** **No, not yet.** The verified hosted path now includes secure token-based manage links and token-based cancellation, authoritative hosted-write failure handling, and staging restrictions on dev-email and legacy notify endpoints. It does not replace real-device UAT or the remaining operational safeguards.
+- **Remaining blockers:** owner password recovery is not implemented; backup/restore and recovery procedures have not been rehearsed; privacy/disclosure and support/incident processes are not signed off; and real-device UAT has not yet passed on the intended phones/browsers.
+- **Should fix or close before pilot:** reproduce or clear the manually observed mobile booking-save-error candidate; validate customer and owner journeys on Android Chrome and installed Android PWA, plus iPhone Safari and installed iOS home-screen app when available; verify logout/session behavior, invalid/expired manage-link recovery, slow/offline behavior, and installed-app cache refresh.
+- **Can wait:** mobile Calendar overflow remains parked; richer multi-provider invite/account and hours workflow is future work. Do not represent the current Team page as multi-provider management.
+- Use `docs/CLOSED_PILOT_UAT_CHECKLIST.md` for the tester run and report format. This is a documentation/status update only; it changes no application, backend, Supabase, staging data, or production behavior.
+
 ## Manage-token authorization hardening (2026-10-02)
 
 - Hosted anonymous booking now receives a one-time opaque manage token. Receipt links use a URL fragment, and token-scoped API endpoints load or cancel only that booking. Hosted contact-query authorization is removed.

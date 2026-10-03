@@ -1,5 +1,42 @@
 # Pilot readiness
 
+## Closed-pilot go/no-go (2026-10-02)
+
+### Current decision
+
+- **Ready for internal staged UAT:** **Yes.** The guarded hosted staging suite passes **3/3**: focused owner setup API chain, synthetic owner-to-customer booking lifecycle, and negative checks.
+- **Ready for trusted barber/customer pilot:** **No.** Do not invite real pilot users until the blockers below are resolved or explicitly accepted by the responsible pilot owner.
+
+### Completed hardening
+
+- [x] Secure token-based customer manage links; only a token hash is stored.
+- [x] Token-based manage cancellation.
+- [x] Hosted write fallback hardening: API-mode failures cannot be presented as local-only success.
+- [x] Dev-email endpoint restriction outside development/test.
+- [x] Legacy notify endpoint restriction outside development/test.
+- [x] Guarded hosted staging passing 3/3.
+
+### Remaining blockers
+
+- [ ] Owner password recovery is not implemented.
+- [ ] Backup, restore, and failure-recovery procedures have not been documented and rehearsed to an acceptable pilot standard.
+- [ ] Privacy/disclosure, support contact, incident triage, and pilot pause/rollback ownership are not yet signed off.
+- [ ] Real-device UAT has not passed on target Android and iOS/browser-installed modes.
+- [ ] The manually observed mobile customer booking-save-error candidate needs reproduction and diagnosis, or a documented clear result on the target hosted/device path.
+
+### Should fix before pilot
+
+- Complete the practical run in `docs/CLOSED_PILOT_UAT_CHECKLIST.md`, including Android Chrome and installed Android PWA; include iPhone Safari and installed iOS home-screen app where available.
+- Verify logout/login, session refresh/protected-page behavior, invalid/expired manage-link recovery, slow/offline/reconnect behavior, duplicate-submit resistance, and installed-app cache rollover.
+- Confirm public discovery exposes only real shops and direct booking links open the intended shop.
+
+### Can wait
+
+- Mobile Calendar overflow remains parked and is outside this closed-pilot gate.
+- A richer multi-provider invite/account and hours-assignment workflow remains future work; the pilot supports the setup-created provider only.
+
+See `docs/CLOSED_PILOT_UAT_CHECKLIST.md` for the non-developer test script and copyable result template.
+
 ## Manage-token authorization hardening (2026-10-02)
 
 Hosted manage links now use a high-entropy private token in the URL fragment, not shop/contact query text. Lookup and cancellation are token-scoped; invalid tokens receive safe customer wording. Deploy both backend and frontend before staging validation. Apply the existing schema's `booking_manage_tokens` table if it is absent; no database reset is permitted.
