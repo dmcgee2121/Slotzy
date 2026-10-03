@@ -42,11 +42,11 @@ Reconsider direct Supabase access only after the Express API contract, authoriza
 
 | Area | Current routes |
 | --- | --- |
-| Public client | `/pages/book.html?shop=slug`; `/pages/manage.html?shop=slug&contact=...` (optional `code` is read for highlighting); `/pages/book-shop.html`; `/pages/pricing.html` |
+| Public client (hosted) | `/pages/book.html?shop=slug`; `/pages/manage.html#token=...`; `/pages/book-shop.html`; `/pages/pricing.html` |
 | Owner/barber pilot | `/pages/business-owner.html`; `/pages/owner-setup.html`; `/pages/manage-appointments.html`; `/pages/manage-services.html`; `/pages/manage-barbers.html`; `/pages/settings.html`; `/pages/owner-today.html`; `/pages/owner-earnings.html` |
 | Dev/retired | `/pages/dev-emails.html` is local QA only. `admin.html`, `customer-dashboard.html`, `client-history-overview.html`, and legacy scripts are not pilot entry points and need a separate retirement/security decision before staging. |
 
-The current local public manage link is contact-scoped (`shop` + `contact`) rather than a cryptographic bearer token. It is adequate only for local/demo use and must be replaced before hosted customer data is exposed.
+Hosted public manage links use a high-entropy bearer token in the URL fragment. The browser sends the token only to token-scoped public manage lookup/cancel endpoints, and storage retains only its SHA-256 hash. Contact, shop slug, booking ID, and confirmation code are not hosted authorization inputs. A contact-scoped local/demo compatibility route may remain only for local/demo use; it must not be treated as a hosted customer-data authorization path.
 
 ### Current API surface
 
@@ -54,11 +54,11 @@ The current local public manage link is contact-scoped (`shop` + `contact`) rath
 | --- | --- |
 | Health/auth | `GET /api/health`; `POST /api/auth/register`; `POST /api/auth/login`; `GET /api/auth/me` |
 | Shops/services | `GET, POST /api/shops`; `PATCH /api/shops/:shopId`; `GET, POST /api/services`; `PATCH, DELETE /api/services/:serviceId` |
-| Availability/bookings | `GET, PUT /api/availability`; `GET, POST /api/bookings`; `PATCH /api/bookings/:bookingId` |
-| Notifications/dev | `POST /api/notify/booking`, `/cancel`, `/reschedule`; `GET, DELETE /api/dev/emails` |
+| Availability/bookings | `GET, PUT /api/availability`; authenticated `GET, POST /api/bookings`; `PATCH /api/bookings/:bookingId`; public booking context/create and token-scoped manage/cancel endpoints |
+| Notifications/dev | `POST /api/notify/booking`, `/cancel`, `/reschedule`; `GET, DELETE /api/dev/emails` — development/test only; staging and production return `404` |
 | Admin | `GET /api/admin/status`; `POST /api/admin/login`; `GET /api/admin/shops`; `GET /api/admin/shops/:shopId/export`; `POST /api/admin/shops/:shopId/reset`, `/seed-demo-shop`, `/clear-all` |
 
-Today the API CRUD routes require JWTs. Public booking and public manage flows operate in local storage for smoke/demo mode; a hosted public API contract must be designed explicitly rather than exposing the privileged CRUD endpoints anonymously.
+Protected CRUD routes require JWTs. Hosted public booking uses deliberately limited public endpoints rather than anonymous privileged CRUD: public context, validated booking create, and token-scoped manage lookup/cancel. In API mode, failed writes never fall back to browser storage or present a local-only success; browser storage is a compatibility cache only after successful API work.
 
 ## Target staging architecture
 
@@ -107,8 +107,8 @@ Enforce provider/scope checks and policy rules in Express inside a database tran
 - **Secrets:** Supabase database connection string/service role, `JWT_SECRET`, SMTP/API credentials, and admin bootstrap secret belong only in backend/hosting secret stores. Never expose them to Netlify client bundles, source, test fixtures, screenshots, or logs.
 - **JWT/session:** Keep Express-issued access tokens initially to avoid an auth rewrite. Use a strong staging/production secret, short enough expiration with an intentional refresh/logout strategy before production, issuer/audience claims, and key rotation plan. Do not retain the development fallback.
 - **Authorization:** Resolve the user and membership from server-side data for every protected request. Do not trust request `shopId`, provider username, or role claims alone. Scope owner actions to their shop and barber actions to their provider membership.
-- **Public booking:** Create purpose-built unauthenticated endpoints for public shop profile, active providers/services, computed slots, booking create, and managed booking actions. Apply server validation, idempotency keys for create requests, per-IP/contact/shop rate limits, CAPTCHA or equivalent only if abuse requires it, and generic errors that do not leak account/customer data.
-- **Manage links:** Replace contact-in-query authorization with a high-entropy random bearer token in the link (prefer a URL fragment exchanged client-side if practical; otherwise query token must be treated as a secret and redacted from logs/referrers). Store a hash, support expiry/revocation/rotation, and make only that booking accessible. Do not use the confirmation code as its secret.
+- **Public booking:** Hosted staging now has purpose-built unauthenticated context/create and token-scoped manage endpoints. Continue to apply server validation and generic non-leaking errors; before a broader pilot, close or explicitly accept remaining idempotency, rate-limit, and abuse-control decisions.
+- **Manage links:** Hosted staging now uses a high-entropy bearer token in the URL fragment, stores only its hash, and scopes lookup/cancellation to that booking. Do not use contact query text or confirmation code as hosted authorization. Continue to protect token values from logs, screenshots, and referrers.
 - **CORS/transport:** HTTPS only. Set an explicit staging or production frontend-origin allowlist, limited methods/headers, and do not use `cors({ origin: true })` in hosted environments. Add security headers and request body-size limits.
 - **Validation/observability:** Centralize schema validation (for example Zod or equivalent in a later implementation task), record structured errors with request IDs but never passwords/tokens/contacts, add health/readiness endpoints, backups/PITR checks, and alerting for failed bookings/email delivery.
 - **Admin/dev endpoints:** Disable or remove dev outbox and destructive/demo admin actions in staging unless protected by a separate administrative control plane and auditable authorization. `clear-all` must never be available in production.
@@ -147,9 +147,9 @@ Create the users, shops, memberships, services, provider-service, availability, 
 
 Exit criteria: owner/barber setup and configuration flow match current behavior against Postgres; scope/authorization tests cover cross-shop denial.
 
-### Phase D - bookings and secure manage links
+### Phase D - bookings and secure manage links (hosted staging complete; pilot operations remain)
 
-Introduce transactional booking/reschedule/cancel operations, booking-event records, overlap constraints, idempotency, and tokenized manage links. Add explicit public API endpoints rather than exposing JWT CRUD anonymously. Keep the old local manage-link route usable only in local/demo mode until migration is complete; do not silently mix models.
+Hosted staging now has explicit public booking context/create plus tokenized manage lookup/cancel routes, and guarded staging verifies authoritative booking-before-receipt, token manage access, cancellation, owner visibility, and reload persistence. Keep any old contact-scoped manage route local/demo-only; do not silently mix authorization models. Remaining pilot work includes operational recovery, privacy/support sign-off, owner password recovery, real-device UAT, and any approved idempotency/abuse-control work.
 
 Exit criteria: public booking, receipt, tokenized manage action, policies, buffer/time-off, overlap prevention, and owner visibility pass end-to-end against staging.
 
