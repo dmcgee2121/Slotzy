@@ -913,6 +913,24 @@ test("owner critical controls remain usable across mobile pages", async ({ page 
   }
 });
 
+test("team provider page is honest for the pilot and preserves public provider booking", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/manage-barbers.html");
+
+  await expect(page.getByRole("heading", { name: "Provider management is coming later" })).toBeVisible();
+  await expect(page.getByText("Customers can continue booking with the provider created during setup.")).toBeVisible();
+  await expect(page.locator("#barberName, #addBarberBtn, #barberList, button[data-action]")).toHaveCount(0);
+  await expectControlFits(page, page.getByRole("link", { name: "Review Hours" }));
+  await expectControlFits(page, page.getByRole("link", { name: "Open Booking Link" }));
+  await expectNoPageOverflow(page, "team provider pilot page");
+
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  const barberSelect = page.locator("#barberSelect");
+  await expect(barberSelect).toHaveValue(OWNER_USERNAME);
+  await expect(page.locator("#serviceSelect")).toBeEnabled();
+  await expectNoPageOverflow(page, "public booking after team provider page");
+});
+
 test("owner services add, validation, edit, and public booking selection stay mobile-safe", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   seed.local.Slotzy_services.push({

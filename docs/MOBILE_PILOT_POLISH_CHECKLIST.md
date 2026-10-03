@@ -136,6 +136,12 @@ Separate pilot-blocker candidate: a manual mobile customer booking save error re
 - [x] Add/edit now use clear labels plus visible Saving, Saved, and save/remove-failure messages without changing persistence behavior.
 - [ ] On physical iPhone Safari and Android Chrome, verify add/edit/remove flows with the keyboard open and long realistic names/prices. Calendar mobile overflow remains a separately parked issue.
 
+### Team providers
+
+- [x] Removed the misleading pilot add/edit/delete provider controls after confirming they only wrote an unused local staff collection and did not affect public booking.
+- [x] The Team Providers page and dashboard link now explain that the setup-created provider is the only bookable provider for this pilot; mobile automation checks contained copy, no management controls, and the continuing public provider selection.
+- [ ] Build an authenticated provider-account/invite and hours-assignment workflow before offering additional bookable providers. Calendar mobile overflow remains separately parked.
+
 ### Availability
 
 - [x] Automated coverage verifies all seven day cards, explicit Open/Closed state, 44px toggle/time controls, timezone/buffer controls, contained validation, saved-hour refresh, and public-booking time selection across the configured mobile viewports.

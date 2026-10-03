@@ -1634,6 +1634,25 @@
   flex-wrap: wrap;
 }
 
+.owner-page .team-provider-pilot-note {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.owner-page .team-provider-pilot-details {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+
+.owner-page .team-provider-pilot-details p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .owner-page .owner-service-summary {
   display: flex;
   flex-wrap: wrap;

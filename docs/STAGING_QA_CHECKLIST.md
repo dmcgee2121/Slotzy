@@ -27,6 +27,13 @@ Use only synthetic staging data. Record date, tester, browser/device, and any de
 - [ ] On staging with physical iPhone and Android devices, save normal hours, try a missing/invalid range, and verify native time controls plus Saved/failure messages. Calendar overflow remains outside this gate.
 - [ ] Batch this frontend-only CSS/JS/markup change with the next approved Netlify deploy; do not treat current deployed staging as validation of these local changes. No Render/backend redeploy is expected.
 
+## Team provider pilot safety gate (2026-10-02)
+
+- [x] Local mobile automation verifies the Team Providers page has no misleading add/edit/delete controls, presents the pilot limitation without overflow, and leaves the setup-created public booking provider selectable.
+- [x] Root cause is documented: the retired controls only wrote `Slotzy_staff`, not the authenticated owner/barber records used by public booking.
+- [ ] Before enabling additional bookable providers, require a dedicated authenticated account/invite, shop assignment, availability, and public-booking validation workflow.
+- [ ] Batch this frontend-only correction with the next approved Netlify deploy. Do not use current deployed staging as proof of this local change; Render does not require deployment.
+
 ## Owner mobile header and calendar controls gate (2026-10-02)
 
 - [x] Local mobile coverage passed 48 checks: it verifies the dashboard navigation has no duplicate welcome badge or horizontal overflow, keeps all primary links and Logout at least 44px, and exercises the owner Appointments calendar's Today/previous/next controls across the configured phone/tablet projects.

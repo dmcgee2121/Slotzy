@@ -26,6 +26,10 @@ Services management is now mobile-ready for the pilot: cards separate price and 
 
 Weekly Hours now makes each mobile day card’s Open or Closed state explicit while retaining contained 44px controls for the day toggle and Start/End times. Save Availability has durable Saving, Saved, and friendly failure feedback, with clear contained messages when an enabled day is missing a time or ends before it starts. Automation checks the seven cards, all controls, validation, refresh persistence, no overflow, and selectable public booking times after a valid save across the four target viewports. No persistence, booking-time calculation, owner-setup, backend, Supabase, or Calendar behavior changed; Calendar overflow remains parked. This should be batched with later frontend work to conserve Netlify deploy credits; Render does not require a deploy.
 
+## Team provider pilot safety correction (2026-10-02)
+
+The legacy Team page was not a provider-management feature: it wrote local `Slotzy_staff` records, while public booking derives selectable providers from authenticated owner/barber user records assigned to the shop. Rather than present controls that cannot create or change a bookable provider, the pilot uses Option B: Team Providers now clearly states that the setup-created provider is bookable and that additional provider accounts need a future sign-in/invite and hours workflow. No data was removed, and public booking provider selection is unchanged. This frontend-only correction should be batched with later Netlify work; no Render deployment is required. Calendar overflow remains parked.
+
 ## Working in staging
 
 The Netlify staging frontend, Render staging API, and dedicated Supabase staging Postgres project are connected. Health reports the staging/Postgres adapter. On 2026-09-30, all three guarded hosted staging tests passed at commit `3db01ac`: the focused owner-setup API chain, the full synthetic owner-to-customer lifecycle, and synthetic negative checks.

@@ -38,6 +38,12 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 - Local mobile coverage verifies all day controls, validation, saved-hour refresh, overflow containment, and selectable public-booking times after a valid hours save. Calendar overflow remains parked.
 - This is a frontend-only batch for a later Netlify deploy. Availability persistence, public booking calculations, setup hours, staging lifecycle, backend, Supabase, and production were not changed; Render does not require redeployment.
 
+## Team provider pilot safety correction (2026-10-02)
+
+- Audit found that the legacy Team page called local `Slotzy_staff` entries “Providers,” although public booking only uses actual owner/barber user records scoped to the shop. Those local entries could never become bookable providers.
+- Chose Option B for pilot safety: the misleading add, activate, deactivate, and delete UI is removed. The Team Providers page now clearly explains that customers book with the provider created during setup and that additional provider accounts require a later sign-in/hours workflow.
+- No staff data was removed and public provider selection is unchanged. This is a frontend-only batch for a later Netlify deploy; backend, API/provider contract, Supabase, Render, Calendar, and production are unchanged.
+
 ## Owner mobile calendar containment follow-up (2026-10-02)
 
 - Resolved the remaining Android/installed-app calendar clipping report by removing the mobile calendar's nested border/scroll surface and containing it within the existing Calendar card.
