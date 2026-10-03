@@ -1,5 +1,16 @@
 # Staging QA checklist
 
+## Closed-pilot day-one gate (2026-10-03)
+
+- [ ] Run the approved guarded hosted staging E2E before invitations; use synthetic data only.
+- [ ] Confirm the private support channel, named barber/operator, authorized staging operator, and incident decision maker are recorded outside the repository.
+- [ ] Create a synthetic test booking and verify the owner can see it.
+- [ ] Verify that booking's private manage link and permitted cancellation, including the persisted cancelled state after refresh.
+- [ ] Record defects only in the restricted/redacted support record. Do not share secrets, JWTs, raw manage links/tokens, exports, or tester data.
+- [ ] Stop the pilot and pause new bookings if booking, manage, cancel, or save behavior fails.
+
+The final category is **Ready for tiny trusted closed pilot with strict limits**: one trusted barber/operator and one to three trusted customer testers, staging only, no payments, and no sensitive real customer information beyond what is needed for testing. Owner recovery remains manual/operator-mediated; app-level validation against the isolated restore target was not performed. This is not a production or broader-pilot gate.
+
 ## Closed-pilot privacy, support, and incident gate (2026-10-02)
 
 - [x] Privacy, restricted support intake, customer cancellation/support, owner-lockout escalation, correction/deletion requests, incident severity, pilot pause, and tester communication are documented in `docs/CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md`.

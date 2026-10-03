@@ -151,11 +151,11 @@ Lessons / runbook changes:
 
 ## Not production-ready
 
-- Real-device UAT on target Android Chrome/installed PWA and iPhone Safari/installed home-screen modes has not passed.
-- The staging backup/restore procedure is documented, but no actual isolated export/restore rehearsal has been completed.
+- Critical real-device UAT passed on installed Android PWA, Android Chrome, iPad Safari, and the iPad home-screen app. iPhone-specific small-screen Safari/home-screen UAT, plus recovery/cache coverage, remains open; iPad covers the Apple/Safari path for this tiny pilot.
+- The database-level isolated staging backup/restore rehearsal was completed and validated. App-level validation against the isolated restore target was not performed.
 - Self-service password recovery, verified recovery-email enrollment, per-user session/JWT revocation, and a full password-rotation experience are not implemented. Existing JWTs can survive a recovery action for up to seven days.
 - Automated retention, deletion, data export, consent/disclosure, monitoring/alerting, and broad incident-notification capabilities are not implemented or approved for production.
-- The mobile Calendar overflow/mobile booking-save candidate remains parked only if it is still listed in the current readiness documents; it is not cleared by this runbook. Do not invite testers until its current status is explicitly reviewed.
+- Mobile Calendar overflow remains parked/non-blocking for the tiny pilot. The booking-save candidate was cleared for the exercised hosted Android and iPad paths; stop the pilot if it recurs. Do not invite testers until the current go/no-go review and its day-one gate have been accepted.
 - This staging pilot is not production. Do not import production data, make production changes, or describe the pilot as a production service.
 
 ## Related runbooks

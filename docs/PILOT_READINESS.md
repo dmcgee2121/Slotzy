@@ -5,7 +5,7 @@
 ### Current decision
 
 - **Ready for internal staged UAT:** **Yes.** The guarded hosted staging suite passes **3/3**: focused owner setup API chain, synthetic owner-to-customer booking lifecycle, and negative checks.
-- **Ready for trusted barber/customer pilot:** **No.** Do not invite real pilot users until the blockers below are resolved or explicitly accepted by the responsible pilot owner.
+- **Readiness category:** **Ready for tiny trusted closed pilot with strict limits.** Invite only after the day-one checks below and after the responsible pilot owner has explicitly accepted the stated limitations. This is not production approval or readiness for a broader pilot.
 
 ### Completed hardening
 
@@ -17,7 +17,7 @@
 - [x] Guarded hosted staging passing 3/3.
 - [x] Privacy/support/incident process documented in `docs/CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md`.
 
-### Remaining blockers
+### Remaining limitations and operating prerequisites
 
 - [ ] Self-service owner password reset is not implemented. For the named closed pilot, temporary operator-mediated recovery is defined in `docs/CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md`; it requires out-of-band identity verification and carries a documented existing-session limitation. Token-based recovery remains future work.
 - [x] **Database-level isolated backup/restore rehearsal completed and validated** on 2026-10-03. An authorized manual CSV export/import restored `slotzy-staging` into isolated `slotzy-postgres-test` in dependency-safe batches; staging remained connected to `slotzy-staging`, and neither staging nor production was changed. Counts and integrity results are recorded in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`. App-level validation against the restore target was not performed.
@@ -25,7 +25,25 @@
 - [x] The manually observed mobile customer booking-save-error candidate is cleared for the exercised installed-PWA and Android-Chrome hosted paths: booking saved successfully, with no save issue observed. Continue to watch this path during remaining device coverage.
 - [x] Minor Android Chrome observation recorded: on the first opening of the “I'm a client” page, services briefly appeared before a barbershop was selected, then corrected itself. `js/booking-engine.js` gates service population on selected shop and barber state; no persistent state bug was found in inspection, so this is non-blocking unless reproduced as a durable incorrect state.
 
-The privacy/support/incident **documentation** blocker is removed by the new runbook. Before any invitation, the pilot owner must still name the private support channel, incident decision maker, and authorized staging operator outside the repository; this is an operating prerequisite, not a claim of production privacy or retention readiness.
+The privacy/support/incident **documentation** blocker is removed by the new runbook. Before any invitation, the pilot owner must still name the private support channel, incident decision maker, and authorized staging operator outside the repository; this is an operating prerequisite, not a claim of production privacy or retention readiness. The isolated restore rehearsal validates database recovery only, not an application connected to the restore target.
+
+### Strict closed-pilot limits
+
+- One trusted barber/operator and one to three trusted customer testers only.
+- Staging only; no production launch, production data, or production configuration.
+- No payment processing.
+- Collect no sensitive real customer information beyond what is necessary to test a booking.
+- Handle support through the named private channel; do not send passwords, manage links, tokens, or private tester data there.
+- Owner recovery is manual and operator-mediated only; password changes do not immediately revoke issued JWTs.
+- Stop the pilot and pause new bookings if any booking, manage-link, cancellation, or authoritative-save issue appears.
+
+### Day-one invite gate
+
+1. Run the hosted staging E2E with its approved synthetic-data guard before sending invitations.
+2. Confirm the private support channel, named operator, and incident decision maker.
+3. Create one synthetic test booking, verify owner visibility, then verify its manage link and cancellation.
+4. Record issues in the restricted, redacted support record; never record or share secrets, raw manage links/tokens, or private tester data.
+5. Send invitations only if these checks pass. If they fail, do not invite or continue the pilot.
 
 ### Should fix before pilot
 
