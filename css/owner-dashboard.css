@@ -1028,7 +1028,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
-  align-items: start;
+  align-items: center;
   padding: 14px;
   margin-top: 8px;
   border: 1px solid var(--border);
@@ -1047,8 +1047,22 @@
 }
 
 .owner-page .settings-card input[type="file"] {
+  display: block;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
+}
+
+.owner-page .shop-logo-preview-copy {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.owner-page .shop-logo-preview-copy p {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .shop-logo-preview-wrap {
@@ -2724,6 +2738,56 @@
   .form-grid-2,
   .form-grid-3 {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Tablets benefit from a deliberately bounded work surface instead of the
+   wide desktop canvas. This also keeps the branding preview and its controls
+   aligned when Safari uses its larger form-control metrics. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .owner-dashboard-page .owner-dashboard {
+    width: min(100%, 920px);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .owner-dashboard-page .owner-dashboard > * {
+    min-width: 0;
+  }
+
+  .owner-page .settings-branding-grid {
+    align-items: stretch;
+  }
+
+  .owner-page .settings-branding-grid .settings-subcard {
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  }
+
+  .owner-page .shop-logo-settings-card,
+  .owner-page .shop-cover-settings-card {
+    grid-template-columns: minmax(150px, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    min-width: 0;
+  }
+
+  .owner-page .shop-logo-preview-wrap,
+  .owner-page .shop-logo-preview-frame {
+    width: 100%;
+  }
+
+  .owner-page .logo-preview {
+    width: 100%;
+    max-width: none;
+  }
+
+  .owner-page .shop-cover-preview-frame {
+    min-height: 156px;
+  }
+
+  .owner-page .shop-cover-preview-frame img {
+    height: 156px;
   }
 }
 

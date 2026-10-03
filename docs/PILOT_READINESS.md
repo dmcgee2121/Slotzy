@@ -252,3 +252,7 @@ Appointments now refreshes the authenticated owner booking list before initial r
 - [x] `/api/dev/emails` and legacy manual `/api/notify/*` routes return `404` in staging and production.
 - [x] Hosted booking, cancellation, and reschedule notifications are derived from the authoritative server-side action; notification delivery remains best-effort after persistence.
 - [ ] Add durable notification delivery/idempotency and operational monitoring before a wider pilot.
+
+## Owner dashboard and tablet polish (2026-10-03)
+
+The owner dashboard and Settings/Profile branding area received a frontend-only visual polish pass. Existing navigation, booking, manage-token, availability, cancellation/reschedule, validation, and storage behavior are unchanged. Tablet dashboard content is now centered in a bounded work surface, and branding previews and controls align more reliably on iPad-size layouts. A Netlify deploy is required; Render is not required.

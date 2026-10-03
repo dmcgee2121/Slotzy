@@ -823,3 +823,9 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - API-mode writes now reject on API failure or a missing API implementation; local/demo mode retains intentional browser persistence. Services and availability callers await persistence before showing success, and public booking/manage cancellation retain their authoritative-success gates.
 - Development email outbox and manual notification endpoints are available only under `development` or `test`; staging/production receive `404` without email content. Hosted booking/cancel/reschedule notifications now originate from authoritative server mutation routes, and cancellation success is independent of optional notification delivery.
 - Owner appointment status, reschedule, walk-in, and Today-card status controls now await direct API-backed mutations before success UI in API mode. Remaining work is durable notification idempotency/retry/monitoring and broader operational alerting.
+
+## Owner dashboard and tablet polish (2026-10-03)
+
+- Completed a frontend-only owner dashboard and Settings/Profile branding polish pass. Dashboard language now makes the booking link, service menu, full appointment view, and shop settings feel complementary to the retained top navigation.
+- Tablet dashboard content is bounded and centered. Branding previews, controls, and status copy align consistently at iPad widths; JPG/PNG/WEBP 5 MB validation and all storage/save behavior are unchanged.
+- Booking, manage-token, availability, cancellation/reschedule, and backend logic are unchanged. Future polish: richer dashboard mockup refinements based on pilot feedback.
