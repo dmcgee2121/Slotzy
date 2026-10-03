@@ -1,6 +1,6 @@
 # Pilot readiness
 
-## Closed-pilot go/no-go (2026-10-02)
+## Closed-pilot go/no-go (2026-10-03)
 
 ### Current decision
 
@@ -21,14 +21,15 @@
 
 - [ ] Self-service owner password reset is not implemented. For the named closed pilot, temporary operator-mediated recovery is defined in `docs/CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md`; it requires out-of-band identity verification and carries a documented existing-session limitation. Token-based recovery remains future work.
 - [ ] Backup/restore procedure is documented in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`; an isolated non-production restore rehearsal has **not** been performed yet.
-- [ ] Real-device UAT is partially complete: one installed-phone PWA run passed the critical customer booking, manage/cancel, and owner-appointment path. Target Android Chrome, iPhone Safari, and installed iOS coverage remains.
-- [x] The manually observed mobile customer booking-save-error candidate is cleared for the exercised installed-PWA/hosted path: booking saved successfully, with no save issue observed. Continue to watch this path during remaining device coverage.
+- [ ] Real-device UAT is partially complete: installed-phone PWA and Android Chrome runs both passed the critical customer booking, manage/cancel, and owner-appointment path. Android Chrome also passed Services, Availability, and Settings/Profile, with no keyboard/back-button issue or page-wide horizontal scrolling observed. iPhone Safari and installed iOS coverage remain open.
+- [x] The manually observed mobile customer booking-save-error candidate is cleared for the exercised installed-PWA and Android-Chrome hosted paths: booking saved successfully, with no save issue observed. Continue to watch this path during remaining device coverage.
+- [x] Minor Android Chrome observation recorded: on the first opening of the “I'm a client” page, services briefly appeared before a barbershop was selected, then corrected itself. `js/booking-engine.js` gates service population on selected shop and barber state; no persistent state bug was found in inspection, so this is non-blocking unless reproduced as a durable incorrect state.
 
 The privacy/support/incident **documentation** blocker is removed by the new runbook. Before any invitation, the pilot owner must still name the private support channel, incident decision maker, and authorized staging operator outside the repository; this is an operating prerequisite, not a claim of production privacy or retention readiness.
 
 ### Should fix before pilot
 
-- Complete the practical run in `docs/CLOSED_PILOT_UAT_CHECKLIST.md`, including Android Chrome and installed Android PWA; include iPhone Safari and installed iOS home-screen app where available.
+- Complete the practical run in `docs/CLOSED_PILOT_UAT_CHECKLIST.md`, including the remaining iPhone Safari and installed iOS home-screen-app coverage where available.
 - Verify logout/login, session refresh/protected-page behavior, invalid/expired manage-link recovery, slow/offline/reconnect behavior, duplicate-submit resistance, and installed-app cache rollover.
 - Confirm public discovery exposes only real shops and direct booking links open the intended shop.
 

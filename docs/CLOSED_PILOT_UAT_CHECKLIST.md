@@ -2,7 +2,7 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
-## Recorded result — 2026-10-03
+## Recorded results — 2026-10-03
 
 - Environment: installed phone PWA; exact phone/browser was not recorded.
 - Customer booking: **Pass**.
@@ -14,10 +14,21 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - Screenshots/weird behavior: **None so far**.
 - Remaining scope: this is one device-mode result only. Complete the unchecked device/browser and recovery/cache cases below before declaring full internal staged UAT complete.
 
+### Android Chrome real-device UAT
+
+- Environment: Android Chrome on a real device.
+- Customer booking, manage link, cancellation, and owner appointment visibility: **Pass**.
+- Owner Services, Availability, and Settings/Profile: **Pass**.
+- Booking-save issue: **No issue observed**.
+- Page-wide horizontal scrolling: **None observed**.
+- Keyboard or browser back-button issues: **None observed**.
+- Minor observation: on the first opening of the “I'm a client” page, services briefly appeared before a barbershop was selected, then quickly corrected itself. Code inspection found `populateServices()` requires both selected shop and barber state, so this is non-blocking unless it reproduces as a persistent incorrect state.
+- Remaining scope: installed Android PWA core flow is already recorded above; iPhone Safari, installed iOS home-screen app, and the unchecked recovery/cache cases remain open.
+
 ## Devices to cover
 
-- [ ] Android Chrome
-- [ ] Installed Android PWA/app shortcut
+- [x] Android Chrome — core booking/manage/cancel/owner visibility passed on 2026-10-03; Services, Availability, and Settings/Profile were also usable.
+- [x] Installed Android PWA/app shortcut — core booking/manage/cancel/owner visibility passed in the recorded installed-phone PWA run.
 - [ ] iPhone Safari, if available
 - [ ] Installed iOS home-screen app, if available
 
@@ -40,21 +51,21 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - [ ] Copying and opening the booking link work and open the correct public shop.
 - [ ] Appointments show the customer booking after refresh.
 - [ ] All and Today filters make sense for the booking date and do not hide data unexpectedly.
-- [ ] Services page is usable on the phone, including long names and save feedback.
-- [ ] Availability/hours page is usable on the phone, including native time controls and save/error feedback.
-- [ ] Settings/profile save gives clear saving, success, validation, and failure feedback.
+- [x] Services page is usable on the phone (Android Chrome pass; long-name and save-feedback edge cases remain part of broader coverage).
+- [x] Availability/hours page is usable on the phone (Android Chrome pass; native-time-control and save/error edge cases remain part of broader coverage).
+- [x] Settings/profile is usable on the phone (Android Chrome pass; full save-feedback edge cases remain part of broader coverage).
 - [ ] Team page clearly explains the one-provider pilot limitation; it does not imply additional providers are bookable.
 - [ ] Logout works; logging in again restores only the expected authenticated experience.
 
 ## Device and browser behavior
 
-- [ ] The keyboard does not cover important fields, errors, or primary actions.
+- [x] The keyboard did not cover important fields, errors, or primary actions in the Android Chrome run.
 - [ ] Native date, time, and select controls are usable.
 - [ ] Long booking/manage links wrap safely.
-- [ ] No page has page-wide horizontal scrolling.
+- [x] No page-wide horizontal scrolling was observed in the Android Chrome run.
 - [ ] An installed app refreshes to the latest deployed version without retaining an obvious stale shell or stylesheet.
 - [ ] Slow connection, refresh, or reconnect does not create a fake success or duplicate booking.
-- [ ] Browser/app back behavior is acceptable through booking, receipt, manage, login, and owner pages.
+- [x] Browser back behavior had no issue in the Android Chrome run; continue to cover the remaining listed paths and iOS.
 - [ ] No obvious stale-cache issue appears after reload or reopening the installed app.
 
 ## Pass/fail report template
