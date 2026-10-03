@@ -242,7 +242,7 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - [ ] On physical iPhone Safari and Android Chrome, verify the virtual keyboard, native date/select controls, sticky header, internal calendar scrolling, modal scrolling, orientation, and safe-area behavior.
 - [ ] Manually assess contrast/readability in ordinary and bright-light conditions; automation in this pass does not constitute a WCAG contrast audit.
 - [x] Real-device core UAT passed on installed Android PWA, Android Chrome, iPad Safari, and iPad home-screen app: customer booking, manage link, cancellation, owner appointment visibility, Services, Availability, and Settings/Profile were usable; no save issue or page-wide horizontal scrolling was observed. Keyboard and back behavior had no issue in the iPad runs.
-- [ ] iPad/tablet visual polish follow-up: align/center the owner dashboard and align the Settings/Profile branding upload previews and controls. This did not block booking, manage/cancel, owner visibility, saving, or navigation.
+- [x] iPad/tablet visual polish: owner dashboard centering and Settings/Profile branding upload preview/control alignment shipped. This did not change booking, manage/cancel, owner visibility, saving, or navigation.
 
 ## 10. Failure and recovery
 
@@ -301,3 +301,15 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - Confirm a rejected manage cancellation never renders a cancelled success state.
 - Confirm `GET` and `DELETE /api/dev/emails` return `404` and no email data in staging.
 - Confirm `POST /api/notify/booking`, `/cancel`, and `/reschedule` return `404` in staging; hosted notifications must be emitted only by the authoritative booking mutation routes.
+
+## Pilot Round 2 pre-invite checklist (2026-10-03)
+
+- [ ] Run the guarded staging suite and confirm **3/3** pass before invitations.
+- [ ] Confirm the private support channel and incident contact.
+- [ ] Confirm the named tester list: no more than 1–2 barbers/operators and 3–5 trusted customer testers.
+- [ ] Confirm every tester understands this is staging-only: no payments and minimum test-only customer data.
+- [ ] Test the shared booking link and create one synthetic booking.
+- [ ] Verify the owner sees that booking after refresh.
+- [ ] Verify the client manage link opens and can safely manage the booking within policy.
+- [ ] Collect feedback on clarity, layout, trust, and ease of use.
+- [ ] Pause Round 2 and investigate before further activity if booking, manage-link, cancellation, reschedule, or save behavior fails.

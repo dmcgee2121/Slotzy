@@ -18,7 +18,7 @@ Use a real staging account and synthetic test bookings only. Do not test product
 
 - Availability lunch/break/time-off delete: **Pass** after commit `58dbe8e`; manual verification confirmed that accepting the prompt removes the block as expected.
 - Branding upload: **Pass** for the updated limit; logo and cover uploads accept JPG, PNG, and WEBP up to 5 MB (raised from 1 MB).
-- Dashboard redundancy: **Parked, non-blocking** for Owner Dashboard 2.0.
+- Dashboard/tablet/settings polish: **Pass**; the owner dashboard redundancy reduction, tablet centering, and branding upload alignment shipped without changing functional flow.
 - Hosted post-commit evidence: focused owner-setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks: **3 passed**.
 
 ### Android Chrome real-device UAT
@@ -111,3 +111,14 @@ Screenshots attached:
 Internal staged UAT core flow is complete: the critical customer booking, manage/cancel, and owner-appointment flows passed on Android Chrome, the installed Android app shortcut, iPad Safari, and the iPad home-screen app. iPad covers the Apple/Safari browser and home-screen paths; include iPhone Safari and installed iOS home-screen results only if required for the pilot. A failure that risks lost bookings, unauthorized manage access, false success, inability to recover an owner account, or unclear support/recovery handling is a no-go for the trusted pilot.
 
 Known parked/non-gate work: mobile Calendar overflow; richer multi-provider invite/account workflow; and future dashboard mockup refinements beyond the completed iPad/tablet dashboard-centering and Settings/Profile branding-upload-alignment polish. Owner password recovery is available only through the manual, operator-mediated runbook and does not immediately revoke issued JWTs. The database-level isolated backup/restore rehearsal is complete, but app-level validation against the restore target was not performed. Privacy/support documentation is complete, while its named operating roles still need to be recorded outside the repository.
+
+## Pilot Round 1 closeout and Round 2 checklist (2026-10-03)
+
+Round 1 is complete and stabilized. Its core client booking, owner/barber appointment visibility, availability blocking, and barber/client cancel-reschedule paths passed. The lunch/break delete defect, 1 MiB branding limit, and owner dashboard/tablet/settings polish findings were resolved. Mobile automation passed 104/104 and hosted staging passed 3/3; no further functional-flow blocker was reported after the delete fix.
+
+- [ ] Before invitations, rerun the guarded staging suite and confirm 3/3 pass.
+- [ ] Confirm the private support channel, incident contact, and named Round 2 tester list.
+- [ ] Keep Round 2 staging-only: 1–2 barbers/operators, 3–5 trusted customers, no payments, and minimum test-only customer data.
+- [ ] Test the booking link, confirm the owner sees the booking, and verify the client manage link.
+- [ ] Collect feedback on clarity, layout, trust, and ease of use.
+- [ ] Pause and investigate before new activity if booking, manage-link, cancellation, reschedule, or save behavior fails.

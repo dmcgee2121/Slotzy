@@ -6,7 +6,7 @@ Decision date: 2026-10-03
 
 **Go — Ready for tiny trusted closed pilot with strict limits.**
 
-This authorizes a controlled staging test with one trusted barber/operator and one to three trusted customer testers. It is not production readiness, approval for a broader pilot, or authorization to process payments.
+Pilot Round 1 is complete and stabilized. This authorizes a controlled **Round 2** staging test with one to two trusted barbers/operators and three to five trusted customer testers. It is not production readiness, approval for a broader pilot, or authorization to process payments.
 
 ## Readiness completed
 
@@ -20,7 +20,7 @@ This authorizes a controlled staging test with one trusted barber/operator and o
 
 ## Limits and stop conditions
 
-- Invite one named trusted barber/operator and one to three named trusted customer testers only.
+- Invite only one to two named trusted barbers/operators and three to five named trusted customer testers.
 - Use staging only. Do not launch production, change production, or process payments.
 - Use no sensitive real customer information beyond what is needed to test a booking.
 - Handle support only through the approved private channel. Do not share passwords, raw manage links/tokens, secrets, or private tester data.
@@ -33,7 +33,7 @@ This authorizes a controlled staging test with one trusted barber/operator and o
 - Restore validation was database-level only. No app/API health or synthetic UI smoke test ran against the isolated restore target.
 - iPhone-specific small-screen Safari and home-screen UAT was not performed. iPad provides Apple/Safari browser and home-screen coverage, but not iPhone-size coverage.
 - Logout/session expiry, invalid/expired manage-link recovery, slow/offline/reconnect behavior, duplicate-submit resistance, and installed-app cache rollover remain open coverage.
-- Mobile Calendar overflow, the noted iPad/tablet alignment polish, and dashboard navigation/action redundancy (Owner Dashboard 2.0) are parked and non-blocking for this scope.
+- Mobile Calendar overflow and future dashboard mockup refinements are parked and non-blocking for this scope; the Round 1 iPad/tablet alignment and dashboard/settings polish shipped.
 - The private support channel, incident decision maker, and authorized staging operator must be named and recorded outside the repository before invitations.
 - Broader-pilot gaps remain, including production privacy/retention/monitoring, rate limiting/abuse decisions, and fuller account-recovery/session-revocation capability.
 

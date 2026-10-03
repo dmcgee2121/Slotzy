@@ -829,3 +829,11 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - Completed a frontend-only owner dashboard and Settings/Profile branding polish pass. Dashboard language now makes the booking link, service menu, full appointment view, and shop settings feel complementary to the retained top navigation.
 - Tablet dashboard content is bounded and centered. Branding previews, controls, and status copy align consistently at iPad widths; JPG/PNG/WEBP 5 MB validation and all storage/save behavior are unchanged.
 - Booking, manage-token, availability, cancellation/reschedule, and backend logic are unchanged. Future polish: richer dashboard mockup refinements based on pilot feedback.
+
+## Pilot Round 1 complete; Round 2 scope (2026-10-03)
+
+- **Pilot Round 1 is complete and stabilized.** Core flow passed: a client can book; the barber sees the appointment; barber availability correctly blocks customer booking; and both barber and client can cancel or reschedule.
+- Round 1 found minor owner-side issues only: lunch/break delete confirmation did not remove the block, dashboard/navigation felt redundant, branding uploads were constrained to 1 MiB, and tablet dashboard/settings alignment needed polish. The delete behavior is fixed, JPG/PNG/WEBP branding uploads allow 5 MiB, and the dashboard/tablet/settings polish shipped.
+- Evidence after the fixes: local mobile coverage passed **104/104** and guarded hosted staging passed **3/3**. No further functional-flow blocker was reported after the lunch/break correction.
+- **Round 2 recommendation:** remain staging-only; invite only 1–2 trusted barbers/operators and 3–5 trusted customer testers; use no payments and minimum test-only customer data; provide one private support channel. Pause new activity and investigate immediately if booking, manage-link, cancellation, reschedule, or save behavior fails.
+- This remains below production readiness. Manual owner recovery/session revocation, restore-target app validation, iPhone small-screen UAT, and broader production launch work remain open; Calendar overflow remains parked and non-blocking.

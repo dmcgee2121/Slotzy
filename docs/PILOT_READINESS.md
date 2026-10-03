@@ -256,3 +256,9 @@ Appointments now refreshes the authenticated owner booking list before initial r
 ## Owner dashboard and tablet polish (2026-10-03)
 
 The owner dashboard and Settings/Profile branding area received a frontend-only visual polish pass. Existing navigation, booking, manage-token, availability, cancellation/reschedule, validation, and storage behavior are unchanged. Tablet dashboard content is now centered in a bounded work surface, and branding previews and controls align more reliably on iPad-size layouts. A Netlify deploy is required; Render is not required.
+
+## Pilot Round 1 complete; Round 2 recommendation (2026-10-03)
+
+Pilot Round 1 is complete and stabilized. The client booking, owner/barber appointment visibility, barber availability blocking, and barber/client cancel-reschedule paths passed. Round 1 minor owner-side findings were fixed: lunch/break deletion, the 1 MiB branding limit (now 5 MiB for JPG/PNG/WEBP), dashboard/navigation redundancy, and tablet/settings alignment. Mobile coverage passed 104/104 and guarded hosted staging passed 3/3; no further functional-flow blocker was reported after the delete fix.
+
+Round 2 is a staging-only, tightly controlled extension: 1–2 trusted barbers/operators and 3–5 trusted customer testers, no payments, minimum test-only customer data, and a private support channel. Pause invitations and investigate if booking, manage-link, cancellation, reschedule, or save behavior fails. It is not production readiness: manual owner recovery/session revocation, app-level restore-target validation, iPhone-specific small-screen UAT, and broader launch hardening remain open; Calendar overflow remains non-blocking and parked.
