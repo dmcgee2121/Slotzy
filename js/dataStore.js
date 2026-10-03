@@ -1267,14 +1267,22 @@ async function apiGetAvailabilityForBarber(username) {
 async function apiSaveAvailabilityForBarber(username, availability) {
   const key = String(username ?? "").trim();
   if (!key) return createDefaultAvailability();
-  await apiRequest("/availability", {
+  const payload = await apiRequest("/availability", {
     method: "PUT",
     body: {
       barberUsername: key,
       availability: normalizeAvailabilityEntry(availability),
     },
   });
-  return apiGetAvailabilityForBarber(key);
+  // A successful write is already authoritative. Do not make the UI depend on
+  // a second GET: that read can fail or return stale data after the PUT has
+  // committed, making a completed availability change appear to have failed.
+  const savedUsername = String(payload?.barberUsername ?? key).trim() || key;
+  const savedAvailability = normalizeAvailabilityEntry(payload?.availability);
+  const current = getAvailabilityMap();
+  current[savedUsername] = savedAvailability;
+  saveAvailabilityMap(current);
+  return savedAvailability;
 }
 
 export function getSessionUserAsync() {

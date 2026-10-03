@@ -548,8 +548,10 @@ function hasTimeOffOverlap(timeOff, startDate, endDate) {
 }
 
 async function handleTimeOffListClick(event) {
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) return;
+  const eventTarget = event.target;
+  if (!(eventTarget instanceof Element)) return;
+  const target = eventTarget.closest('[data-action="delete-timeoff"]');
+  if (!(target instanceof HTMLButtonElement)) return;
   const action = target.getAttribute("data-action");
   if (action !== "delete-timeoff") return;
 
@@ -564,11 +566,16 @@ async function handleTimeOffListClick(event) {
   if (!confirmed) return;
 
   availability.timeOff = availability.timeOff.filter((item) => item.id !== id);
+  target.disabled = true;
+  target.textContent = "Deleting…";
+  clearTimeOffError();
   try {
     await saveAvailability(availability);
   } catch (error) {
     console.error("[Slotzy:availability] Could not delete time off.", error);
-    showTimeOffError("Could not save changes. Try again.");
+    target.disabled = false;
+    target.textContent = "Delete";
+    showTimeOffError("Could not delete that block. It is still unavailable. Please try again.");
     return;
   }
   renderAvailability();

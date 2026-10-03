@@ -1173,6 +1173,26 @@ test("business profile settings give clear mobile save, validation, and share-li
   await expectNoPageOverflow(page, "public booking after business profile save");
 });
 
+test("branding accepts modern-photo-sized images and clearly rejects larger files", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/settings.html");
+
+  await expect(page.locator("#shopLogoInput")).toHaveAttribute("accept", "image/jpeg,image/png,image/webp");
+  await page.locator("#shopLogoInput").setInputFiles({
+    name: "phone-photo.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.alloc(2 * 1024 * 1024),
+  });
+  await expect(page.locator("#shopLogoInputStatus")).toContainText("ready to save");
+
+  await page.locator("#shopCoverInput").setInputFiles({
+    name: "too-large.webp",
+    mimeType: "image/webp",
+    buffer: Buffer.alloc((5 * 1024 * 1024) + 1),
+  });
+  await expect(page.locator("#shopCoverInputStatus")).toContainText("5 MB or smaller");
+});
+
 test("team provider page is honest for the pilot and preserves public provider booking", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await page.goto("/pages/manage-barbers.html");
@@ -1291,4 +1311,59 @@ test("hosted availability write failure does not create local-only success", asy
     const availability = JSON.parse(localStorage.getItem("Slotzy_availability") || "{}");
     return availability[username]?.weekly?.mon?.start;
   }, OWNER_USERNAME)).toBe("09:00");
+});
+
+test("owner can delete a lunch, break, or time-off block and the deletion persists", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const block = {
+    id: "timeoff-lunch-delete",
+    startISO: "2026-10-06T17:00:00.000Z",
+    endISO: "2026-10-06T18:00:00.000Z",
+    note: "Lunch",
+  };
+  seed.local.Slotzy_availability[OWNER_USERNAME].timeOff = [block];
+  await seedStorage(page, seed, { includeSession: true });
+  page.on("dialog", (dialog) => dialog.accept());
+
+  await page.goto("/pages/business-owner.html");
+  await page.locator('[data-action="delete-timeoff"]').click();
+  await expect(page.getByText("No time off blocks")).toBeVisible();
+  await expect.poll(() => page.evaluate((username) => {
+    const availability = JSON.parse(localStorage.getItem("Slotzy_availability") || "{}");
+    return availability[username]?.timeOff?.length;
+  }, OWNER_USERNAME)).toBe(0);
+
+  await page.reload();
+  await expect(page.getByText("No time off blocks")).toBeVisible();
+});
+
+test("hosted time-off delete failure keeps the block and offers a retryable error", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const block = {
+    id: "timeoff-api-failure",
+    startISO: "2026-10-06T17:00:00.000Z",
+    endISO: "2026-10-06T18:00:00.000Z",
+    note: "Break",
+  };
+  seed.local.Slotzy_availability[OWNER_USERNAME].timeOff = [block];
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/availability**", (route) => route.fulfill({
+    status: 503,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "unavailable" }),
+  }));
+  page.on("dialog", (dialog) => dialog.accept());
+
+  await page.goto("/pages/business-owner.html");
+  await page.locator('[data-action="delete-timeoff"]').click();
+  await expect(page.locator("#availability-timeoff-error")).toContainText("Could not delete that block");
+  await expect(page.locator('[data-action="delete-timeoff"]')).toBeVisible();
+  await expect.poll(() => page.evaluate((username) => {
+    const availability = JSON.parse(localStorage.getItem("Slotzy_availability") || "{}");
+    return availability[username]?.timeOff?.some((entry) => entry.id === "timeoff-api-failure");
+  }, OWNER_USERNAME)).toBe(true);
 });

@@ -82,7 +82,7 @@ import { wireLogoutButton } from "./logout.js";
   const showToast = window.showToast;
   const APP_VERSION = "0.1.0-beta";
   const DEFAULT_SHOP_LOGO_URL = new URL("../assets/images/slotzy-logo.png", import.meta.url).href;
-  const MAX_SHOP_IMAGE_BYTES = 1024 * 1024;
+  const MAX_SHOP_IMAGE_BYTES = 5 * 1024 * 1024;
   const VALID_SHOP_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
   const OWNER_STYLES_WARNING_BANNER_ID = "ownerStylesWarningBanner";
   let saveFeedbackTimer = null;
@@ -696,7 +696,7 @@ import { wireLogoutButton } from "./logout.js";
 
     if (Number(file.size ?? 0) > MAX_SHOP_IMAGE_BYTES) {
       if (shopLogoInput) shopLogoInput.value = "";
-      setShopLogoInputStatus("Logo must be 1 MB or smaller.", false);
+      setShopLogoInputStatus("Logo must be 5 MB or smaller.", false);
       renderShopLogoPreview();
       return;
     }
@@ -740,7 +740,7 @@ import { wireLogoutButton } from "./logout.js";
 
     if (Number(file.size ?? 0) > MAX_SHOP_IMAGE_BYTES) {
       if (shopCoverInput) shopCoverInput.value = "";
-      setShopCoverInputStatus("Cover image must be 1 MB or smaller.", false);
+      setShopCoverInputStatus("Cover image must be 5 MB or smaller.", false);
       renderShopCoverPreview();
       return;
     }
