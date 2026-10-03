@@ -102,25 +102,32 @@ import * as dataStore from "./dataStore.js";
     showAddFormErrors(errors);
     if (errors.length > 0) return;
 
-    const services = getAllServices();
-    services.push({
-      id: makeId(),
-      name: payload.name,
-      title: payload.name,
-      price: toPrice(payload.price),
-      durationMinutes: toDuration(payload.durationMinutes),
-      duration: toDuration(payload.durationMinutes),
-      active: true,
-      createdAtISO: new Date().toISOString(),
-      shopId: currentShopId,
-      barberUsername: currentUsername,
-      ownerUsername: currentUsername,
-    });
+    setFormStatus("Saving service…", "saving");
+    try {
+      const services = getAllServices();
+      services.push({
+        id: makeId(),
+        name: payload.name,
+        title: payload.name,
+        price: toPrice(payload.price),
+        durationMinutes: toDuration(payload.durationMinutes),
+        duration: toDuration(payload.durationMinutes),
+        active: true,
+        createdAtISO: new Date().toISOString(),
+        shopId: currentShopId,
+        barberUsername: currentUsername,
+        ownerUsername: currentUsername,
+      });
 
-    saveAllServices(services);
-    clearForm();
-    renderOwnerServices();
-    showToast?.(`Service added: ${payload.name}`, "success");
+      saveAllServices(services);
+      clearForm();
+      renderOwnerServices();
+      setFormStatus(`Saved. ${payload.name} is now available for booking.`, "success");
+      showToast?.(`Service added: ${payload.name}`, "success");
+    } catch (error) {
+      console.error("[Slotzy:services] Could not save service.", error);
+      setFormStatus("We couldn’t save this service. Check the details and try again.", "error");
+    }
   }
 
   function handleDeleteService(serviceId) {
@@ -133,10 +140,16 @@ import * as dataStore from "./dataStore.js";
     if (!confirmed) return;
 
     const remaining = allServices.filter((item) => item.id !== serviceId);
-    saveAllServices(remaining);
-    if (editingServiceId === serviceId) clearEditState();
-    renderOwnerServices();
-    showToast?.(`Service removed: ${service.name}`, "success");
+    try {
+      saveAllServices(remaining);
+      if (editingServiceId === serviceId) clearEditState();
+      renderOwnerServices();
+      setFormStatus(`Saved. ${service.name} was removed from your booking menu.`, "success");
+      showToast?.(`Service removed: ${service.name}`, "success");
+    } catch (error) {
+      console.error("[Slotzy:services] Could not remove service.", error);
+      setFormStatus("We couldn’t remove this service. Please try again.", "error");
+    }
   }
 
   function startEditing(serviceId) {
@@ -184,10 +197,19 @@ import * as dataStore from "./dataStore.js";
       };
     });
 
-    saveAllServices(services);
-    clearEditState();
-    renderOwnerServices();
-    showToast?.(`Service updated: ${payload.name}`, "success");
+    setFormStatus("Saving changes…", "saving");
+    try {
+      saveAllServices(services);
+      clearEditState();
+      renderOwnerServices();
+      setFormStatus(`Saved. ${payload.name} was updated.`, "success");
+      showToast?.(`Service updated: ${payload.name}`, "success");
+    } catch (error) {
+      console.error("[Slotzy:services] Could not update service.", error);
+      editErrors = ["We couldn’t save your changes. Please try again."];
+      setFormStatus("We couldn’t save your changes. Please try again.", "error");
+      renderOwnerServices();
+    }
   }
 
   function clearEditState() {
@@ -256,7 +278,7 @@ import * as dataStore from "./dataStore.js";
       <article class="card owner-service-card">
         <div class="card-head">
           <h3>${escapeHtml(service.name)}</h3>
-          <p>$${formatPrice(service.price)} | ${escapeHtml(service.durationMinutes)} minutes</p>
+          <p class="owner-service-summary"><span><strong>Price</strong> $${formatPrice(service.price)}</span><span><strong>Length</strong> ${escapeHtml(service.durationMinutes)} minutes</span></p>
         </div>
         <span class="badge ${statusClass}" aria-label="Service status: ${statusLabel}">${statusLabel}</span>
         <div class="owner-service-actions cta-row">
@@ -278,18 +300,18 @@ import * as dataStore from "./dataStore.js";
 
         <div class="form-stack">
           <div class="field">
-            <label for="${editIdBase}-name">Name</label>
+            <label for="${editIdBase}-name">Service name</label>
             <input id="${editIdBase}-name" type="text" data-field="name" value="${escapeHtml(editDraft?.name ?? service.name)}" />
           </div>
 
           <div class="field">
-            <label for="${editIdBase}-price">Price</label>
-            <input id="${editIdBase}-price" type="number" min="0.01" step="0.01" data-field="price" value="${escapeHtml(editDraft?.price ?? service.price)}" />
+            <label for="${editIdBase}-price">Price (USD)</label>
+            <input id="${editIdBase}-price" type="number" min="0.01" step="0.01" inputmode="decimal" data-field="price" value="${escapeHtml(editDraft?.price ?? service.price)}" />
           </div>
 
           <div class="field">
-            <label for="${editIdBase}-duration">Duration (minutes)</label>
-            <input id="${editIdBase}-duration" type="number" min="10" max="240" step="1" data-field="durationMinutes" value="${escapeHtml(editDraft?.durationMinutes ?? service.durationMinutes)}" />
+            <label for="${editIdBase}-duration">Appointment length (minutes)</label>
+            <input id="${editIdBase}-duration" type="number" min="10" max="240" step="1" inputmode="numeric" data-field="durationMinutes" value="${escapeHtml(editDraft?.durationMinutes ?? service.durationMinutes)}" />
           </div>
         </div>
 
@@ -325,6 +347,13 @@ import * as dataStore from "./dataStore.js";
     }
     el.innerHTML = errors.map(escapeHtml).join("<br />");
     el.classList.remove("hidden");
+  }
+
+  function setFormStatus(message, type) {
+    const el = document.getElementById("serviceFormStatus");
+    if (!el) return;
+    el.textContent = message;
+    el.className = `service-form-status service-form-status-${type}`;
   }
 
   function clearForm() {

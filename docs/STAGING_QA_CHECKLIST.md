@@ -13,6 +13,13 @@ Use only synthetic staging data. Record date, tester, browser/device, and any de
 - [ ] Verify setup save/finish pending labels and success/error notices remain visible with the keyboard open.
 - [ ] Verify installed-PWA cache rollover after the Netlify frontend redeploy. No Render/backend redeploy is expected for this frontend-only pass.
 
+## Services management mobile gate (2026-10-02)
+
+- [x] Local mobile automation covers the empty state, contained validation, 44px Services controls, saved list card, inline edit controls, no document overflow, and public booking selection of a newly saved service on iPhone SE, iPhone 15, Pixel 7, and iPad Mini.
+- [x] Existing hosted service lifecycle requirements remain unchanged: owner setup persists services through the authenticated service API, a reload verifies the persisted service is rendered, and public booking selects that service.
+- [ ] On staging with a physical phone, add, edit, and remove a synthetic service with the keyboard open; confirm save/failure wording, long-name wrapping, and the public booking impact. Calendar mobile overflow remains outside this gate.
+- [ ] After the Netlify frontend deploy, validate the installed-PWA shell receives the updated Services CSS/JS. No Render/backend redeploy is expected.
+
 ## Owner mobile header and calendar controls gate (2026-10-02)
 
 - [x] Local mobile coverage passed 48 checks: it verifies the dashboard navigation has no duplicate welcome badge or horizontal overflow, keeps all primary links and Logout at least 44px, and exercises the owner Appointments calendar's Today/previous/next controls across the configured phone/tablet projects.

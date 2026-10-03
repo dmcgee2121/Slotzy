@@ -40,7 +40,7 @@
       <section class="card owner-panel section-stack">
         <div class="card-head">
           <h2>Add Service</h2>
-          <p>Create a new service with a clear name, price, and duration.</p>
+          <p>Add a bookable service with a clear name, price, and appointment length.</p>
         </div>
 
         <div class="form-stack">
@@ -55,12 +55,13 @@
           </div>
 
           <div class="field">
-            <label for="serviceDuration">Duration (minutes)</label>
+            <label for="serviceDuration">Appointment length (minutes)</label>
             <input id="serviceDuration" type="number" min="10" max="240" step="5" placeholder="30" inputmode="numeric" />
           </div>
         </div>
 
-        <div class="cta-row">
+        <div id="serviceFormStatus" class="service-form-status hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div class="cta-row service-form-actions">
           <button id="addServiceBtn" class="btn btn-primary" type="button">Add Service</button>
         </div>
       </section>

@@ -18,6 +18,10 @@ The subsequent Android/installed-app follow-up removes the calendar's remaining 
 
 The mobile Appointment Manager now uses a more compact hero, wrapped 44px view filters rather than a horizontal chip scrollbar, contained search/scope controls, and clearer contained empty-state/card actions. Calendar layout is intentionally parked as a separate known issue and was not changed by this pass. This remains frontend-only: booking, appointments, cancellation, persistence, backend, and Supabase behavior are unchanged. A Netlify deploy is required; Render is not.
 
+## Services management mobile polish (2026-10-02)
+
+Services management is now mobile-ready for the pilot: cards separate price and appointment length, retain clear Active/Inactive status, and wrap owner actions into 44px targets. The Add Service and inline Edit forms have explicit owner-facing labels, suitable numeric keyboards, contained validation, and durable Saving, Saved, and friendly failure states. The no-services path remains an immediate Add Service action, while the existing destructive confirmation plainly explains that deleted services disappear from the public booking menu. Mobile automation verifies this flow and that a saved service can still be selected on public booking across all four representative viewports. No storage adapter, API contract, service persistence, owner setup, booking behavior, backend, Supabase, or Calendar code changed; Calendar overflow remains parked. A Netlify frontend deploy is required; Render is not.
+
 ## Working in staging
 
 The Netlify staging frontend, Render staging API, and dedicated Supabase staging Postgres project are connected. Health reports the staging/Postgres adapter. On 2026-09-30, all three guarded hosted staging tests passed at commit `3db01ac`: the focused owner-setup API chain, the full synthetic owner-to-customer lifecycle, and synthetic negative checks.

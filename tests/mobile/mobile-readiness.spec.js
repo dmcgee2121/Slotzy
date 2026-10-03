@@ -873,3 +873,56 @@ test("owner critical controls remain usable across mobile pages", async ({ page 
     }
   }
 });
+
+test("owner services add, validation, edit, and public booking selection stay mobile-safe", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  seed.local.Slotzy_services.push({
+    ...seed.local.Slotzy_services[0],
+    id: "service_mobile_pilot_second",
+    name: "E2E Mobile Trim",
+    title: "E2E Mobile Trim",
+    price: 20,
+    duration: 20,
+    durationMinutes: 20,
+  });
+  await seedStorage(page, seed, { includeSession: true });
+  await page.goto("/pages/manage-services.html");
+
+  await expect(page.getByRole("heading", { name: "E2E Mobile Cut", exact: true })).toBeVisible();
+  await expectControlFits(page, "#serviceName");
+  await expectControlFits(page, "#servicePrice");
+  await expectControlFits(page, "#serviceDuration");
+  await expectControlFits(page, "#addServiceBtn");
+  await expectNoPageOverflow(page, "owner services page");
+
+  await page.locator("#addServiceBtn").click();
+  await expectReadableStatus(page, "#add-service-errors");
+  await expectNoPageOverflow(page, "owner service validation state");
+
+  const serviceName = "Mobile Signature Service";
+  await page.locator("#serviceName").fill(serviceName);
+  await page.locator("#servicePrice").fill("42.50");
+  await page.locator("#serviceDuration").fill("45");
+  await page.locator("#addServiceBtn").click();
+
+  await expect(page.getByRole("heading", { name: serviceName, exact: true })).toBeVisible();
+  await expect(page.locator("#serviceFormStatus")).toContainText("Saved.");
+  await expectNoPageOverflow(page, "saved owner service list");
+  const savedCard = page.locator(".owner-service-card").filter({ hasText: serviceName });
+  await expectControlFits(page, savedCard.locator("button[data-action='edit']"));
+  await expectControlFits(page, savedCard.locator("button[data-action='delete']"));
+
+  await savedCard.locator("button[data-action='edit']").click();
+  await expect(page.getByRole("heading", { name: "Edit Service", exact: true })).toBeVisible();
+  for (const selector of ["input[data-field='name']", "input[data-field='price']", "input[data-field='durationMinutes']", "button[data-action='save-edit']", "button[data-action='cancel-edit']"]) {
+    await expectControlFits(page, selector);
+  }
+  await expectNoPageOverflow(page, "owner service edit form");
+
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  const matchingOption = page.locator("#serviceSelect option").filter({ hasText: serviceName });
+  await expect(matchingOption).toHaveCount(1);
+  await page.locator("#serviceSelect").selectOption(await matchingOption.getAttribute("value"));
+  await expect(page.locator("#serviceSelect")).not.toHaveValue("");
+  await expectNoPageOverflow(page, "public booking with saved owner service");
+});

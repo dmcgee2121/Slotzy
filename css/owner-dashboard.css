@@ -1592,6 +1592,44 @@
   flex-wrap: wrap;
 }
 
+.owner-page .owner-service-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.owner-page .owner-service-summary span {
+  white-space: nowrap;
+}
+
+.owner-page .service-form-status {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.owner-page .service-form-status-saving {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.owner-page .service-form-status-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.owner-page .service-form-status-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
 .owner-page .appointment-detail-label {
   color: var(--muted);
   font-size: 0.72rem;
@@ -2125,6 +2163,16 @@
   .owner-page .owner-panel a.btn {
     width: 100%;
     text-align: center;
+  }
+
+  .owner-page .owner-service-actions .btn,
+  .owner-page .service-form-actions .btn {
+    flex: 1 1 132px;
+    min-height: 44px;
+  }
+
+  .owner-page .owner-service-card .field input {
+    min-height: 44px;
   }
 
   .owner-page .setup-stepper {

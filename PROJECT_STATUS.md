@@ -24,6 +24,13 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 - This is frontend presentation and test coverage only. Booking, appointment filtering/refresh, walk-ins, exports, cancellation, persistence, backend, Supabase, staging data, and production were not changed.
 - Validation: 48 mobile checks passed across iPhone SE, iPhone 15, Pixel 7, and iPad Mini; smoke discovery listed 25 tests in 7 files; `git diff --check` passed. The staging command remained blocked by its required opt-in mutation guard, so no staging data changed.
 
+## Services management mobile polish (2026-10-02)
+
+- The mobile Services page now presents price and appointment length as distinct scan-friendly details, with contained wrapping actions and 44px add, edit, save, cancel, and delete controls.
+- Add and edit forms use plain, explicit labels and numeric keyboard hints. Validation remains inline and contained; owners now see durable `Saving…`, `Saved.`, and friendly retryable save/remove failure messages in addition to the existing toast.
+- The no-services state still leads directly to Add Service, and the existing delete confirmation clearly explains that removal stops client selection and cannot be undone.
+- This is frontend markup, CSS, JavaScript, mobile-test, and documentation work only. Service persistence, public booking service reads/selection, owner setup, staging lifecycle, backend, Supabase, and Calendar were not changed. Calendar mobile overflow remains parked.
+
 ## Owner mobile calendar containment follow-up (2026-10-02)
 
 - Resolved the remaining Android/installed-app calendar clipping report by removing the mobile calendar's nested border/scroll surface and containing it within the existing Calendar card.

@@ -131,10 +131,10 @@ Separate pilot-blocker candidate: a manual mobile customer booking save error re
 
 ### Services
 
-- [ ] Verify add/edit/activate/deactivate/remove flows with the phone keyboard and long realistic names/prices.
-- [ ] Confirm service state and customer-booking impact are understandable without internal terminology.
-- [ ] Confirm the empty state leads directly to adding the first bookable service.
-- [ ] Verify save/remove errors preserve entered data and provide a clear retry.
+- [x] Automated coverage verifies no overflow, 44px add/edit/save/cancel/delete controls, contained validation, an empty-state Add Service path, a saved service card, and public booking selection across iPhone SE, iPhone 15, Pixel 7, and iPad Mini.
+- [x] Service cards now expose price, appointment length, and Active/Inactive status in a clear scan order; removal confirmation explains the public-booking consequence in plain language.
+- [x] Add/edit now use clear labels plus visible Saving, Saved, and save/remove-failure messages without changing persistence behavior.
+- [ ] On physical iPhone Safari and Android Chrome, verify add/edit/remove flows with the keyboard open and long realistic names/prices. Calendar mobile overflow remains a separately parked issue.
 
 ### Availability
 
