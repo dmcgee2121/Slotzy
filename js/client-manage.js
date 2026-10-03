@@ -115,7 +115,18 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         storeCurrentManageLink();
         // Token scope currently authorizes read/cancel only. Do not route a
         // token-holder through the staff-authenticated reschedule workflow.
-        const row = { ...decorateBooking(booking, currentShop), canReschedule: false };
+        // Keep the pilot path explicit instead of rendering a disabled control
+        // that appears broken on mobile.
+        const row = {
+          ...decorateBooking(booking, currentShop),
+          canReschedule: false,
+          showRescheduleControl: false,
+          showRescheduleHint: true,
+          reschedule: {
+            canReschedule: false,
+            message: "Rescheduling is not available yet. Please cancel and rebook.",
+          },
+        };
         const upcoming = row.start.getTime() >= Date.now() && isScheduledStatus(row.status) ? [row] : [];
         const past = upcoming.length ? [] : [row];
         showAppointmentSections();

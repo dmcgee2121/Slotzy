@@ -2,6 +2,14 @@
 
 ## Closed-pilot operational gate (2026-10-03)
 
+## Pilot Round 2 iPhone Safari/PWA feedback follow-up (2026-10-03)
+
+- Core iPhone Safari/PWA Round 2 flow passed: booking, actual available times, Sunday/Monday availability blocking, private manage-link opening, cancellation, and owner/customer flow.
+- Private manage tokens intentionally authorize only appointment read and cancellation. They do not authorize the staff-authenticated reschedule workflow. The prior disabled Reschedule button was therefore expected by policy but confusing; it is removed for token links and replaced with: “Rescheduling is not available yet. Please cancel and rebook.”
+- The public chooser now keeps shop hero and booking details hidden behind its existing loading state until the shop context is known, preventing the first-load services/booking flash. Direct booking links still reveal the correct shop after context load.
+- Owner dashboard cramped top area and long-scroll feedback is recorded for Owner Dashboard 2.0 polish. No dashboard redesign is included in this focused fix.
+- This is frontend-only and requires a Netlify deploy. Render, Supabase, staging data, and production are unchanged.
+
 - **Ready for internal staged UAT:** **Yes.** Guarded hosted staging is passing **3/3**: focused staging owner setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks.
 - **Verified owner-side UAT fixes:** commit `58dbe8e` fixes the Availability lunch/break/time-off delete path; manual verification confirmed a confirmed delete removes the block as expected. Branding logo and cover uploads now accept JPG/PNG/WEBP files up to 5 MB (previously 1 MB). Dashboard action redundancy remains a non-blocking Owner Dashboard 2.0 follow-up.
 - **Ready for a trusted barber/customer pilot:** **Yes, with strict limits.** The final assessment is **Ready for tiny trusted closed pilot with strict limits**: one named barber/operator and one to three named customer testers, staging only. This is not production readiness or authorization to expand.

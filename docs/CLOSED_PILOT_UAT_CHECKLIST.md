@@ -4,6 +4,13 @@ Use a real staging account and synthetic test bookings only. Do not test product
 
 ## Recorded results — 2026-10-03
 
+### Pilot Round 2 iPhone Safari/PWA feedback follow-up
+
+- Core booking, actual available times, Sunday/Monday blocking, token manage-link opening, cancellation, and general barber/customer flow: **Pass**.
+- Token manage-link rescheduling: **Not available in this pilot by design.** The token is restricted to read/cancel and cannot enter the staff-authenticated reschedule workflow. The misleading disabled button is removed; customers see: “Rescheduling is not available yet. Please cancel and rebook.”
+- First-load chooser flash: **Fixed locally.** The loading state now hides shop and booking information until shop context resolves; direct booking links remain supported.
+- Owner dashboard cramped top and long-scroll feedback: **Recorded for Owner Dashboard 2.0 polish.** No full dashboard redesign is included in this follow-up.
+
 - Environment: installed phone PWA; exact phone/browser was not recorded.
 - Customer booking: **Pass**.
 - Manage link: **Pass**.

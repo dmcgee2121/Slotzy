@@ -4,6 +4,14 @@
 
 ### Current decision
 
+## Pilot Round 2 iPhone Safari/PWA feedback follow-up (2026-10-03)
+
+- [x] Core booking, actual availability, Sunday/Monday blocking, token manage-link opening, cancellation, and owner/customer flow passed on the exercised iPhone Safari/PWA paths.
+- [x] Private manage-link rescheduling is intentionally unavailable in this pilot: token scope is read/cancel only and must not enter the staff-authenticated reschedule workflow. The disabled button was removed; token pages now plainly direct customers to cancel and rebook.
+- [x] The first-load shop-chooser flash is fixed by hiding shop/booking panels until booking context is known; the existing loading state is shown first and direct booking links remain supported.
+- [ ] Owner Dashboard 2.0: assess top-of-page density and long-scroll reduction as future polish; no functional dashboard change was made here.
+- Frontend-only change: deploy Netlify before hosted validation. Render and Supabase deployment/configuration are not required.
+
 - **Ready for internal staged UAT:** **Yes.** The guarded hosted staging suite passes **3/3**: focused owner setup API chain, synthetic owner-to-customer booking lifecycle, and negative checks.
 - **Readiness category:** **Ready for tiny trusted closed pilot with strict limits.** Invite only after the day-one checks below and after the responsible pilot owner has explicitly accepted the stated limitations. This is not production approval or readiness for a broader pilot.
 

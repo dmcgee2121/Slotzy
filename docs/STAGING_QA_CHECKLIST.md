@@ -2,6 +2,14 @@
 
 ## Closed-pilot day-one gate (2026-10-03)
 
+## Pilot Round 2 iPhone Safari/PWA follow-up (2026-10-03)
+
+- [x] Record core Round 2 pass: booking, actual available times, Sunday/Monday availability blocking, token manage link, cancellation, and the general barber/customer flow.
+- [x] Verify token manage links do not render a disabled Reschedule button. They must show: “Rescheduling is not available yet. Please cancel and rebook.” Token scope remains read/cancel only.
+- [x] Verify `/pages/book.html` initially shows the loading state and hides shop/booking panels until context resolves; verify a direct `?shop=` link still opens the intended shop.
+- [ ] Owner Dashboard 2.0 polish follow-up: review cramped top spacing and long-scroll feedback separately; no dashboard behavior was changed.
+- Deploy Netlify, then run `npm run test:staging -- --workers=1 --reporter=list` with the approved staging mutation guard. Render deployment is not required.
+
 - [ ] Run the approved guarded hosted staging E2E before invitations; use synthetic data only.
 - [ ] Confirm the private support channel, named barber/operator, authorized staging operator, and incident decision maker are recorded outside the repository.
 - [ ] Create a synthetic test booking and verify the owner can see it.

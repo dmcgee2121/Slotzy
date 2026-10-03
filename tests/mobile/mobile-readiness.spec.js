@@ -298,6 +298,38 @@ test("public booking loading and retry error states fit mobile without a fake re
   await expect(page.getByRole("heading", { name: "Booked!" })).toHaveCount(0);
 });
 
+test("public shop chooser keeps booking details hidden until its context loads", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  await seedStorage(page, seed);
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+
+  let releaseContext;
+  const contextGate = new Promise((resolve) => { releaseContext = resolve; });
+  await page.route("**/api/public/booking-context**", async (route) => {
+    await contextGate;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        shops: seed.local.Slotzy_shops,
+        providers: seed.local.Slotzy_users,
+        services: seed.local.Slotzy_services,
+        bookings: [],
+        availabilityByBarber: seed.local.Slotzy_availability,
+      }),
+    });
+  });
+
+  await page.goto("/pages/book.html");
+  await expect(page.locator("#publicBookingLoadState")).toBeVisible();
+  await expect(page.locator("#publicShopHero")).toBeHidden();
+  await expect(page.locator("#bookingPanel")).toBeHidden();
+
+  releaseContext();
+  await expect(page.locator("#publicShopPickerSection")).toBeVisible();
+  await expect(page.locator("#bookingPanel")).toBeHidden();
+});
+
 test("public booking no-services state stays actionable on mobile", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   seed.local.Slotzy_services = [];
@@ -638,6 +670,8 @@ test("token manage page renders customer details and persists cancellation", asy
   await expect(managedCard).toContainText("Booked for E2E Token Client");
   await expect(managedCard.locator(".appointment-datetime span").first()).toBeVisible();
   await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Booked");
+  await expect(managedCard.getByRole("button", { name: "Reschedule", exact: true })).toHaveCount(0);
+  await expect(managedCard).toContainText("Rescheduling is not available yet. Please cancel and rebook.");
   await expectControlFits(page, managedCard.getByRole("button", { name: "Cancel", exact: true }));
   await expectNoPageOverflow(page, "token manage booking page");
 
