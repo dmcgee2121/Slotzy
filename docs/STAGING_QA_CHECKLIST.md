@@ -8,6 +8,14 @@
 - [ ] Confirm support/incident notes use redacted references only; never attach private manage links/tokens, credentials, exports, unredacted logs, or customer contact data.
 - [ ] Treat the remaining real-device UAT, the isolated backup/restore rehearsal, the password-recovery/JWT-session limitation, and the parked Calendar issue as separate readiness gates. Installed Android PWA, Android Chrome, iPad Safari, and the iPad home-screen app passed their exercised core flows on 2026-10-03 and cleared the booking-save candidate for those hosted/device paths. iPad covers the Apple/Safari path; retain iPhone-specific coverage only if required for the pilot. Recovery/cache coverage remains open. Android Chrome's brief pre-shop services flash corrected itself and is tracked as a minor non-blocking observation, not a confirmed state bug. The iPad owner-dashboard centering and Settings/Profile branding-upload alignment observations are non-blocking tablet visual-polish follow-ups.
 
+### Backup/restore rehearsal evidence gate (2026-10-03)
+
+- [x] Read-only readiness review completed: recovery tables and count-only validation queries are documented; no destructive SQL is required.
+- [ ] Actual export/snapshot metadata captured by the authorized Supabase operator in restricted evidence.
+- [ ] Empty isolated Supabase rehearsal target/branch confirmed separate from staging and production.
+- [ ] Actual isolated restore completed; pre/post counts, synthetic-shop proof, booking/manage-token count proof, and isolated health/synthetic smoke result recorded.
+- [ ] **Backup/restore rehearsal remains open pending isolated restore execution.** See `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md` for the exact operator sequence and restricted evidence template.
+
 ## Manage-token authorization gate (2026-10-02)
 
 - [ ] After Render and Netlify deploy, create a synthetic anonymous booking and confirm its receipt manage URL contains `#token=` and no contact query.

@@ -131,6 +131,34 @@ Decision, owner, and follow-up:
 - [ ] Confirm public booking context and authenticated owner appointment visibility on the restore target.
 - [ ] Document result, mismatches, aborts, and next owner.
 
+## Rehearsal evidence log — readiness review (2026-10-03)
+
+### Status
+
+- **Classification:** Cannot perform because an isolated target is missing.
+- **Runbook created:** yes.
+- **Read-only readiness review completed:** yes — documentation, schema, and storage/runtime configuration were reviewed locally; no live database query was made.
+- **Actual export captured:** no.
+- **Actual isolated restore performed:** no.
+- **Restore target:** none configured or evidenced in this workspace.
+- **Validation performed:** confirmed the expected recovery tables in `docs/SUPABASE_SCHEMA.sql`; confirmed that `GET /api/health` reports the storage adapter and runtime environment; confirmed the Postgres adapter requires server-only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; prepared count-only validation SQL above.
+- **What could not be verified:** staging health live response, provider snapshot/export identifier and retention, pre/post-restore table counts, synthetic-shop proof, restored API/smoke path, and target isolation.
+- **Why:** this environment has no Supabase/staging environment variables or isolated target configuration. Supabase snapshot/export and restore actions require an authorized operator's authenticated dashboard/provider session. No credentials were requested, read, or exposed.
+- **Remaining blocker:** **Backup/restore rehearsal remains open pending isolated restore execution.**
+- **Evidence location:** this section; the completed operator record belongs in the restricted incident/rehearsal notes template below, not in Git.
+- **Next owner action:** appoint the authorized staging operator and reviewer, create or select an empty isolated Supabase rehearsal project/branch, then complete the manual procedure below.
+
+### Exact operator procedure to close this blocker
+
+1. In an authenticated Supabase session, have the operator and reviewer independently confirm the source project is the dedicated staging project and record only its human-readable label and UTC time in the restricted record. Stop if the project could be production.
+2. Run the **read-only** table-inventory and row-count queries in [Read-only completeness verification](#read-only-completeness-verification). Record counts only; do not export rows, contacts, token hashes, or outbox payloads.
+3. In the Supabase dashboard/provider backup interface, identify the approved staging snapshot/PITR point or create an approved restricted export. Record snapshot/export ID, timestamp, retention, artifact checksum (if exported), and restricted storage reference—never credentials or dump contents.
+4. Create/select an empty rehearsal project or provider-supported isolated branch with a distinct project label and distinct credentials. Record evidence that it has no production connection, public routing, or live staging API configuration.
+5. Use the provider-supported restore/import interface to restore the approved artifact **only** into that isolated target. Do not run the schema file, repair scripts, resets, cleanup, or any destructive SQL against staging.
+6. On the target, rerun the same inventory/count queries and compare with the staging baseline. Validate the approved synthetic shop, relationship/service/hours shape, booking recency/count, and count-only manage-token proof.
+7. If an isolated API is provisioned with target-only secrets, call `GET /api/health` and record only `ok`, `service`, `storage`, and `environment`. Run a synthetic-only guarded smoke path only after its target guard proves it cannot reach production or active staging.
+8. Complete the restricted notes template with pass/fail, discrepancies, operator/reviewer, and follow-up. Mark this blocker resolved only when the isolated restore and required comparisons pass.
+
 ## Current status
 
-Runbook created on 2026-10-02. No backup/export, restore, credentials access, SQL execution, or staging mutation was performed while creating it. The actual isolated restore rehearsal remains required before closed-pilot readiness can be approved.
+Runbook created on 2026-10-02; readiness review completed on 2026-10-03. No backup/export, restore, credential access, SQL execution, staging mutation, staging reset, or production action was performed from this workspace. The actual isolated restore rehearsal remains required before closed-pilot readiness can be approved.
