@@ -651,6 +651,50 @@ test("token manage page renders customer details and persists cancellation", asy
   await expect(page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" }).locator(".appointment-actions .badge")).toHaveText("Cancelled");
 });
 
+test("token manage cancellation failure does not show local-only success", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }));
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+
+  const token = "y".repeat(48);
+  const startsAt = new Date();
+  startsAt.setDate(startsAt.getDate() + 3);
+  startsAt.setHours(10, 0, 0, 0);
+  const booking = {
+    id: "33333333-3333-4333-8333-333333333333",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    barberDisplayName: "E2E Mobile Owner",
+    clientName: "E2E Token Client",
+    serviceName: "E2E Mobile Cut",
+    durationMinutes: 30,
+    price: 35,
+    startISO: startsAt.toISOString(),
+    endISO: new Date(startsAt.getTime() + 30 * 60 * 1000).toISOString(),
+    status: "booked",
+  };
+  const shop = buildSeed({ configuredOwner: true }).local.Slotzy_shops[0];
+  await page.route("**/api/public/manage**", async (route) => {
+    if (route.request().method() === "PATCH") {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ booking, shop }),
+    });
+  });
+
+  await page.goto(`/pages/manage.html#token=${token}`);
+  const managedCard = page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" });
+  await managedCard.getByRole("button", { name: "Cancel", exact: true }).click();
+  await managedCard.getByRole("button", { name: "Confirm Cancel", exact: true }).click();
+
+  await expect(page.locator("#manageStatus")).toContainText("Could not cancel this appointment");
+  await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Booked");
+});
+
 test("invalid manage link state fits mobile", async ({ page }) => {
   await seedStorage(page, buildSeed());
   await page.goto("/pages/manage.html#token=invalid");
@@ -842,6 +886,52 @@ test("owner setup is guided and usable through completion on mobile", async ({ p
     await expectControlFits(page, selector);
   }
   await expect(page.locator("#setupGoDashboard")).toHaveText("Finish and Open Dashboard");
+});
+
+test("hosted owner setup write failure does not create a local-only team member", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  seed.local.Slotzy_services = [];
+  seed.local.Slotzy_availability = {};
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+    sessionStorage.setItem("Slotzy_setupStep", "2");
+  });
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/auth/me")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: seed.local.Slotzy_users[0] }) });
+      return;
+    }
+    if (path.endsWith("/shops")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ shops: seed.local.Slotzy_shops }) });
+      return;
+    }
+    if (path.endsWith("/services")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ services: [] }) });
+      return;
+    }
+    if (path.endsWith("/availability")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ availability: {} }) });
+      return;
+    }
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/owner-setup.html");
+  await expect(page.getByRole("heading", { name: "Add your services" })).toBeVisible();
+  await page.locator("#setupStep3Back").click();
+  await expect(page.getByRole("heading", { name: "Choose your booking team" })).toBeVisible();
+  await page.locator("#setupOnlyBarberCheckbox").uncheck();
+  await page.locator("#setupBarberDisplayName").fill("Must Not Persist");
+  await page.locator("#setupBarberUsername").fill("must-not-persist");
+  await page.locator("#setupBarberPassword").fill("synthetic-only");
+  await page.locator("#setupAddBarberBtn").click();
+
+  await expect(page.locator("#setupBarberStatus")).toContainText("Could not save changes");
+  await expect(page.locator("#setupBarberList")).not.toContainText("Must Not Persist");
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_users") || "[]").length)).toBe(1);
 });
 
 test("logged-in barber dashboard weekly hours use the mobile card layout", async ({ page }) => {

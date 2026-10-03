@@ -326,7 +326,13 @@ import {
     if (duplicate) return setStatus(ui.barberStatus, "That barber username is already in use.", false);
 
     nextUsers.push({ username, password, role: "barber", shopId: state.shopId, displayName, email });
-    await dataStore.saveUsersAsync(nextUsers);
+    try {
+      await dataStore.saveUsersAsync(nextUsers);
+    } catch (error) {
+      console.error("[Slotzy:owner-setup] Could not save barber.", error);
+      setStatus(ui.barberStatus, "Could not save changes. Try again.", false);
+      return;
+    }
 
     if (ui.barberDisplayNameInput) ui.barberDisplayNameInput.value = "";
     if (ui.barberUsernameInput) ui.barberUsernameInput.value = "";
