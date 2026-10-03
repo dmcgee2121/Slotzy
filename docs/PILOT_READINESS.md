@@ -18,7 +18,7 @@
 
 ### Remaining blockers
 
-- [ ] Owner password recovery is not implemented.
+- [ ] Self-service owner password reset is not implemented. For the named closed pilot, temporary operator-mediated recovery is defined in `docs/CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md`; it requires out-of-band identity verification and carries a documented existing-session limitation. Token-based recovery remains future work.
 - [ ] Backup, restore, and failure-recovery procedures have not been documented and rehearsed to an acceptable pilot standard.
 - [ ] Privacy/disclosure, support contact, incident triage, and pilot pause/rollback ownership are not yet signed off.
 - [ ] Real-device UAT has not passed on target Android and iOS/browser-installed modes.
