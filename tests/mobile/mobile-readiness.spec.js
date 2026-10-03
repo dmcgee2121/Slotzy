@@ -585,6 +585,72 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   await expect(ownerAppointment.locator(".appointment-actions .badge")).toContainText("Booked");
 });
 
+test("token manage page renders customer details and persists cancellation", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }));
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+
+  const token = "x".repeat(48);
+  const startsAt = new Date();
+  startsAt.setDate(startsAt.getDate() + 3);
+  startsAt.setHours(10, 0, 0, 0);
+  const endsAt = new Date(startsAt.getTime() + 30 * 60 * 1000);
+  const booking = {
+    id: "22222222-2222-4222-8222-222222222222",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    barberDisplayName: "E2E Mobile Owner",
+    clientName: "E2E Token Client",
+    serviceName: "E2E Mobile Cut",
+    durationMinutes: 30,
+    price: 35,
+    startISO: startsAt.toISOString(),
+    endISO: endsAt.toISOString(),
+    status: "booked",
+  };
+  const shop = buildSeed({ configuredOwner: true }).local.Slotzy_shops[0];
+  let currentStatus = "booked";
+  let tokenHeaderPresent = false;
+  let cancelRequestObserved = false;
+
+  await page.route("**/api/public/manage**", async (route) => {
+    const request = route.request();
+    tokenHeaderPresent = tokenHeaderPresent || Boolean(request.headers()["x-slotzy-manage-token"]);
+    if (request.method() === "PATCH") {
+      cancelRequestObserved = true;
+      currentStatus = "cancelled";
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ booking: { ...booking, status: currentStatus } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ booking: { ...booking, status: currentStatus }, shop }),
+    });
+  });
+
+  await page.goto(`/pages/manage.html#token=${token}`);
+  const managedCard = page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" });
+  await expect(managedCard).toContainText("Booked for E2E Token Client");
+  await expect(managedCard.locator(".appointment-datetime span").first()).toBeVisible();
+  await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Booked");
+  await expectControlFits(page, managedCard.getByRole("button", { name: "Cancel", exact: true }));
+  await expectNoPageOverflow(page, "token manage booking page");
+
+  await managedCard.getByRole("button", { name: "Cancel", exact: true }).click();
+  await managedCard.getByRole("button", { name: "Confirm Cancel", exact: true }).click();
+  await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
+  expect(tokenHeaderPresent).toBe(true);
+  expect(cancelRequestObserved).toBe(true);
+
+  await page.reload();
+  await expect(page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" }).locator(".appointment-actions .badge")).toHaveText("Cancelled");
+});
+
 test("invalid manage link state fits mobile", async ({ page }) => {
   await seedStorage(page, buildSeed());
   await page.goto("/pages/manage.html#token=invalid");

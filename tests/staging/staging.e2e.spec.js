@@ -761,10 +761,12 @@ test("focused staging owner setup API chain", async ({ request }) => {
 
 test("synthetic staging owner-to-customer booking lifecycle", async ({ page, context, browser, request }) => {
   const browserErrors = collectBrowserDiagnostics(page);
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowYmd = toLocalYmd(tomorrow);
-  const bookingDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][tomorrow.getDay()];
+  // Keep the synthetic appointment safely beyond the default 24-hour
+  // cancellation cutoff regardless of what time the hosted suite starts.
+  const bookingDate = new Date();
+  bookingDate.setDate(bookingDate.getDate() + 2);
+  const bookingDateYmd = toLocalYmd(bookingDate);
+  const bookingDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][bookingDate.getDay()];
   // The health guard above completes before this test can write any data.
   await page.goto(`${frontendUrl}/pages/index.html`);
   await page.locator("#btn-login").click();
@@ -968,7 +970,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   expect(await publicPage.evaluate(() => Boolean(localStorage.getItem("Slotzy_auth_token")))).toBe(false);
   await selectSyntheticBarber(publicPage, identity.username);
   await selectSyntheticService(publicPage, identity.serviceName);
-  await publicPage.locator("#bookingDate").fill(tomorrowYmd);
+  await publicPage.locator("#bookingDate").fill(bookingDateYmd);
   const slot = publicPage.locator("#time-slot-select option[value]:not([value=''])").first();
   try {
     await expect(slot).toBeAttached();
@@ -1001,8 +1003,8 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       providerFound: Boolean(provider),
       serviceFound: Boolean(service),
       serviceDurationValid: Number.isFinite(Number(service?.durationMinutes)) && Number(service.durationMinutes) > 0,
-      tomorrowAvailabilityEnabled: dayAvailability?.enabled === true,
-      tomorrowAvailabilityHasTimes: Boolean(dayAvailability?.start && dayAvailability?.end),
+      selectedDateAvailabilityEnabled: dayAvailability?.enabled === true,
+      selectedDateAvailabilityHasTimes: Boolean(dayAvailability?.start && dayAvailability?.end),
       generatedSlotCount: selected.slotCount,
       slotPanelText: safeDiagnosticText(selected.slotPanelText),
       browserLocalDate: safeDiagnosticText(selected.browserLocalDate),
@@ -1147,17 +1149,19 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   ));
   await managePage.goto(new URL(manageLink, frontendUrl).toString());
   const manageBooking = await manageBookingResponse;
+  const managedCard = managePage.locator(".client-manage-card").filter({
+    has: managePage.getByText(identity.serviceName, { exact: true }),
+  });
   try {
     await expect(managePage.getByText(identity.serviceName, { exact: true })).toBeVisible();
+    await expect(managedCard).toContainText(identity.clientName);
     await expect(managePage.locator(".appointment-datetime span").first()).toBeVisible();
+    await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Booked");
     await expect(managePage.getByRole("button", { name: /^Cancel$/i })).toBeVisible();
   } catch (error) {
     throw new Error(`Manage link did not render the booked appointment: ${JSON.stringify({ receiptState, manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, manageBooking), assertionError: safeDiagnosticText(error?.message) })}`);
   }
   const managedCancelButton = managePage.getByRole("button", { name: /^Cancel$/i });
-  const managedCard = managePage.locator(".client-manage-card").filter({
-    has: managePage.getByText(identity.serviceName, { exact: true }),
-  });
   const managedBookingId = String((await managedCancelButton.getAttribute("data-id")) ?? "").trim();
   const managedBookingIdShape = {
     authoritativeIdPresent: Boolean(managedBookingId),

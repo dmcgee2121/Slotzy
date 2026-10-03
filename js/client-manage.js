@@ -299,6 +299,9 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
               ? `<span class="client-manage-latest-chip">Latest</span>`
               : ""}
           </div>
+          ${booking.clientName
+            ? `<span class="small client-manage-client-name">Booked for ${escapeHtml(booking.clientName)}</span>`
+            : ""}
           <span class="small client-manage-code">Confirmation: ${escapeHtml(booking.confirmationCode)}</span>
         </div>
         <div class="appointment-datetime client-manage-card-meta">
@@ -788,6 +791,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     const showRescheduleControl = isFuture && isScheduledStatus(status);
     return {
       id: String(booking?.id ?? "").trim(),
+      clientName: String(booking?.clientName ?? "").trim(),
       serviceName: String(booking?.serviceName ?? "Service").trim() || "Service",
       durationMinutes: getDurationMinutes(booking),
       price: Number(booking?.price ?? 0),
