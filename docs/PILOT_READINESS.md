@@ -15,14 +15,16 @@
 - [x] Dev-email endpoint restriction outside development/test.
 - [x] Legacy notify endpoint restriction outside development/test.
 - [x] Guarded hosted staging passing 3/3.
+- [x] Privacy/support/incident process documented in `docs/CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md`.
 
 ### Remaining blockers
 
 - [ ] Self-service owner password reset is not implemented. For the named closed pilot, temporary operator-mediated recovery is defined in `docs/CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md`; it requires out-of-band identity verification and carries a documented existing-session limitation. Token-based recovery remains future work.
 - [ ] Backup/restore procedure is documented in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`; an isolated non-production restore rehearsal has **not** been performed yet.
-- [ ] Privacy/disclosure, support contact, incident triage, and pilot pause/rollback ownership are not yet signed off.
 - [ ] Real-device UAT has not passed on target Android and iOS/browser-installed modes.
 - [ ] The manually observed mobile customer booking-save-error candidate needs reproduction and diagnosis, or a documented clear result on the target hosted/device path.
+
+The privacy/support/incident **documentation** blocker is removed by the new runbook. Before any invitation, the pilot owner must still name the private support channel, incident decision maker, and authorized staging operator outside the repository; this is an operating prerequisite, not a claim of production privacy or retention readiness.
 
 ### Should fix before pilot
 
@@ -132,7 +134,7 @@ Exit criteria: the key barber and customer journeys are comfortable on physical 
 - [ ] Review monitoring and logs for useful failure signals without customer data, secrets, tokens, or noisy success diagnostics.
 - [ ] Complete a focused security/privacy review covering authorization, manage-link sensitivity, secrets, dependencies, data collection, retention, and disclosures.
 - [ ] Maintain a repeatable manual QA checklist for real devices and the critical owner/customer lifecycle.
-- [ ] Define a small-pilot support process: named owner, contact channel, response expectations, incident notes, defect triage, and a pause/rollback decision path.
+- [x] Define the small-pilot privacy, support, and incident process in `docs/CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md`; before invitations, record the named owner, private contact channel, and decision roles outside the repository.
 
 Exit criteria: operational, recovery, security/privacy, authentication, and support gaps are understood and acceptable for a deliberately small pilot using controlled real data.
 
