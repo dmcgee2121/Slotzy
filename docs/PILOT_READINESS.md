@@ -19,7 +19,7 @@
 ### Remaining blockers
 
 - [ ] Self-service owner password reset is not implemented. For the named closed pilot, temporary operator-mediated recovery is defined in `docs/CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md`; it requires out-of-band identity verification and carries a documented existing-session limitation. Token-based recovery remains future work.
-- [ ] Backup, restore, and failure-recovery procedures have not been documented and rehearsed to an acceptable pilot standard.
+- [ ] Backup/restore procedure is documented in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`; an isolated non-production restore rehearsal has **not** been performed yet.
 - [ ] Privacy/disclosure, support contact, incident triage, and pilot pause/rollback ownership are not yet signed off.
 - [ ] Real-device UAT has not passed on target Android and iOS/browser-installed modes.
 - [ ] The manually observed mobile customer booking-save-error candidate needs reproduction and diagnosis, or a documented clear result on the target hosted/device path.
@@ -127,7 +127,8 @@ Exit criteria: the key barber and customer journeys are comfortable on physical 
 - [ ] Verify session expiration, logout, refresh behavior, and protected-page redirects.
 - [ ] Add and validate forgot-password/password-reset expectations before relying on owner accounts in a pilot.
 - [ ] Define which booking, cancellation, and operational emails or notifications are sent, when delivery is best-effort, and what the UI promises.
-- [ ] Document staging backup, restore, recovery, retention, and pilot rollback notes; rehearse the supported recovery path.
+- [x] Document staging backup/restore/recovery and pilot rollback notes in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`.
+- [ ] Rehearse the supported restore path into an isolated non-production target; do not restore, reset, or delete active staging.
 - [ ] Review monitoring and logs for useful failure signals without customer data, secrets, tokens, or noisy success diagnostics.
 - [ ] Complete a focused security/privacy review covering authorization, manage-link sensitivity, secrets, dependencies, data collection, retention, and disclosures.
 - [ ] Maintain a repeatable manual QA checklist for real devices and the critical owner/customer lifecycle.

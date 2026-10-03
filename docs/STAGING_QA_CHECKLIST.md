@@ -213,6 +213,10 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 
 ## 10. Failure and recovery
 
+- [x] Staging-only backup/restore rehearsal procedure documented in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md` (read-only verification and isolated-target restore only).
+- [ ] Capture a staging provider snapshot/export baseline and complete the isolated restore rehearsal; no active staging restore/reset is authorized.
+- [ ] Record count comparisons, synthetic-shop proof, booking/manage-token-hash presence, health/smoke result, and any abort in the runbook's incident-notes template.
+
 - [ ] Observe a Render cold start.
 - [ ] Temporarily simulate backend unavailability and verify friendly frontend errors.
 - [ ] Verify refresh/retry behavior.
