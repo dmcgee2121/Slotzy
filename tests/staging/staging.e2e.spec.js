@@ -31,6 +31,10 @@ const apiIdentity = {
 };
 
 function failGuard(message) { throw new Error(`Staging E2E safety guard: ${message}`); }
+async function readJson(response) {
+  try { return await response.json(); } catch { return null; }
+}
+
 function safeDiagnosticText(value) {
   return String(value ?? "")
     .replace(/https?:\/\/[^\s)\]}]+/gi, "[redacted-url]")
@@ -651,9 +655,6 @@ test("focused staging owner setup API chain", async ({ request }) => {
     status: response.status(),
     responseKeys: payload && typeof payload === "object" ? Object.keys(payload).sort() : [],
   });
-  const readJson = async (response) => {
-    try { return await response.json(); } catch { return null; }
-  };
   const failStage = (stage, message, diagnostic) => {
     throw new Error(`Focused staging owner setup API chain ${stage}: ${message}. ${JSON.stringify(diagnostic)}`);
   };
