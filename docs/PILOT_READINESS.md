@@ -21,7 +21,7 @@
 
 - [ ] Self-service owner password reset is not implemented. For the named closed pilot, temporary operator-mediated recovery is defined in `docs/CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md`; it requires out-of-band identity verification and carries a documented existing-session limitation. Token-based recovery remains future work.
 - [ ] Backup/restore procedure is documented in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`; an isolated non-production restore rehearsal has **not** been performed yet.
-- [ ] Real-device UAT is partially complete: installed-phone PWA and Android Chrome runs both passed the critical customer booking, manage/cancel, and owner-appointment path. Android Chrome also passed Services, Availability, and Settings/Profile, with no keyboard/back-button issue or page-wide horizontal scrolling observed. iPhone Safari and installed iOS coverage remain open.
+- [ ] Real-device UAT is substantially complete: installed Android PWA, Android Chrome, iPad Safari, and the iPad home-screen app all passed the critical customer booking, manage/cancel, and owner-appointment path. Services, Availability, and Settings/Profile passed on Android Chrome and both iPad modes; no save issue, page-wide horizontal scrolling, or keyboard/back-button issue was observed. iPad covers the Apple/Safari browser and home-screen paths. Keep iPhone-specific Safari/home-screen UAT open only if required for the pilot.
 - [x] The manually observed mobile customer booking-save-error candidate is cleared for the exercised installed-PWA and Android-Chrome hosted paths: booking saved successfully, with no save issue observed. Continue to watch this path during remaining device coverage.
 - [x] Minor Android Chrome observation recorded: on the first opening of the “I'm a client” page, services briefly appeared before a barbershop was selected, then corrected itself. `js/booking-engine.js` gates service population on selected shop and barber state; no persistent state bug was found in inspection, so this is non-blocking unless reproduced as a durable incorrect state.
 
@@ -29,7 +29,7 @@ The privacy/support/incident **documentation** blocker is removed by the new run
 
 ### Should fix before pilot
 
-- Complete the practical run in `docs/CLOSED_PILOT_UAT_CHECKLIST.md`, including the remaining iPhone Safari and installed iOS home-screen-app coverage where available.
+- Complete the practical run in `docs/CLOSED_PILOT_UAT_CHECKLIST.md`; iPad Safari and iPad home-screen coverage are passed. Retain iPhone Safari and installed iOS home-screen coverage only if required for the pilot.
 - Verify logout/login, session refresh/protected-page behavior, invalid/expired manage-link recovery, slow/offline/reconnect behavior, duplicate-submit resistance, and installed-app cache rollover.
 - Confirm public discovery exposes only real shops and direct booking links open the intended shop.
 
@@ -37,6 +37,7 @@ The privacy/support/incident **documentation** blocker is removed by the new run
 
 - Mobile Calendar overflow remains parked and is outside this closed-pilot gate.
 - A richer multi-provider invite/account and hours-assignment workflow remains future work; the pilot supports the setup-created provider only.
+- iPad/tablet visual polish follow-up: center/alignment on the owner dashboard and alignment of Settings/Profile branding upload previews and controls. These observations did not block the exercised UAT flows.
 
 See `docs/CLOSED_PILOT_UAT_CHECKLIST.md` for the non-developer test script and copyable result template.
 

@@ -25,10 +25,23 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - Minor observation: on the first opening of the “I'm a client” page, services briefly appeared before a barbershop was selected, then quickly corrected itself. Code inspection found `populateServices()` requires both selected shop and barber state, so this is non-blocking unless it reproduces as a persistent incorrect state.
 - Remaining scope: installed Android PWA core flow is already recorded above; iPhone Safari, installed iOS home-screen app, and the unchecked recovery/cache cases remain open.
 
+### iPad Safari and iPad home-screen app real-device UAT
+
+- Environment: iPad Safari and iPad home-screen app.
+- Customer booking, manage link, cancellation, and owner appointment visibility: **Pass** in both modes.
+- Owner Services, Availability, and Settings/Profile: **Pass** in both modes.
+- Booking-save issue: **No issue observed**.
+- Page-wide horizontal scrolling: **None observed** in either mode.
+- Keyboard or browser/back-button issues: **None observed**; behavior worked better than expected.
+- Non-blocking tablet visual polish follow-ups: owner dashboard is slightly off-center on iPad/tablet layout; Settings/Profile branding upload previews and controls have alignment issues. Neither issue blocked booking, manage link, cancellation, owner visibility, saving, or navigation.
+- Remaining scope: iPad covers the Apple/Safari browser and home-screen paths. Retain iPhone-specific Safari/home-screen coverage only if required for the pilot; unchecked recovery/cache cases remain open.
+
 ## Devices to cover
 
 - [x] Android Chrome — core booking/manage/cancel/owner visibility passed on 2026-10-03; Services, Availability, and Settings/Profile were also usable.
 - [x] Installed Android PWA/app shortcut — core booking/manage/cancel/owner visibility passed in the recorded installed-phone PWA run.
+- [x] iPad Safari — core booking/manage/cancel/owner visibility, Services, Availability, and Settings/Profile passed on 2026-10-03; no save issue or page-wide horizontal scrolling observed.
+- [x] iPad home-screen app — same core and owner-page results as iPad Safari on 2026-10-03; no page-wide horizontal scrolling observed.
 - [ ] iPhone Safari, if available
 - [ ] Installed iOS home-screen app, if available
 
@@ -51,9 +64,9 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - [ ] Copying and opening the booking link work and open the correct public shop.
 - [ ] Appointments show the customer booking after refresh.
 - [ ] All and Today filters make sense for the booking date and do not hide data unexpectedly.
-- [x] Services page is usable on the phone (Android Chrome pass; long-name and save-feedback edge cases remain part of broader coverage).
-- [x] Availability/hours page is usable on the phone (Android Chrome pass; native-time-control and save/error edge cases remain part of broader coverage).
-- [x] Settings/profile is usable on the phone (Android Chrome pass; full save-feedback edge cases remain part of broader coverage).
+- [x] Services page is usable on exercised real devices (Android Chrome, iPad Safari, and iPad home-screen app pass; long-name and save-feedback edge cases remain part of broader coverage).
+- [x] Availability/hours page is usable on exercised real devices (Android Chrome, iPad Safari, and iPad home-screen app pass; native-time-control and save/error edge cases remain part of broader coverage).
+- [x] Settings/profile is usable on exercised real devices (Android Chrome, iPad Safari, and iPad home-screen app pass; full save-feedback edge cases remain part of broader coverage; branding-upload alignment is a non-blocking tablet polish follow-up).
 - [ ] Team page clearly explains the one-provider pilot limitation; it does not imply additional providers are bookable.
 - [ ] Logout works; logging in again restores only the expected authenticated experience.
 
@@ -62,10 +75,10 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - [x] The keyboard did not cover important fields, errors, or primary actions in the Android Chrome run.
 - [ ] Native date, time, and select controls are usable.
 - [ ] Long booking/manage links wrap safely.
-- [x] No page-wide horizontal scrolling was observed in the Android Chrome run.
+- [x] No page-wide horizontal scrolling was observed in the Android Chrome, iPad Safari, or iPad home-screen app runs.
 - [ ] An installed app refreshes to the latest deployed version without retaining an obvious stale shell or stylesheet.
 - [ ] Slow connection, refresh, or reconnect does not create a fake success or duplicate booking.
-- [x] Browser back behavior had no issue in the Android Chrome run; continue to cover the remaining listed paths and iOS.
+- [x] Browser/back behavior had no issue in the Android Chrome or iPad runs; continue to cover the remaining listed paths and iPhone-specific coverage only if required for the pilot.
 - [ ] No obvious stale-cache issue appears after reload or reopening the installed app.
 
 ## Pass/fail report template
@@ -88,6 +101,6 @@ Screenshots attached:
 
 ## Exit rule
 
-Internal staged UAT is complete only when the critical customer booking, manage/cancel, and owner-appointment flows pass on Android Chrome and the installed Android app shortcut. Include iPhone Safari and installed iOS home-screen app results when available. A failure that risks lost bookings, unauthorized manage access, false success, inability to recover an owner account, or unclear support/recovery handling is a no-go for the trusted pilot.
+Internal staged UAT core flow is complete: the critical customer booking, manage/cancel, and owner-appointment flows passed on Android Chrome, the installed Android app shortcut, iPad Safari, and the iPad home-screen app. iPad covers the Apple/Safari browser and home-screen paths; include iPhone Safari and installed iOS home-screen results only if required for the pilot. A failure that risks lost bookings, unauthorized manage access, false success, inability to recover an owner account, or unclear support/recovery handling is a no-go for the trusted pilot.
 
-Known parked/non-gate work: mobile Calendar overflow; richer multi-provider invite/account workflow. Owner password recovery, privacy/support readiness, and backup/restore rehearsal remain pilot blockers until closed.
+Known parked/non-gate work: mobile Calendar overflow; richer multi-provider invite/account workflow; iPad/tablet owner-dashboard centering and Settings/Profile branding-upload alignment. Owner password recovery and backup/restore rehearsal remain pilot blockers until closed; privacy/support documentation is complete, while its named operating roles still need to be recorded outside the repository.
