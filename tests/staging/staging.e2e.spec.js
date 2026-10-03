@@ -1260,7 +1260,23 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await managePage.close();
 });
 
-test("staging negative checks use synthetic context", async ({ page }) => {
+test("staging negative checks use synthetic context", async ({ page, request }) => {
+  const endpoint = (path) => new URL(
+    path,
+    requireStagingUrl(apiUrl, "SLOTZY_STAGING_API_URL")
+  ).toString();
+  const blockedResponses = await Promise.all([
+    request.get(endpoint("/api/dev/emails")),
+    request.delete(endpoint("/api/dev/emails")),
+    request.post(endpoint("/api/notify/booking"), { data: {} }),
+    request.post(endpoint("/api/notify/cancel"), { data: {} }),
+    request.post(endpoint("/api/notify/reschedule"), { data: {} }),
+  ]);
+  for (const response of blockedResponses) {
+    expect(response.status()).toBe(404);
+    const payload = await readJson(response);
+    expect(Object.keys(payload || {}).sort()).toEqual(["error"]);
+  }
   await page.goto(`${frontendUrl}/pages/index.html`);
   await page.locator("#btn-login").click();
   await page.fill("#auth-username", `${runId}-missing`);
