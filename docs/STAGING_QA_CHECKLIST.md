@@ -6,15 +6,14 @@
 - [x] The runbook links the temporary owner recovery and isolated backup/restore procedures; it does not authorize a staging reset, production access, or disclosure of secrets/tokens/customer data.
 - [ ] Before inviting named testers, the pilot owner records the approved private support channel, incident decision maker, and authorized staging operator outside the repository, and briefs those people on the runbook.
 - [ ] Confirm support/incident notes use redacted references only; never attach private manage links/tokens, credentials, exports, unredacted logs, or customer contact data.
-- [ ] Treat the remaining real-device UAT, the isolated backup/restore rehearsal, the password-recovery/JWT-session limitation, and the parked Calendar issue as separate readiness gates. Installed Android PWA, Android Chrome, iPad Safari, and the iPad home-screen app passed their exercised core flows on 2026-10-03 and cleared the booking-save candidate for those hosted/device paths. iPad covers the Apple/Safari path; retain iPhone-specific coverage only if required for the pilot. Recovery/cache coverage remains open. Android Chrome's brief pre-shop services flash corrected itself and is tracked as a minor non-blocking observation, not a confirmed state bug. The iPad owner-dashboard centering and Settings/Profile branding-upload alignment observations are non-blocking tablet visual-polish follow-ups.
+- [ ] Treat the remaining real-device UAT, the owner-password/JWT-session limitation, and the parked Calendar issue as separate readiness gates. The database-level isolated backup/restore rehearsal is completed and validated; app-level validation against its restore target was not performed. Installed Android PWA, Android Chrome, iPad Safari, and the iPad home-screen app passed their exercised core flows on 2026-10-03 and cleared the booking-save candidate for those hosted/device paths. iPad covers the Apple/Safari path; retain iPhone-specific coverage only if required for the pilot. Recovery/cache coverage remains open. Android Chrome's brief pre-shop services flash corrected itself and is tracked as a minor non-blocking observation, not a confirmed state bug. The iPad owner-dashboard centering and Settings/Profile branding-upload alignment observations are non-blocking tablet visual-polish follow-ups.
 
 ### Backup/restore rehearsal evidence gate (2026-10-03)
 
 - [x] Read-only readiness review completed: recovery tables and count-only validation queries are documented; no destructive SQL is required.
-- [ ] Actual export/snapshot metadata captured by the authorized Supabase operator in restricted evidence.
-- [ ] Empty isolated Supabase rehearsal target/branch confirmed separate from staging and production.
-- [ ] Actual isolated restore completed; pre/post counts, synthetic-shop proof, booking/manage-token count proof, and isolated health/synthetic smoke result recorded.
-- [ ] **Backup/restore rehearsal remains open pending isolated restore execution.** See `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md` for the exact operator sequence and restricted evidence template.
+- [x] Authorized operator completed the manual CSV export/import from `slotzy-staging` to the isolated `slotzy-postgres-test` target; no credentials, exports, or sensitive data were recorded in Git.
+- [x] Target isolation confirmed operationally: Render staging remained pointed at `slotzy-staging`; production was not touched; staging was not reset or modified; no destructive SQL was run.
+- [x] Actual database-level isolated restore completed and validated with final table counts and integrity checks recorded in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`. `email_outbox` was intentionally skipped; app-level health/smoke validation against the restore target was not performed.
 
 ## Manage-token authorization gate (2026-10-02)
 
@@ -232,8 +231,8 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 ## 10. Failure and recovery
 
 - [x] Staging-only backup/restore rehearsal procedure documented in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md` (read-only verification and isolated-target restore only).
-- [ ] Capture a staging provider snapshot/export baseline and complete the isolated restore rehearsal; no active staging restore/reset is authorized.
-- [ ] Record count comparisons, synthetic-shop proof, booking/manage-token-hash presence, health/smoke result, and any abort in the runbook's incident-notes template.
+- [x] Complete the isolated database restore rehearsal without an active staging restore/reset; final target counts and integrity checks are documented in the runbook.
+- [x] Record the completed count comparisons and integrity results in the runbook without sensitive row data. No restore-target app health/smoke test was run.
 
 - [ ] Observe a Render cold start.
 - [ ] Temporarily simulate backend unavailability and verify friendly frontend errors.

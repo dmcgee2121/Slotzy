@@ -10,7 +10,7 @@ It does not authorize production access, a staging reset, deletion, destructive 
 
 - Hosted staging runs the Express API with `SLOTZY_STORAGE=postgres` against its dedicated Supabase Postgres project. The server-side adapter reads relational tables and maps them to the API's legacy document shape.
 - Local/demo remains intentionally separate: the backend's default adapter is JSON (`server/src/db.json`) and the browser uses `Slotzy_` local/session-storage keys. These local stores are not a staging backup and must not be imported into staging as a recovery shortcut.
-- The recovery set is the staging database schema plus the pilot data required by the API: `users`, `shops`, `shop_members`, `shop_settings`, `services`, `provider_services`, `availability`, `time_off`, `bookings`, `booking_events`, `booking_manage_tokens`, `email_outbox` if enabled, and `legacy_source_ids`.
+- The recovery set is the staging database schema plus the pilot data required by the API: `users`, `shops`, `shop_members`, `shop_settings`, `services`, `provider_services`, `availability`, `time_off`, `bookings`, `booking_events`, `booking_manage_tokens`, `email_outbox` if enabled, and `legacy_source_ids`. `slotzy_test_control` is retained as target-control evidence when present.
 - At minimum, recovery validation must cover identities, shop/provider relationships, services, hours/time off, bookings, and manage-token **hash** records. A token bearer value is not recoverable from its hash and must never be exported into notes or logs.
 
 Not covered yet: mail-provider delivery history outside `email_outbox`, Render/Netlify configuration and deploy rollback, JWT/session invalidation, browser-local data, external support tooling, retention policy approval, and a production backup/recovery plan.
@@ -119,36 +119,75 @@ Decision, owner, and follow-up:
 
 ## Rehearsal checklist
 
-- [ ] Confirm the correct Supabase project/environment and record evidence that it is staging, not production.
-- [ ] Record timestamp, operator, reviewer, and snapshot/export identifier.
-- [ ] Export schema/data through approved restricted tooling, or verify a provider backup snapshot/PITR record.
-- [ ] Capture and compare row counts by recovery table.
-- [ ] Verify an approved synthetic shop exists without exposing personal data.
-- [ ] Verify bookings and manage-token hash records exist using counts only.
-- [ ] Restore only to an isolated, non-production rehearsal target.
-- [ ] Request the rehearsal API health check, if an isolated API is configured.
-- [ ] Run guarded staging tests or an equivalent synthetic-only smoke path against the restore target, if available.
-- [ ] Confirm public booking context and authenticated owner appointment visibility on the restore target.
-- [ ] Document result, mismatches, aborts, and next owner.
+- [x] Confirmed source `slotzy-staging`, isolated target `slotzy-postgres-test`, and no production/staging routing change.
+- [x] Recorded completion metadata in restricted operator evidence; no credentials or exports are stored in Git.
+- [x] Exported/imported approved data through Supabase Table Editor CSV workflow.
+- [x] Captured final target counts and database integrity results above.
+- [x] Verified database relationships through the recorded aggregate integrity checks without exposing row data.
+- [x] Verified 36 bookings and 10 booking-manage-token records by count only.
+- [x] Restored only to isolated non-production `slotzy-postgres-test`.
+- [ ] App-level restore-target health check was not performed.
+- [ ] Guarded app-level smoke testing against the restore target was not performed.
+- [ ] Public booking and authenticated owner UI validation against the restore target were not performed.
+- [x] Documented the completed database result, counts, integrity checks, and remaining validation boundary.
 
 ## Rehearsal evidence log — readiness review (2026-10-03)
 
 ### Status
 
-- **Classification:** Cannot perform because an isolated target is missing.
+- **Classification:** **Database-level isolated backup/restore rehearsal completed and validated.**
+- **Source / target:** `slotzy-staging` -> isolated `slotzy-postgres-test`.
+- **Restore method:** authorized manual CSV export/import through Supabase Table Editor in dependency-safe batches.
+- **Safety result:** Render staging remained pointed at `slotzy-staging`; production was not touched; staging was not reset or modified; no destructive SQL was run.
+- **Initial target state:** app tables were empty except `public.slotzy_test_control` (1 row); `auth.users` was 0.
+- **Generated-column resolution:** Supabase rejected `bookings.appointment_range` because it is generated. The column was removed from the bookings CSV and re-imported; Postgres regenerated `appointment_range` successfully. Generated columns must be excluded from CSV imports because Postgres recalculates them.
+- **Outbox handling:** `public.email_outbox` was intentionally skipped because it is not required to prove core booking recovery and may contain contact/message data.
+- **Limitation:** app-level validation against `slotzy-postgres-test` was not performed; no restore-target API health check or synthetic smoke path is claimed.
 - **Runbook created:** yes.
 - **Read-only readiness review completed:** yes — documentation, schema, and storage/runtime configuration were reviewed locally; no live database query was made.
-- **Actual export captured:** no.
-- **Actual isolated restore performed:** no.
-- **Restore target:** none configured or evidenced in this workspace.
+- **Actual export captured:** yes, through the authorized Supabase Table Editor CSV workflow.
+- **Actual isolated restore performed:** yes, into `slotzy-postgres-test` only.
+- **Restore target:** isolated `slotzy-postgres-test`.
 - **Validation performed:** confirmed the expected recovery tables in `docs/SUPABASE_SCHEMA.sql`; confirmed that `GET /api/health` reports the storage adapter and runtime environment; confirmed the Postgres adapter requires server-only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; prepared count-only validation SQL above.
-- **What could not be verified:** staging health live response, provider snapshot/export identifier and retention, pre/post-restore table counts, synthetic-shop proof, restored API/smoke path, and target isolation.
-- **Why:** this environment has no Supabase/staging environment variables or isolated target configuration. Supabase snapshot/export and restore actions require an authorized operator's authenticated dashboard/provider session. No credentials were requested, read, or exposed.
-- **Remaining blocker:** **Backup/restore rehearsal remains open pending isolated restore execution.**
+- **What was not verified:** an application deployment, API health response, or guarded synthetic smoke path against the restore target.
+- **Evidence handling:** the authorized operator used an authenticated Supabase session; no credentials, service-role keys, exports, or sensitive row data are recorded here.
+- **Database restore blocker:** resolved; final counts and integrity checks are recorded below.
 - **Evidence location:** this section; the completed operator record belongs in the restricted incident/rehearsal notes template below, not in Git.
-- **Next owner action:** appoint the authorized staging operator and reviewer, create or select an empty isolated Supabase rehearsal project/branch, then complete the manual procedure below.
+- **Remaining action:** preserve restricted operator evidence outside Git; application-level validation against the restore target remains unperformed.
 
-### Exact operator procedure to close this blocker
+### Final restored target counts
+
+| Table | Rows |
+| --- | ---: |
+| `public.users` | 97 |
+| `public.shops` | 79 |
+| `public.shop_settings` | 79 |
+| `public.shop_members` | 79 |
+| `public.services` | 158 |
+| `public.provider_services` | 158 |
+| `public.availability` | 553 |
+| `public.time_off` | 3 |
+| `public.bookings` | 36 |
+| `public.booking_manage_tokens` | 10 |
+| `public.legacy_source_ids` | 549 |
+| `public.email_outbox` | 0 (intentionally skipped) |
+| `public.slotzy_test_control` | 1 |
+
+`auth.users` remained 0 in the target.
+
+### Integrity checks
+
+| Check | Result |
+| --- | ---: |
+| `bookings_missing_shop` | 0 |
+| `bookings_missing_service` | 0 |
+| `services_missing_shop` | 0 |
+| `manage_tokens_missing_booking` | 0 |
+| `bookings_with_generated_range` | 36 |
+
+All listed relationship checks passed, and all restored bookings had regenerated `appointment_range` values.
+
+### Reference operator procedure
 
 1. In an authenticated Supabase session, have the operator and reviewer independently confirm the source project is the dedicated staging project and record only its human-readable label and UTC time in the restricted record. Stop if the project could be production.
 2. Run the **read-only** table-inventory and row-count queries in [Read-only completeness verification](#read-only-completeness-verification). Record counts only; do not export rows, contacts, token hashes, or outbox payloads.
@@ -157,8 +196,8 @@ Decision, owner, and follow-up:
 5. Use the provider-supported restore/import interface to restore the approved artifact **only** into that isolated target. Do not run the schema file, repair scripts, resets, cleanup, or any destructive SQL against staging.
 6. On the target, rerun the same inventory/count queries and compare with the staging baseline. Validate the approved synthetic shop, relationship/service/hours shape, booking recency/count, and count-only manage-token proof.
 7. If an isolated API is provisioned with target-only secrets, call `GET /api/health` and record only `ok`, `service`, `storage`, and `environment`. Run a synthetic-only guarded smoke path only after its target guard proves it cannot reach production or active staging.
-8. Complete the restricted notes template with pass/fail, discrepancies, operator/reviewer, and follow-up. Mark this blocker resolved only when the isolated restore and required comparisons pass.
+8. Complete the restricted notes template with pass/fail, discrepancies, operator/reviewer, and follow-up. This database-level rehearsal is now complete; do not infer app-level restore-target validation from it.
 
 ## Current status
 
-Runbook created on 2026-10-02; readiness review completed on 2026-10-03. No backup/export, restore, credential access, SQL execution, staging mutation, staging reset, or production action was performed from this workspace. The actual isolated restore rehearsal remains required before closed-pilot readiness can be approved.
+Runbook created on 2026-10-02; the database-level isolated restore rehearsal was completed and validated on 2026-10-03. This does not validate an application deployment against the restore target and does not change the remaining owner password/session-revocation limitation, private support/incident role-recording prerequisite, or non-blocking Calendar overflow/tablet-polish follow-ups.
