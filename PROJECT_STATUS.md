@@ -16,6 +16,13 @@ Roadmap phases are maintained in `docs/PILOT_READINESS.md`:
 6. Play Store / app packaging prep
 7. Production launch planning
 
+## Settings / Business Profile mobile polish (2026-10-02)
+
+- The owner Settings page now uses plain Business Profile wording, keeps every profile/policy control at least 44px tall, and contains save and booking-link feedback without horizontal overflow.
+- Save now announces `Saving your changes...`, success, validation, and retryable failure in the form; copying and opening the booking link also leave a clear on-page result.
+- Mobile automation verifies contained controls and validation, save feedback, copy feedback, the exact opened public booking URL, and the saved cancellation policy on public booking.
+- This is frontend markup/CSS/JavaScript/test/documentation work only. No backend, Supabase, booking persistence, or Calendar behavior changed. Batch it with the next approved Netlify deploy; Render does not require a redeploy.
+
 ## Owner mobile header and calendar controls polish (2026-10-02)
 
 - Resolved the real-phone owner-dashboard header crowding: the duplicate `Welcome, username` badge is no longer in the dashboard navigation; the existing hero greeting remains the single username location.

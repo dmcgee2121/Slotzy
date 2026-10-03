@@ -2,6 +2,13 @@
 
 Use only synthetic staging data. Record date, tester, browser/device, and any defect links for each run.
 
+## Settings / Business Profile mobile gate (2026-10-02)
+
+- [x] Local mobile automation verifies Settings has no document overflow, profile/policy/link controls fit phone widths with 44px targets, validation stays contained, save/copy feedback is visible, and Open Booking Page reaches the expected public URL.
+- [x] The saved cancellation policy remains visible on the resulting public booking page; existing booking persistence and lifecycle behavior are unchanged.
+- [ ] On staging with a physical iPhone and Android device, update synthetic shop details and booking rules with the keyboard open, then confirm the public page and copied link. Calendar overflow remains outside this gate.
+- [ ] Batch this frontend-only pass with the next approved Netlify deploy; do not use current deployed staging as proof of local changes. No Render/backend redeploy is expected.
+
 ## Mobile state presentation gate (2026-10-01)
 
 - [x] Automated mobile coverage verifies public booking loading/error/retry, no-services, no-times, and failure-without-receipt states across the configured viewports.

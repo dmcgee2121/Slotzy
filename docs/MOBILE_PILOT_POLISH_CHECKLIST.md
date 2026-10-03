@@ -9,6 +9,13 @@ This checklist is the working UI gate for the **Mobile Pilot Polish** phase. It 
 - Smoke coverage exercises setup resume, public booking, receipt/manage access, policy-aware cancellation and rescheduling, owner appointment actions, availability effects, branding, and the dashboard Today card.
 - These checks do not replace physical-device review of keyboard behavior, native controls, browser chrome, safe areas, installed mode, visual hierarchy, wording, or thumb reach.
 
+## Settings / Business Profile mobile pass (2026-10-02)
+
+- [x] Settings uses clear Business Profile wording, mobile single-column sections, 44px controls, contained validation/save/link feedback, and no document-level overflow.
+- [x] Automation verifies invalid business-name feedback, successful save, copy feedback, the correct public booking URL opened from Settings, and the saved cancellation window on public booking across the configured viewports.
+- [ ] On physical iPhone Safari and Android Chrome, change contact details and booking rules with the keyboard open; verify save/error/copy wording and the shared link handoff. Calendar overflow remains separately parked.
+- [x] No backend, Supabase, persistence, public-booking behavior, or Calendar behavior changed. Batch this frontend-only work for a later Netlify deploy; Render does not require a deploy.
+
 ## Loading, empty, error, saved, and retry pass (2026-10-01)
 
 - [x] Added shared compact state panels, readable inline notices, 44px retry actions, and pending button labels without changing persistence behavior.

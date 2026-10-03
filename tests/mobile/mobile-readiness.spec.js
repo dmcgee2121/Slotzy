@@ -913,6 +913,51 @@ test("owner critical controls remain usable across mobile pages", async ({ page 
   }
 });
 
+test("business profile settings give clear mobile save, validation, and share-link feedback", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/settings.html");
+
+  await expect(page.locator("#shopSettingsCard")).toBeVisible();
+  for (const selector of [
+    "#publicBookingLinkInput",
+    "#copyPublicBookingLinkBtn",
+    "#openPublicBookingLinkBtn",
+    "#businessNameInput",
+    "#cancelHoursInput",
+    "#saveShopBtn",
+  ]) {
+    await expectControlFits(page, selector);
+  }
+  await expectNoPageOverflow(page, "business profile settings");
+
+  await page.locator("#businessNameInput").fill("A");
+  await page.locator("#saveShopBtn").click();
+  const validation = page.locator("#shopStatus");
+  await expect(validation).toContainText("Business name must be at least 2 characters");
+  await expect(validation).toBeVisible();
+  const validationBounds = await validation.boundingBox();
+  expect(validationBounds.x + validationBounds.width, "settings validation must stay within the viewport")
+    .toBeLessThanOrEqual(page.viewportSize().width + 1);
+
+  await page.locator("#businessNameInput").fill("E2E Mobile Profile Shop");
+  await page.locator("#cancelHoursInput").fill("36");
+  await page.locator("#saveShopBtn").click();
+  await expect(validation).toContainText("Shop settings saved successfully.");
+
+  await page.locator("#copyPublicBookingLinkBtn").click();
+  await expect(page.locator("#publicBookingLinkStatus")).toContainText("Link copied");
+
+  const popupPromise = page.waitForEvent("popup");
+  await page.locator("#openPublicBookingLinkBtn").click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState();
+  await expect(popup).toHaveURL(/\/pages\/book\.html\?shop=e2e-mobile-profile-shop$/);
+
+  await page.goto("/pages/book.html?shop=e2e-mobile-profile-shop");
+  await expect(page.locator("#bookingPolicyCancel")).toContainText("36 hours before");
+  await expectNoPageOverflow(page, "public booking after business profile save");
+});
+
 test("team provider page is honest for the pilot and preserves public provider booking", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await page.goto("/pages/manage-barbers.html");

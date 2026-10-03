@@ -870,6 +870,7 @@ import { wireLogoutButton } from "./logout.js";
       saveShopBtn.disabled = true;
       saveShopBtn.textContent = "Saving...";
     }
+    setShopStatus("Saving your changes...", true);
 
     try {
       const businessName = String(businessNameInput?.value ?? "").trim();
@@ -1403,7 +1404,7 @@ import { wireLogoutButton } from "./logout.js";
     try {
       const copied = await copyText(value);
       if (!copied) throw new Error("copy_failed");
-      clearPublicBookingLinkStatus();
+      setPublicBookingLinkStatus("Link copied. It is ready to share with clients.", true);
       showToast?.("Link copied", "success", 2000);
     } catch {
       setPublicBookingLinkStatus("Could not copy link. Please copy it manually.", false);
@@ -1416,6 +1417,7 @@ import { wireLogoutButton } from "./logout.js";
       setPublicBookingLinkStatus("Public booking link is not ready yet.", false);
       return;
     }
+    setPublicBookingLinkStatus("Opening your public booking page in a new tab.", true);
     window.open(value, "_blank", "noopener,noreferrer");
   }
 

@@ -471,6 +471,16 @@
   box-sizing: border-box;
 }
 
+.owner-page .settings-card input:not([type="checkbox"]):not([type="file"]),
+.owner-page .settings-card select,
+.owner-page .settings-card textarea {
+  min-height: 44px;
+}
+
+.owner-page .settings-card textarea {
+  resize: vertical;
+}
+
 .owner-page .field {
   display: flex;
   flex-direction: column;
@@ -1120,6 +1130,13 @@
 
 .owner-page .settings-save-section {
   gap: 10px;
+}
+
+.owner-page #shopStatus:not(:empty),
+.owner-page #publicBookingLinkStatus:not(:empty) {
+  padding: 10px 12px;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
 }
 
 .owner-page .settings-save-actions {

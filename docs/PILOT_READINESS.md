@@ -1,5 +1,9 @@
 # Pilot readiness
 
+## Settings / Business Profile mobile polish (2026-10-02)
+
+Settings now presents a plain-language Business Profile, contained 44px form controls, a clear share-link area, and readable mobile sections for contact details, booking rules, deposits, reminders, and branding. Saving announces progress, success, validation, and failure in the form; link copy/open actions leave a durable result. Local mobile automation also confirms that a saved cancellation policy remains visible on the public booking page. No persistence, API, backend, Supabase, or Calendar behavior changed. This frontend-only pass should be batched for a later Netlify deploy; Render does not require deployment.
+
 ## Standardized mobile states (2026-10-01)
 
 Pilot-critical frontend screens now share compact loading, empty, error, saved, and retry treatments. Public booking has a real context-loading panel, retryable load failure, explicit no-services/no-times recovery, and a pending authoritative-save label; a receipt still appears only after persistence succeeds. Private manage booking has real loading/retry and pending cancellation feedback. Owner appointments has authoritative loading, a retained-data warning plus retry on refresh failure, and consistent empty wording. Owner setup exposes save/finish progress and catches availability-save failures. The dashboard upcoming empty state uses the same plain language, while already-hydrated dashboard modules intentionally do not pretend to load.
