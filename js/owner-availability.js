@@ -110,7 +110,7 @@ function loadAvailability() {
 }
 
 function saveAvailability(availability) {
-  dataStore.saveAvailabilityForBarber(currentBarberUsername, availability);
+  return dataStore.saveAvailabilityForBarberAsync(currentBarberUsername, availability, { fallbackOnError: false });
 }
 
 function renderAvailability() {
@@ -253,7 +253,7 @@ function handleWeeklyFieldChange(event) {
   }
 }
 
-function saveWeeklyAvailability() {
+async function saveWeeklyAvailability() {
   const availability = loadAvailability();
   const weekly = {};
   const errors = [];
@@ -298,7 +298,7 @@ function saveWeeklyAvailability() {
   availability.weekly = weekly;
   setWeeklyStatus("Saving availability…", "saving");
   try {
-    saveAvailability(availability);
+    await saveAvailability(availability);
     clearWeeklyError();
     renderAvailability();
     setWeeklyStatus("Saved. Your weekly hours are ready for new bookings.", "success");
@@ -308,7 +308,7 @@ function saveWeeklyAvailability() {
   }
 }
 
-function addTimeOffBlock() {
+async function addTimeOffBlock() {
   const availability = loadAvailability();
   const startLocal = String(document.getElementById("availability-timeoff-start")?.value ?? "");
   const endLocal = String(document.getElementById("availability-timeoff-end")?.value ?? "");
@@ -335,12 +335,18 @@ function addTimeOffBlock() {
   }
 
   addTimeOffEntry(availability, { startDate, endDate, note });
-  clearTimeOffInputs();
-  clearTimeOffError();
-  renderAvailability();
+  try {
+    await saveAvailability(availability);
+    clearTimeOffInputs();
+    clearTimeOffError();
+    renderAvailability();
+  } catch (error) {
+    console.error("[Slotzy:availability] Could not save time off.", error);
+    showTimeOffError("Could not save changes. Try again.");
+  }
 }
 
-function handleAddCustomBreak() {
+async function handleAddCustomBreak() {
   const dateValue = String(document.getElementById("availability-quick-date")?.value ?? "").trim();
   const startTime = String(document.getElementById("availability-custom-break-start")?.value ?? "").trim();
   const endTime = String(document.getElementById("availability-custom-break-end")?.value ?? "").trim();
@@ -354,7 +360,7 @@ function handleAddCustomBreak() {
     return;
   }
 
-  addQuickBreakBlock({
+  await addQuickBreakBlock({
     dateValue,
     startTime,
     endTime,
@@ -362,7 +368,7 @@ function handleAddCustomBreak() {
   });
 }
 
-function handleBlockOffDay() {
+async function handleBlockOffDay() {
   const availability = loadAvailability();
   const dayWindow = getSelectedDayBlockWindow(availability);
   if (!dayWindow) return;
@@ -378,6 +384,14 @@ function handleBlockOffDay() {
     note: "Blocked day",
   });
 
+  try {
+    await saveAvailability(availability);
+  } catch (error) {
+    console.error("[Slotzy:availability] Could not block day.", error);
+    showTimeOffError("Could not save changes. Try again.");
+    return;
+  }
+
   const startInput = document.getElementById("availability-timeoff-start");
   const endInput = document.getElementById("availability-timeoff-end");
   const noteInput = document.getElementById("availability-timeoff-note");
@@ -390,7 +404,7 @@ function handleBlockOffDay() {
   window.showToast?.("Day blocked off.", "success");
 }
 
-function handleClearDayBlocks() {
+async function handleClearDayBlocks() {
   const availability = loadAvailability();
   const selectedDate = getQuickDateValue();
   if (!selectedDate) {
@@ -406,13 +420,19 @@ function handleClearDayBlocks() {
   }
 
   availability.timeOff = nextTimeOff;
-  saveAvailability(availability);
+  try {
+    await saveAvailability(availability);
+  } catch (error) {
+    console.error("[Slotzy:availability] Could not clear day blocks.", error);
+    showTimeOffError("Could not save changes. Try again.");
+    return;
+  }
   clearTimeOffError();
   renderAvailability();
   window.showToast?.(`Cleared ${removedCount} day block${removedCount === 1 ? "" : "s"}.`, "success");
 }
 
-function addQuickBreakBlock({ dateValue, startTime, endTime, note }) {
+async function addQuickBreakBlock({ dateValue, startTime, endTime, note }) {
   const availability = loadAvailability();
   const selectedDate = String(dateValue ?? getQuickDateValue()).trim();
 
@@ -442,6 +462,14 @@ function addQuickBreakBlock({ dateValue, startTime, endTime, note }) {
     note: String(note ?? "").trim(),
   });
 
+  try {
+    await saveAvailability(availability);
+  } catch (error) {
+    console.error("[Slotzy:availability] Could not save break.", error);
+    showTimeOffError("Could not save changes. Try again.");
+    return;
+  }
+
   const startInput = document.getElementById("availability-timeoff-start");
   const endInput = document.getElementById("availability-timeoff-end");
   const noteInput = document.getElementById("availability-timeoff-note");
@@ -462,7 +490,6 @@ function addTimeOffEntry(availability, { startDate, endDate, note }) {
     note: String(note ?? "").trim(),
   });
   availability.timeOff.sort((a, b) => a.startISO.localeCompare(b.startISO));
-  saveAvailability(availability);
 }
 
 function getQuickDateValue() {
@@ -520,7 +547,7 @@ function hasTimeOffOverlap(timeOff, startDate, endDate) {
   });
 }
 
-function handleTimeOffListClick(event) {
+async function handleTimeOffListClick(event) {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
   const action = target.getAttribute("data-action");
@@ -537,7 +564,13 @@ function handleTimeOffListClick(event) {
   if (!confirmed) return;
 
   availability.timeOff = availability.timeOff.filter((item) => item.id !== id);
-  saveAvailability(availability);
+  try {
+    await saveAvailability(availability);
+  } catch (error) {
+    console.error("[Slotzy:availability] Could not delete time off.", error);
+    showTimeOffError("Could not save changes. Try again.");
+    return;
+  }
   renderAvailability();
 }
 

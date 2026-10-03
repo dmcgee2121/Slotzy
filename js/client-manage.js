@@ -449,7 +449,6 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     try {
       markCancelStage("authoritative-update-called", { bookingId, runtime, requireApi });
       const nextBooking = await dataStore.updateBookingAsync(bookingId, cancellationPatch, {
-        manualNotify: true,
         fallbackOnError: false,
         requireApi,
       });
@@ -733,7 +732,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         };
       });
 
-      await dataStore.saveBookingsAsync(nextBookings, { manualNotify: true, fallbackOnError: false });
+      await dataStore.saveBookingsAsync(nextBookings, { fallbackOnError: false });
       const nextBooking = findAccessibleBooking(nextBookings, rescheduleBookingId) || {
         ...booking,
         startISO: start.toISOString(),
@@ -1367,6 +1366,9 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   }
 
   async function notifyManageBooking(kind, { booking, previousBooking = null } = {}) {
+    if (dataStore.getApiRuntimeState().apiEnabled) {
+      return { ok: true, mode: "server", sent: 0, offline: false };
+    }
     const payload = buildManageNotificationPayload({ booking, previousBooking });
     if (!payload) {
       return {

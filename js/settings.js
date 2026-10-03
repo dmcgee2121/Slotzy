@@ -160,7 +160,7 @@ import { wireLogoutButton } from "./logout.js";
     if (phoneInput) phoneInput.value = String(profile.phone ?? "");
   }
 
-  function handleSaveProfile() {
+  async function handleSaveProfile() {
     if (!saveProfileBtn || saveProfileBtn.disabled) return;
     clearProfileStatus();
 
@@ -190,12 +190,17 @@ import { wireLogoutButton } from "./logout.js";
       phoneDigits,
       updatedAt: new Date().toISOString(),
     };
-    saveProfilesMap(profiles);
-    syncCurrentUserEmail(email);
-    setProfileStatus("Profile saved successfully.", true);
-    notifyProfileSaved();
-    applySavedButtonFeedback();
-    updateProfileCompleteness();
+    try {
+      await dataStore.saveProfileAsync(currentUsername, profiles[currentUsername]);
+      syncCurrentUserEmail(email);
+      setProfileStatus("Profile saved successfully.", true);
+      notifyProfileSaved();
+      applySavedButtonFeedback();
+      updateProfileCompleteness();
+    } catch (error) {
+      console.error("[Slotzy:settings] Failed to save profile.", error);
+      setProfileStatus("Could not save changes. Try again.", false);
+    }
   }
 
   function configureShopSettings() {
@@ -958,7 +963,7 @@ import { wireLogoutButton } from "./logout.js";
       if (existingIndex >= 0) nextShops[existingIndex] = updatedShop;
       else nextShops.push(updatedShop);
 
-      const savedShops = await dataStore.saveShopsAsync(nextShops);
+      const savedShops = await dataStore.saveShopsAsync(nextShops, { fallbackOnError: false });
       const resolvedShops = Array.isArray(savedShops) && savedShops.length > 0
         ? savedShops
         : nextShops;
@@ -1038,7 +1043,7 @@ import { wireLogoutButton } from "./logout.js";
     return String(fallback?.id ?? "");
   }
 
-  function handleAddBarberUser() {
+  async function handleAddBarberUser() {
     clearBarberUserStatus();
     const shopId = getCurrentShopId();
     if (!shopId) {
@@ -1083,7 +1088,13 @@ import { wireLogoutButton } from "./logout.js";
       displayName,
       email,
     });
-    dataStore.saveUsers(users);
+    try {
+      await dataStore.saveUsersAsync(users);
+    } catch (error) {
+      console.error("[Slotzy:settings] Could not save barber.", error);
+      setBarberUserStatus("Could not save changes. Try again.", false);
+      return;
+    }
 
     if (barberDisplayNameInput) barberDisplayNameInput.value = "";
     if (barberUsernameInput) barberUsernameInput.value = "";

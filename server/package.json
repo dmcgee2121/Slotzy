@@ -8,6 +8,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test:storage": "node --test test/storage-contract.test.js",
+    "test:api": "node --test test/runtime-policy.test.js",
     "test:storage:postgres": "node --test test/postgres-store.integration.test.js"
   },
   "dependencies": {

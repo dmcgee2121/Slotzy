@@ -8,14 +8,15 @@ import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
 import { STORAGE_ADAPTER, readStore, storeManageToken, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
+import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const ADMIN_SECRET = String(process.env.ADMIN_SECRET || "").trim();
-const RUNTIME_ENVIRONMENT = String(process.env.NODE_ENV || "development").trim().toLowerCase() || "development";
-const IS_PRODUCTION_LIKE = RUNTIME_ENVIRONMENT === "production" || RUNTIME_ENVIRONMENT === "staging";
+const RUNTIME_ENVIRONMENT = normalizeRuntimeEnvironment(process.env.NODE_ENV);
+const IS_PRODUCTION_LIKE = isProductionLikeEnvironment(RUNTIME_ENVIRONMENT);
 const DEV_JWT_FALLBACK = "dev-secret-change-me";
 const JWT_SECRET = resolveJwtSecret();
 
@@ -118,7 +119,7 @@ function getCorsOptions() {
       return callback(new Error("CORS origin is not allowed"));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Slotzy-Notify-Mode", "X-Slotzy-Manage-Token"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Slotzy-Manage-Token"],
   };
 }
 
@@ -175,6 +176,7 @@ app.post("/api/admin/login", (req, res) => {
 });
 
 app.get("/api/dev/emails", async (_req, res) => {
+  if (!areDevelopmentEndpointsEnabled(RUNTIME_ENVIRONMENT)) return res.status(404).json({ error: "not found" });
   try {
     const emails = await getRecentEmails(50);
     return res.json({
@@ -187,6 +189,7 @@ app.get("/api/dev/emails", async (_req, res) => {
 });
 
 app.delete("/api/dev/emails", async (_req, res) => {
+  if (!areDevelopmentEndpointsEnabled(RUNTIME_ENVIRONMENT)) return res.status(404).json({ error: "not found" });
   try {
     const result = await clearEmails();
     return res.json({
@@ -200,14 +203,17 @@ app.delete("/api/dev/emails", async (_req, res) => {
 });
 
 app.post("/api/notify/booking", async (req, res) => {
+  if (!areDevelopmentEndpointsEnabled(RUNTIME_ENVIRONMENT)) return res.status(404).json({ error: "not found" });
   return handleBookingNotifyRequest(req, res, "booking_created");
 });
 
 app.post("/api/notify/cancel", async (req, res) => {
+  if (!areDevelopmentEndpointsEnabled(RUNTIME_ENVIRONMENT)) return res.status(404).json({ error: "not found" });
   return handleBookingNotifyRequest(req, res, "booking_cancelled");
 });
 
 app.post("/api/notify/reschedule", async (req, res) => {
+  if (!areDevelopmentEndpointsEnabled(RUNTIME_ENVIRONMENT)) return res.status(404).json({ error: "not found" });
   return handleBookingNotifyRequest(req, res, "booking_rescheduled");
 });
 
@@ -229,10 +235,6 @@ function getBearerToken(req) {
   const auth = String(req.headers.authorization ?? "");
   if (!auth.startsWith("Bearer ")) return "";
   return auth.slice(7).trim();
-}
-
-function shouldSkipRouteBookingNotify(req) {
-  return String(req.headers["x-slotzy-notify-mode"] ?? "").trim().toLowerCase() === "manual";
 }
 
 function buildAuthUser(user) {
@@ -965,7 +967,7 @@ async function sendBookingNotifications(db, payload, options = {}) {
 async function handleBookingNotifyRequest(req, res, type) {
   const booking = normalizeObjectRecord(req.body?.booking);
   if (Object.keys(booking).length === 0) {
-    return res.json({
+    return res.status(400).json({
       ok: false,
       mode: getEmailMode(),
       error: "booking is required",
@@ -2008,6 +2010,17 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
     const next = { ...booking, status: "cancelled", updatedAtISO: new Date().toISOString() };
     db.bookings[index] = next;
     await writeStore(db);
+    try {
+      await sendBookingNotifications(db, {
+        type: "booking_cancelled",
+        booking: next,
+        previousBooking: booking,
+      });
+    } catch {
+      // Cancellation persistence is authoritative; notification delivery is
+      // deliberately best-effort and must not turn a saved cancellation into
+      // an error response.
+    }
     return res.json({ booking: publicManageBooking(next) });
   } catch {
     return res.status(500).json({ error: "Could not cancel this appointment. Please try again.", code: "manage_cancel_failed" });
@@ -2181,12 +2194,10 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     if (manageToken && STORAGE_ADAPTER === "postgres") {
       await storeManageToken(booking.id, booking.manageTokenHash, new Date(new Date(endISO).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString());
     }
-    if (!shouldSkipRouteBookingNotify(req)) {
-      await sendBookingNotifications(db, {
-        type: "booking_created",
-        booking,
-      });
-    }
+    await sendBookingNotifications(db, {
+      type: "booking_created",
+      booking,
+    });
 
     // The token is returned once and is never included in logs, owner reads, or
     // subsequent booking responses. The browser turns it into the receipt URL.
@@ -2320,10 +2331,6 @@ app.patch("/api/bookings/:bookingId", requireAuth, async (req, res) => {
 
     const currentStatus = normalizeBookingStatus(current?.status);
     const nextStatus = normalizeBookingStatus(next?.status);
-    if (shouldSkipRouteBookingNotify(req)) {
-      return res.json({ booking: next });
-    }
-
     if (currentStatus !== "cancelled" && nextStatus === "cancelled") {
       await sendBookingNotifications(db, {
         type: "booking_cancelled",

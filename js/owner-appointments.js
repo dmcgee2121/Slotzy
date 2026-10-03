@@ -1092,7 +1092,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     return null;
   }
 
-  function createWalkinBooking({
+  async function createWalkinBooking({
     barberUsername,
     dateYmd,
     selectedStartISO,
@@ -1185,7 +1185,15 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
 
     const bookings = dataStore.getBookings();
     bookings.push(booking);
-    dataStore.saveBookings(bookings);
+    try {
+      const savedBookings = await dataStore.saveBookingsAsync(bookings, { fallbackOnError: false });
+      const savedBooking = (Array.isArray(savedBookings) ? savedBookings : [])
+        .find((entry) => String(entry?.id ?? "") === String(booking.id)) || booking;
+      Object.assign(booking, savedBooking);
+    } catch (error) {
+      console.error("[Slotzy:owner-appointments] Could not save walk-in.", error);
+      return { ok: false, error: "Could not save changes. Try again." };
+    }
     writeWalkinLastServiceCache(resolvedBarberUsername, {
       serviceId: booking.serviceId,
       serviceName: booking.serviceName,
@@ -1431,7 +1439,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     setWalkinStatus("Filled from last appointment.", true);
   }
 
-  function handleQuickAddWalkin() {
+  async function handleQuickAddWalkin() {
     const inModal = Boolean(walkinModalEl && !walkinModalEl.classList.contains("hidden"));
     if (!inModal) {
       openWalkinModal();
@@ -1485,7 +1493,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     const notes = String(walkinNotesEl?.value ?? "").trim();
     const service = getWalkinSelectedService();
 
-    const result = createWalkinBooking({
+    const result = await createWalkinBooking({
       barberUsername,
       dateYmd: nextAvailable.dateYmd,
       selectedStartISO: nextAvailable.slot.startISO,
@@ -1510,7 +1518,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
   }
 
-  function handleWalkinCreate() {
+  async function handleWalkinCreate() {
     clearWalkinStatus();
 
     const barberUsername = String(walkinBarberSelectEl?.value ?? "").trim();
@@ -1550,7 +1558,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       return;
     }
 
-    const result = createWalkinBooking({
+    const result = await createWalkinBooking({
       barberUsername,
       dateYmd,
       selectedStartISO,
@@ -2147,7 +2155,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     renderOwnerAppointments(loadOwnerBookings());
   }
 
-  function handleListActionClick(event) {
+  async function handleListActionClick(event) {
     const clearFiltersBtn = event.target.closest("button[data-action='clear-filters']");
     if (clearFiltersBtn) {
       clearFilters();
@@ -2174,11 +2182,11 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
 
     if (action === "cancel") {
-      handleCancel(booking);
+      await handleCancel(booking);
       return;
     }
     if (action === "confirm") {
-      handleConfirm(booking);
+      await handleConfirm(booking);
       return;
     }
     if (action === "reschedule") {
@@ -2190,11 +2198,11 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       return;
     }
     if (action === "complete") {
-      handleComplete(booking);
+      await handleComplete(booking);
       return;
     }
     if (action === "no-show") {
-      handleNoShow(booking);
+      await handleNoShow(booking);
     }
   }
 
@@ -2211,7 +2219,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     renderAll();
   }
 
-  function handleCancel(booking) {
+  async function handleCancel(booking) {
     if (!isScheduledStatus(booking.status)) {
       setInlineStatus("Only booked or confirmed appointments can be cancelled.", false);
       return;
@@ -2222,7 +2230,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
     const confirmation = `Cancel ${String(booking.serviceName ?? "this appointment")} for ${String(booking.clientName ?? "this customer")} on ${formatDateFriendly(booking.start)} at ${formatTimeLabel(booking.start)}? This cannot be undone.`;
     if (!window.confirm(confirmation)) return;
-    const result = applyBookingStatusUpdate(booking.id, "cancelled");
+    const result = await applyBookingStatusUpdate(booking.id, "cancelled");
     if (!result.ok) {
       setInlineStatus("Could not cancel this appointment.", false);
       return;
@@ -2232,7 +2240,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     renderAll();
   }
 
-  function handleConfirm(booking) {
+  async function handleConfirm(booking) {
     if (booking.status !== "booked") {
       setInlineStatus("Only booked appointments can be confirmed.", false);
       return;
@@ -2241,7 +2249,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       setInlineStatus("Past appointments cannot be confirmed. Mark completed or no-show instead.", false);
       return;
     }
-    const result = applyBookingStatusUpdate(booking.id, "confirmed");
+    const result = await applyBookingStatusUpdate(booking.id, "confirmed");
     if (!result.ok) {
       setInlineStatus("Could not confirm this appointment.", false);
       return;
@@ -2251,7 +2259,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     renderAll();
   }
 
-  function handleComplete(booking) {
+  async function handleComplete(booking) {
     if (!isScheduledStatus(booking.status)) {
       setInlineStatus("Only booked or confirmed appointments can be marked completed.", false);
       return;
@@ -2262,7 +2270,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
     const confirmation = `Mark ${String(booking.serviceName ?? "this appointment")} for ${String(booking.clientName ?? "this customer")} as completed?`;
     if (!window.confirm(confirmation)) return;
-    const result = applyBookingStatusUpdate(booking.id, "completed");
+    const result = await applyBookingStatusUpdate(booking.id, "completed");
     if (!result.ok) {
       setInlineStatus("Could not mark this appointment completed.", false);
       return;
@@ -2271,7 +2279,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     renderAll();
   }
 
-  function handleNoShow(booking) {
+  async function handleNoShow(booking) {
     if (!isScheduledStatus(booking.status)) {
       setInlineStatus("Only booked or confirmed appointments can be marked no-show.", false);
       return;
@@ -2282,7 +2290,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
     const confirmation = `Mark ${String(booking.clientName ?? "this customer")} as a no-show for ${String(booking.serviceName ?? "this appointment")}?`;
     if (!window.confirm(confirmation)) return;
-    const result = applyBookingStatusUpdate(booking.id, "no-show");
+    const result = await applyBookingStatusUpdate(booking.id, "no-show");
     if (!result.ok) {
       setInlineStatus("Could not mark this appointment no-show.", false);
       return;
@@ -2393,7 +2401,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     rescheduleConfirmBtn.disabled = !rescheduleBookingId || !hasSlot || rescheduleSlotEl.disabled;
   }
 
-  function applyRescheduleByStartISO({
+  async function applyRescheduleByStartISO({
     bookingId,
     startISO,
     allowStatuses = ["booked", "confirmed"],
@@ -2460,7 +2468,16 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       time: minutesToHhmm(start.getHours() * 60 + start.getMinutes()),
       durationMinutes,
     };
-    dataStore.saveBookings(bookings);
+    try {
+      const runtime = dataStore.getApiRuntimeState();
+      bookings[index] = await dataStore.updateBookingAsync(targetBookingId, bookings[index], {
+        fallbackOnError: false,
+        requireApi: runtime.apiEnabled,
+      });
+    } catch (error) {
+      console.error("[Slotzy:owner-appointments] Could not save rescheduled appointment.", error);
+      return { ok: false, error: "Could not save changes. Try again." };
+    }
 
     return {
       ok: true,
@@ -2479,7 +2496,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     return left.getTime() === right.getTime();
   }
 
-  function handleRescheduleConfirm() {
+  async function handleRescheduleConfirm() {
     clearRescheduleStatus();
     if (!rescheduleBookingId) {
       setRescheduleStatus("No appointment selected.", false);
@@ -2497,7 +2514,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       return;
     }
 
-    const result = applyRescheduleByStartISO({
+    const result = await applyRescheduleByStartISO({
       bookingId: rescheduleBookingId,
       startISO,
       allowStatuses: ["booked", "confirmed"],
@@ -2801,44 +2818,37 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     return bookingShopId === currentShopId;
   }
 
-  function updateBookingStatus(bookingId, nextStatus) {
-    let didUpdate = false;
-    const updated = dataStore.getBookings().map((booking) => {
-      const id = String(booking?.id ?? "");
-      if (id !== bookingId) return booking;
-      if (!canManageRawBooking(booking)) return booking;
-      didUpdate = true;
-      return { ...booking, status: nextStatus };
-    });
-    if (didUpdate) dataStore.saveBookings(updated);
-  }
-
-  function applyBookingStatusUpdate(bookingId, nextStatus) {
+  async function applyBookingStatusUpdate(bookingId, nextStatus) {
     const targetId = String(bookingId ?? "").trim();
     if (!targetId) return { ok: false, previousBooking: null, booking: null };
 
     let previousBooking = null;
     let nextBooking = null;
-    let didUpdate = false;
-    const updated = dataStore.getBookings().map((booking) => {
+    const current = dataStore.getBookings();
+    current.forEach((booking) => {
       const id = String(booking?.id ?? "");
-      if (id !== targetId) return booking;
-      if (!canManageRawBooking(booking)) return booking;
+      if (id !== targetId || !canManageRawBooking(booking)) return;
       previousBooking = { ...booking };
       nextBooking = { ...booking, status: nextStatus };
-      didUpdate = true;
-      return nextBooking;
     });
 
-    if (didUpdate) {
-      dataStore.saveBookings(updated);
-    }
+    if (!nextBooking) return { ok: false, previousBooking: null, booking: null };
 
-    return {
-      ok: didUpdate,
-      previousBooking,
-      booking: nextBooking,
-    };
+    try {
+      const runtime = dataStore.getApiRuntimeState();
+      const savedBooking = await dataStore.updateBookingAsync(targetId, nextBooking, {
+        fallbackOnError: false,
+        requireApi: runtime.apiEnabled,
+      });
+      return {
+        ok: Boolean(savedBooking),
+        previousBooking,
+        booking: savedBooking,
+      };
+    } catch (error) {
+      console.error("[Slotzy:owner-appointments] Could not save appointment status.", error);
+      return { ok: false, previousBooking, booking: null };
+    }
   }
 
   function buildOwnerNotificationPayload({ booking, previousBooking = null } = {}) {
@@ -2856,6 +2866,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   }
 
   function queueOwnerBookingNotification(kind, { booking, previousBooking = null } = {}) {
+    if (dataStore.getApiRuntimeState().apiEnabled) return;
     const payload = buildOwnerNotificationPayload({ booking, previousBooking });
     if (!payload) return;
 

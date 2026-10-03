@@ -158,10 +158,15 @@ function runAsync(localFn, options = {}) {
   const localTask = () => Promise.resolve(localFn());
   if (!isApiModeEnabled()) return localTask();
 
+  const isWrite = Boolean(options && typeof options === "object" && options.operation === "write");
+
   const apiFn = typeof options === "function"
     ? options
     : (options && typeof options.apiFn === "function" ? options.apiFn : null);
-  if (!apiFn) return localTask();
+  if (!apiFn) {
+    if (isWrite) return Promise.reject(new Error("Could not save changes. Try again."));
+    return localTask();
+  }
 
   const label = typeof options === "object" && options
     ? String(options.label ?? "operation")
@@ -170,7 +175,7 @@ function runAsync(localFn, options = {}) {
   return Promise.resolve()
     .then(() => apiFn())
     .catch((error) => {
-      if (options && typeof options === "object" && options.fallbackOnError === false) {
+      if (isWrite || (options && typeof options === "object" && options.fallbackOnError === false)) {
         throw error;
       }
       warnApiFallback(label, error);
@@ -993,8 +998,15 @@ async function apiGetUsers() {
 
 async function apiSaveUsers(users) {
   await apiGetSessionUser();
-  saveUsers(users);
-  return getUsers();
+  const authoritativeUsers = getUsers();
+  const authoritativeNames = new Set(authoritativeUsers.map((user) => String(user?.username ?? "").trim().toLowerCase()).filter(Boolean));
+  const requestedNames = (Array.isArray(users) ? users : [])
+    .map((user) => String(user?.username ?? "").trim().toLowerCase())
+    .filter(Boolean);
+  if (requestedNames.some((username) => !authoritativeNames.has(username))) {
+    throw new Error("Could not save changes. Try again.");
+  }
+  return authoritativeUsers;
 }
 
 async function apiGetShops() {
@@ -1155,9 +1167,6 @@ async function apiGetBookings() {
 async function apiSaveBookings(bookingsInput, options = {}) {
   const nextBookings = Array.isArray(bookingsInput) ? bookingsInput : [];
   const current = await apiGetBookings();
-  const requestHeaders = options?.manualNotify
-    ? { "X-Slotzy-Notify-Mode": "manual" }
-    : undefined;
   const currentById = new Map(
     current
       .map((booking) => [toRecordId(booking?.id), booking])
@@ -1174,14 +1183,12 @@ async function apiSaveBookings(bookingsInput, options = {}) {
       await apiRequest(`/bookings/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: payload,
-        headers: requestHeaders,
       });
       nextIds.add(id);
     } else {
       const created = await apiRequest("/bookings", {
         method: "POST",
         body: booking,
-        headers: requestHeaders,
       });
       const createdId = toRecordId(created?.booking?.id);
       if (createdId) nextIds.add(createdId);
@@ -1204,11 +1211,9 @@ async function apiSaveBookings(bookingsInput, options = {}) {
 async function apiUpdateBooking(bookingId, bookingPatch, options = {}) {
   const id = toRecordId(bookingId);
   if (!id) throw new Error("Booking id is required for an API update");
-  const headers = options?.manualNotify ? { "X-Slotzy-Notify-Mode": "manual" } : undefined;
   const payload = await apiRequest(`/bookings/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body: bookingPatch,
-    headers,
   });
   const booking = isObjectRecord(payload?.booking) ? payload.booking : null;
   if (!booking) throw new Error("Invalid booking payload from update");
@@ -1320,7 +1325,7 @@ export function getUsersAsync() {
 export function saveUsersAsync(users) {
   return runAsync(
     () => saveUsers(users),
-    { apiFn: () => apiSaveUsers(users), label: "users write" }
+    { apiFn: () => apiSaveUsers(users), label: "users write", operation: "write" }
   );
 }
 
@@ -1360,7 +1365,7 @@ export function getProfilesAsync() {
 }
 
 export function saveProfilesAsync(map) {
-  return runAsync(() => saveProfiles(map));
+  return runAsync(() => saveProfiles(map), { label: "profiles write", operation: "write" });
 }
 
 export function getProfileAsync(username) {
@@ -1368,7 +1373,7 @@ export function getProfileAsync(username) {
 }
 
 export function saveProfileAsync(username, profileObj) {
-  return runAsync(() => saveProfile(username, profileObj));
+  return runAsync(() => saveProfile(username, profileObj), { label: "profile write", operation: "write" });
 }
 
 export function getShops() {
@@ -1429,7 +1434,7 @@ export function getShopAsync() {
 export function saveShopAsync(shopObj) {
   return runAsync(
     () => saveShop(shopObj),
-    { apiFn: () => apiSaveShop(shopObj), label: "shop write" }
+    { apiFn: () => apiSaveShop(shopObj), label: "shop write", operation: "write" }
   );
 }
 
@@ -1443,7 +1448,7 @@ export function getShopsAsync() {
 export function saveShopsAsync(shops, options = {}) {
   return runAsync(
     () => saveShops(shops),
-    { apiFn: () => apiSaveShops(shops), label: "shops write", fallbackOnError: options.fallbackOnError !== false }
+    { apiFn: () => apiSaveShops(shops), label: "shops write", operation: "write", fallbackOnError: false }
   );
 }
 
@@ -1468,7 +1473,7 @@ export function getServicesAsync() {
 export function saveServicesAsync(arr, options = {}) {
   return runAsync(
     () => saveServices(arr),
-    { apiFn: () => apiSaveServices(arr), label: "services write", fallbackOnError: options.fallbackOnError !== false }
+    { apiFn: () => apiSaveServices(arr), label: "services write", operation: "write", fallbackOnError: false }
   );
 }
 
@@ -1488,7 +1493,7 @@ export function getStaffAsync() {
 }
 
 export function saveStaffAsync(arr) {
-  return runAsync(() => saveStaff(arr));
+  return runAsync(() => saveStaff(arr), { label: "staff write", operation: "write" });
 }
 
 export function getBookings() {
@@ -1524,7 +1529,7 @@ export function getBookingsAsync(options = {}) {
 export function saveBookingsAsync(arr, options = {}) {
   return runAsync(
     () => saveBookings(arr),
-    { apiFn: () => apiSaveBookings(arr, options), label: "bookings write", fallbackOnError: options.fallbackOnError !== false }
+    { apiFn: () => apiSaveBookings(arr, options), label: "bookings write", operation: "write", fallbackOnError: false }
   );
 }
 
@@ -1546,7 +1551,7 @@ export function updateBookingAsync(bookingId, bookingPatch, options = {}) {
   }
   return runAsync(
     applyLocalUpdate,
-    { apiFn: () => apiUpdateBooking(id, bookingPatch, options), label: "booking update", fallbackOnError: options.fallbackOnError !== false }
+    { apiFn: () => apiUpdateBooking(id, bookingPatch, options), label: "booking update", operation: "write", fallbackOnError: false }
   );
 }
 
@@ -1572,7 +1577,7 @@ export function getAvailabilityMapAsync() {
 export function saveAvailabilityMapAsync(map) {
   return runAsync(
     () => saveAvailabilityMap(map),
-    { apiFn: () => apiSaveAvailabilityMap(map), label: "availability write" }
+    { apiFn: () => apiSaveAvailabilityMap(map), label: "availability write", operation: "write" }
   );
 }
 
@@ -1603,7 +1608,7 @@ export function getAvailabilityForBarberAsync(username) {
 export function saveAvailabilityForBarberAsync(username, availability, options = {}) {
   return runAsync(
     () => saveAvailabilityForBarber(username, availability),
-    { apiFn: () => apiSaveAvailabilityForBarber(username, availability), label: "availability barber write", fallbackOnError: options.fallbackOnError !== false }
+    { apiFn: () => apiSaveAvailabilityForBarber(username, availability), label: "availability barber write", operation: "write", fallbackOnError: false }
   );
 }
 

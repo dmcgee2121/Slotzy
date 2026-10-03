@@ -182,3 +182,10 @@ No staging data was deleted. This pattern rule is intentionally narrow but remai
 The anonymous booking POST and Postgres mapping preserve client, shop, provider, service, and status fields. The owner visibility failure occurred afterward: the Appointments page rendered only its owner-context local cache, which no longer receives writes from the deliberately isolated anonymous public context. It also defaults to Today while the lifecycle books tomorrow.
 
 Appointments now refreshes the authenticated owner booking list before initial render and reports refresh failures instead of silently relying on stale local data. Hosted coverage proves the created ID and synthetic service/client markers exist in that API response, then selects All and requires the real owner appointment card before continuing through manage-link cancellation and persistence. This is a frontend/test correction; the Render booking routes and Postgres mapping are unchanged.
+# Hosted write and development-endpoint hardening
+
+- [x] API-mode writes fail visibly instead of silently creating local-only state.
+- [x] Public booking and manage cancellation require an authoritative API result before success UI.
+- [x] `/api/dev/emails` and legacy manual `/api/notify/*` routes return `404` in staging and production.
+- [x] Hosted booking, cancellation, and reschedule notifications are derived from the authoritative server-side action; notification delivery remains best-effort after persistence.
+- [ ] Add durable notification delivery/idempotency and operational monitoring before a wider pilot.

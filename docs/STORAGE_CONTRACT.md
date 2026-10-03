@@ -58,3 +58,12 @@ The current document adapter cannot provide relational transactions. The Postgre
 5. Insert a pending server-side notification/outbox record if notification delivery is part of the flow.
 
 Commit only when every required record is valid. Dispatch email after commit; delivery failure must not roll back an already confirmed booking. Reschedule/cancel need analogous event and token/policy handling. This is a design requirement only, not a runtime operation yet.
+# Hosted write fallback policy
+
+When the browser is configured for API mode, writes are authoritative only after the Express API succeeds. `dataStore.runAsync` must never redirect a failed write to browser storage, including owner setup, services, availability, settings, appointments, public booking, and manage actions. Browser storage remains a compatibility cache after successful API reads/writes; it is not proof that a hosted write succeeded.
+
+Local/demo mode intentionally continues to use browser storage. Read operations may use the existing compatibility fallback where the screen is explicitly designed to tolerate cached data, but screens that promise current server state must opt out and show a retry state.
+
+## Hosted development and notification routes
+
+`GET`/`DELETE /api/dev/emails` and the legacy free-form `/api/notify/*` routes exist only when `NODE_ENV` is `development` or `test`. Staging and production return `404` before reading email content or processing a notification payload. Hosted notifications are produced inside the authoritative booking create/update/token-cancel routes after persistence; delivery is best-effort and cannot turn a persisted action into an apparent failure.

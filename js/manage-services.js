@@ -71,7 +71,7 @@ import * as dataStore from "./dataStore.js";
   }
 
   function saveAllServices(services) {
-    dataStore.saveServices(services.map(normalizeService));
+    return dataStore.saveServicesAsync(services.map(normalizeService), { fallbackOnError: false });
   }
 
   function isScopedService(service) {
@@ -86,7 +86,7 @@ import * as dataStore from "./dataStore.js";
     return getAllServices().filter(isScopedService);
   }
 
-  function handleAddService() {
+  async function handleAddService() {
     const payload = {
       name: String(serviceNameInput?.value ?? "").trim(),
       price: Number(servicePriceInput?.value ?? ""),
@@ -119,7 +119,7 @@ import * as dataStore from "./dataStore.js";
         ownerUsername: currentUsername,
       });
 
-      saveAllServices(services);
+      await saveAllServices(services);
       clearForm();
       renderOwnerServices();
       setFormStatus(`Saved. ${payload.name} is now available for booking.`, "success");
@@ -130,7 +130,7 @@ import * as dataStore from "./dataStore.js";
     }
   }
 
-  function handleDeleteService(serviceId) {
+  async function handleDeleteService(serviceId) {
     if (!serviceId) return;
     const allServices = getAllServices();
     const service = allServices.find((item) => item.id === serviceId && isScopedService(item));
@@ -141,7 +141,7 @@ import * as dataStore from "./dataStore.js";
 
     const remaining = allServices.filter((item) => item.id !== serviceId);
     try {
-      saveAllServices(remaining);
+      await saveAllServices(remaining);
       if (editingServiceId === serviceId) clearEditState();
       renderOwnerServices();
       setFormStatus(`Saved. ${service.name} was removed from your booking menu.`, "success");
@@ -165,7 +165,7 @@ import * as dataStore from "./dataStore.js";
     renderOwnerServices();
   }
 
-  function saveEditing(serviceId) {
+  async function saveEditing(serviceId) {
     if (!editDraft || !serviceId) return;
     const payload = {
       name: String(editDraft.name ?? "").trim(),
@@ -199,7 +199,7 @@ import * as dataStore from "./dataStore.js";
 
     setFormStatus("Saving changes…", "saving");
     try {
-      saveAllServices(services);
+      await saveAllServices(services);
       clearEditState();
       renderOwnerServices();
       setFormStatus(`Saved. ${payload.name} was updated.`, "success");
@@ -218,7 +218,7 @@ import * as dataStore from "./dataStore.js";
     editErrors = [];
   }
 
-  function handleServiceListClick(e) {
+  async function handleServiceListClick(e) {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
 
@@ -227,12 +227,12 @@ import * as dataStore from "./dataStore.js";
     if (!action) return;
 
     if (action === "edit") startEditing(serviceId);
-    if (action === "delete") handleDeleteService(serviceId);
+    if (action === "delete") await handleDeleteService(serviceId);
     if (action === "cancel-edit") {
       clearEditState();
       renderOwnerServices();
     }
-    if (action === "save-edit") saveEditing(serviceId);
+    if (action === "save-edit") await saveEditing(serviceId);
     if (action === "empty-add") serviceNameInput?.focus();
   }
 

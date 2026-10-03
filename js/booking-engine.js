@@ -517,7 +517,7 @@ export function initBookingEngine(options = {}) {
               ? `<button type="button" class="btn btn-ghost" id="btn-receipt-calendar">Add to Calendar</button>`
               : ""}
             <button type="button" class="btn btn-ghost" id="btn-receipt-copy-summary">Copy Confirmation Summary</button>
-            ${canShowManageActions
+            ${canShowManageActions && (!isPublicBookingPage || !dataStore.shouldUsePublicBookingApi())
               ? `<button type="button" class="btn btn-ghost" id="btn-receipt-cancel" ${cancellation.canCancel ? "" : "disabled"}>Cancel Appointment</button>`
               : ""}
             <button type="button" class="btn btn-primary" id="btn-book-another">Book Another</button>
@@ -770,6 +770,10 @@ export function initBookingEngine(options = {}) {
   }
 
   function queueBookingNotification(kind, { booking, previousBooking = null, manageLink = "" } = {}) {
+    // Hosted booking routes validate the authoritative write and dispatch the
+    // notification server-side. The public client must not call a free-form
+    // notification endpoint after the fact.
+    if (dataStore.shouldUsePublicBookingApi()) return;
     const payload = buildNotificationPayloadForBooking({ booking, previousBooking, manageLink });
     if (!payload) return;
 

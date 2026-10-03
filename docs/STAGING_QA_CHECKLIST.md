@@ -122,7 +122,7 @@ Manage Confirm Cancel must use the direct authoritative `PATCH /api/bookings/:bo
 
 For an authenticated manage document, Confirm must use the cache hydrated by the successful manage-page GET for cancellation policy/details and proceed directly to the authoritative update; do not gate the PATCH behind another asynchronous booking read. It must also bypass the generic data-mode wrapper with `requireApi: true`; `fallbackOnError: false` alone does not prevent `runAsync()` from selecting its local branch before any fetch. Install the exact PATCH waiter and the booking-network recorder before Confirm Cancel. The recorder may report only method, path without query, response status or scrubbed request-failure text, booking-path/UUID-shape booleans, and safe handler runtime stages. If the update fails, Confirm must restore the ordinary Cancel action and retain the Booked badge rather than leaving only the pending confirmation UI.
 
-The production-like CORS preflight for manage cancellation must allow the configured staging frontend origin, method `PATCH`, and request headers `Content-Type`, `Authorization`, and `X-Slotzy-Notify-Mode`. Keep this header allowlist explicit: the custom notification-mode header prevents duplicate route/client notification delivery and must not be removed merely to avoid preflight. A `requestfailed` diagnostic may include only method, redacted path, and scrubbed failure text.
+The production-like CORS preflight for token manage cancellation must allow the configured staging frontend origin, method `PATCH`, and request headers `Content-Type` and `X-Slotzy-Manage-Token`. Hosted clients no longer send the legacy manual-notification header; authoritative mutation routes own notification dispatch. A `requestfailed` diagnostic may include only method, redacted path, and scrubbed failure text.
 
 The staging suite first runs `focused staging owner setup API chain` with its own synthetic identity. It isolates register → shop create/link → `/api/auth/me` → two service creates → service read → availability write → service re-read, reporting stage A–F precisely; reaching the end means classification G and shifts investigation to the browser wizard. The full browser lifecycle remains immediately afterward and is not weakened. A staging/development-only `/api/auth/me` marker reports only user/shop presence and owner-shop count.
 
@@ -249,3 +249,10 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 - [x] Capture safe owner-list diagnostics: endpoint/method/status/key names, count, authoritative ID/service/client match booleans, statuses, and shop/provider shape comparisons.
 - [x] Select the actual All view and still require the owner-visible card to contain the synthetic client and service plus a scheduled status. This does not weaken owner-side verification.
 - [ ] Confirm the strengthened lifecycle against deployed Netlify code; no Render change is required for this correction.
+# Hosted hardening checks
+
+- Confirm a rejected setup, service, availability, or settings request shows a retry message and does not advance or show a saved state from `localStorage`.
+- Confirm a rejected public booking request never renders a receipt or manage link.
+- Confirm a rejected manage cancellation never renders a cancelled success state.
+- Confirm `GET` and `DELETE /api/dev/emails` return `404` and no email data in staging.
+- Confirm `POST /api/notify/booking`, `/cancel`, and `/reschedule` return `404` in staging; hosted notifications must be emitted only by the authoritative booking mutation routes.

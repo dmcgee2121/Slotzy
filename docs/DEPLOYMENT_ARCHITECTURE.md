@@ -18,7 +18,7 @@ Reconsider direct Supabase access only after the Express API contract, authoriza
 - `manifest.json` provides an installable web-app shell (`start_url: /index.html`, standalone display and PNG icons), but this is not yet a production PWA/native packaging plan.
 - `js/dataStore.js` is the client data boundary. It defaults to local mode and uses browser local/session storage keys prefixed with `Slotzy_`.
 - API mode is opt-in through `Slotzy_api_mode=1`. `js/api-config.js` is the canonical browser API-base module: it imports the non-secret `js/public-config.js`, accepts `window.SLOTZY_CONFIG.apiBaseUrl`, normalizes an origin or `/api` URL, and otherwise defaults to `http://localhost:3001/api`. `configureApi` can still change it in memory.
-- In API mode, many async data-store methods call Express with a bearer token. On an API error, `runAsync` currently logs a warning and falls back to local storage. That fallback is useful for demos and smoke tests, but unsafe for a hosted pilot because it can conceal a failed write or create split-brain data.
+- In API mode, async reads may use a compatibility-cache fallback only where the caller permits it. Writes never fall back after an API failure and writes without an API implementation reject explicitly. Local/demo mode continues to persist in browser storage.
 
 ### Express API and JWT
 
@@ -198,7 +198,7 @@ Only after staging behavior is stable, audit offline behavior, notification need
 
 - `server/src/db.json` file adapter and its generated email records.
 - Browser local-storage demo mode and smoke-test fixtures.
-- `pages/dev-emails.html` and `/api/dev/emails`.
+- `pages/dev-emails.html` and `/api/dev/emails` are local development/test tooling; the endpoint returns `404` in staging and production. Legacy manual `/api/notify/*` routes are restricted the same way. Hosted notifications run only inside authoritative booking mutation routes.
 - Demo seeding and destructive clear/reset helpers, unless moved behind a separate audited non-production tool.
 - The development JWT fallback and permissive local CORS behavior.
 
@@ -213,7 +213,7 @@ Only after staging behavior is stable, audit offline behavior, notification need
 1. Do not deploy or create Netlify/Supabase resources from this plan.
 2. Do not install Supabase SDKs, change runtime database code, or alter Express routes.
 3. Do not migrate `db.json`, browser storage, pilot contacts, bookings, or email outbox data.
-4. Do not turn on API mode for real users while `dataStore` can silently fall back to local writes.
+4. Do not turn on API mode for real users until the guarded staging checks confirm failed writes cannot fall back to local success state.
 5. Do not expose current contact-based manage links to hosted customer data.
 6. Do not expose database/service-role credentials to the frontend or commit them anywhere.
 7. Do not enable dev email/admin destructive endpoints in a public staging/prod frontend.

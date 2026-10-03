@@ -1153,3 +1153,52 @@ test("owner services add, validation, edit, and public booking selection stay mo
   await expect(page.locator("#serviceSelect")).not.toHaveValue("");
   await expectNoPageOverflow(page, "public booking with saved owner service");
 });
+
+test("hosted service write failure does not create local-only success", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/services**", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ services: seed.local.Slotzy_services }) });
+      return;
+    }
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/manage-services.html");
+  const initialCount = await page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_services") || "[]").length);
+  await page.locator("#serviceName").fill("Must Not Persist");
+  await page.locator("#servicePrice").fill("30");
+  await page.locator("#serviceDuration").fill("30");
+  await page.locator("#addServiceBtn").click();
+
+  await expect(page.locator("#serviceFormStatus")).toContainText("save this service");
+  await expect(page.getByRole("heading", { name: "Must Not Persist", exact: true })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_services") || "[]").length)).toBe(initialCount);
+});
+
+test("hosted availability write failure does not create local-only success", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/availability**", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/business-owner.html");
+  await page.locator("input[data-day='mon'][data-field='start']").fill("10:00");
+  await page.locator("#availability-save-weekly").click();
+
+  await expect(page.locator("#availability-weekly-status")).toContainText("save your weekly hours");
+  await expect.poll(() => page.evaluate((username) => {
+    const availability = JSON.parse(localStorage.getItem("Slotzy_availability") || "{}");
+    return availability[username]?.weekly?.mon?.start;
+  }, OWNER_USERNAME)).toBe("09:00");
+});
