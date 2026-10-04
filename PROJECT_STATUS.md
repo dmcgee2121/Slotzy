@@ -863,6 +863,7 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - This remains below production readiness. Manual owner recovery/session revocation, restore-target app validation, iPhone small-screen UAT, and broader production launch work remain open; Calendar overflow remains parked and non-blocking.
 # Customer confirmation and recovery beta
 
+- The public booking page now keeps an “Already booked but lost your private manage link?” entry point visible after either chooser or direct-shop context finishes loading. Its inline form uses the existing generic recovery API and never renders a token.
 - Public booking receipts now make the private manage link prominent with copy, open, copy, and Web Share (copy fallback) controls. A receipt still appears only after authoritative booking success.
 - Hosted customers can request a recovery link using booking email, shop name, and appointment date. The response is generic, rate-limited, and never exposes a booking or token; a match rotates the prior token and uses the server email/outbox path.
 - SMTP is real delivery only when configured. Without SMTP, messages are safely stored in `email_outbox` for pilot operator handling; this is not customer-facing delivery. Full client accounts and appointment history remain post-beta.

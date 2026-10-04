@@ -351,6 +351,7 @@ Branding/profile regression gate:
 - [ ] Pause Round 2 and investigate before further activity if booking, manage-link, cancellation, reschedule, or save behavior fails.
 # Customer confirmation and recovery beta checks
 
+- [ ] On both `/pages/book.html` and a direct `?shop=` URL, wait for shop data to finish loading and confirm “Recover manage link” remains visible and opens the form.
 - [ ] Confirm the booking receipt says “Save this private link. You will need it to cancel your appointment.” and Copy, Open, and Share controls work (Share may copy as a fallback).
 - [ ] With a known email booking, submit recovery with its shop and date. Confirm the browser receives only the generic response and no token/link; verify the replacement notification privately in SMTP or the protected outbox.
 - [ ] Repeat with a wrong contact/date and confirm the identical response and no notification. Verify the old manage URL no longer works after a successful recovery.

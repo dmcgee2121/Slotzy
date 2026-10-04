@@ -1,6 +1,6 @@
 // Bump whenever a cache-first shell asset changes so installed phones/PWAs do
 // not keep an older stylesheet or script after a deploy.
-const SHELL_CACHE_NAME = "slotzy-shell-v3";
+const SHELL_CACHE_NAME = "slotzy-shell-v4";
 const SHELL_ASSETS = [
   "/",
   "/index.html",

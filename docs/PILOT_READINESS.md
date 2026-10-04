@@ -290,6 +290,7 @@ Pilot Round 1 is complete and stabilized. The client booking, owner/barber appoi
 Round 2 is a staging-only, tightly controlled extension: 1–2 trusted barbers/operators and 3–5 trusted customer testers, no payments, minimum test-only customer data, and a private support channel. Pause invitations and investigate if booking, manage-link, cancellation, reschedule, or save behavior fails. It is not production readiness: manual owner recovery/session revocation, app-level restore-target validation, iPhone-specific small-screen UAT, and broader launch hardening remain open; Calendar overflow remains non-blocking and parked.
 # Customer confirmation and recovery beta
 
+- [x] Public booking chooser and direct-shop pages retain the recovery entry point after asynchronous shop context rendering; opening it reveals the recovery form.
 - [x] The authoritative booking receipt tells customers to save the private manage link and provides open, copy, and share-or-copy controls.
 - [x] Hosted recovery is generic and non-enumerating. It requires the original booking email plus shop and appointment-date context, rotates the old token on a match, and never returns a token in JSON or UI.
 - [ ] Confirm `SLOTZY_APP_ORIGIN` is set to the exact staging frontend origin before enabling recovery. SMTP sends only when configured; otherwise review the `email_outbox` through the existing private operator workflow. Client accounts/history are post-beta.

@@ -352,6 +352,8 @@ test("public shop chooser keeps booking details hidden until its context loads",
   releaseContext();
   await expect(page.locator("#publicShopPickerSection")).toBeVisible();
   await expect(page.locator("#bookingPanel")).toBeHidden();
+  await expect(page.locator("#publicManageRecoveryCard")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Recover manage link" })).toBeVisible();
 });
 
 test("public booking no-services state stays actionable on mobile", async ({ page }) => {
@@ -446,6 +448,7 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await expectControlFits(page, "#bookBtn");
   await page.locator("#bookBtn").click();
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
+  await expect(page.locator("#publicManageRecoveryCard")).toBeHidden();
   await expectNoPageOverflow(page, "booking receipt");
   await expectControlFits(page, "#btn-receipt-open-manage-link");
   await expectControlFits(page, "#btn-receipt-copy-manage-link");
@@ -485,6 +488,47 @@ test("hosted manage-link recovery stays generic and never renders a token", asyn
   await expect(page.locator("#manageRecoveryStatus")).toContainText("If we find a matching booking");
   expect(recoveryRequest).toEqual({ contact: "client@example.test", shopId: "E2E Mobile Pilot Shop", appointmentDate: "2026-12-01" });
   await expect(page.locator("body")).not.toContainText("token=");
+});
+
+test("public booking recovery remains available after chooser and direct-shop context loads", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  await seedStorage(page, seed);
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+  const shop = seed.local.Slotzy_shops[0];
+  await page.route("**/api/public/booking-context**", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ shops: [shop], providers: [], services: [], bookings: [], availabilityByBarber: {} }),
+  }));
+  let recoveryRequest = null;
+  await page.route("**/api/public/manage/recover", async (route) => {
+    recoveryRequest = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, message: "If we find a matching booking, we'll send the manage link to the contact used for the booking." }),
+    });
+  });
+
+  await page.goto("/pages/book.html");
+  await expect(page.locator("#publicShopPickerSection")).toBeVisible();
+  await expect(page.locator("#publicManageRecoveryCard")).toBeVisible();
+  await page.getByRole("button", { name: "Recover manage link" }).click();
+  await expect(page.locator("#publicManageRecoveryForm")).toBeVisible();
+  await page.locator("#publicManageRecoveryContact").fill("client@example.test");
+  await page.locator("#publicManageRecoveryShop").fill(shop.name);
+  await page.locator("#publicManageRecoveryDate").fill("2026-12-01");
+  await page.getByRole("button", { name: "Send recovery link" }).click();
+  await expect(page.locator("#publicManageRecoveryStatus")).toHaveText("If we find a matching booking, we'll send the manage link to the contact used for the booking.");
+  expect(recoveryRequest).toEqual({ contact: "client@example.test", shopId: shop.name, appointmentDate: "2026-12-01" });
+  await expect(page.locator("body")).not.toContainText("token=");
+
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  await expect(page.locator("#publicShopHero")).toBeVisible();
+  await expect(page.locator("#publicManageRecoveryCard")).toBeVisible();
+  await page.getByRole("button", { name: "Recover manage link" }).click();
+  await expect(page.locator("#publicManageRecoveryForm")).toBeVisible();
+  await expect(page.locator("#publicManageRecoveryShop")).toHaveValue(shop.name);
 });
 
 test("dashboard public link creates an authoritative anonymous booking under service-worker control", async ({ page }) => {
@@ -572,7 +616,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   await page.goto(bookingLink);
   await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
-  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("slotzy-shell-v3"))).toBe(true);
+  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("slotzy-shell-v4"))).toBe(true);
 
   await page.locator("#serviceSelect").selectOption(SERVICE_ID);
   const bookingDate = new Date();
@@ -638,7 +682,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     selectedTimePresent: true,
     selectedSlotShape: "iso-utc",
     serviceWorkerControlled: true,
-    frontendCacheVersion: "slotzy-shell-v3",
+    frontendCacheVersion: "slotzy-shell-v4",
   }));
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("E2E Diagnostic Client");
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("diagnostic-client@example.test");

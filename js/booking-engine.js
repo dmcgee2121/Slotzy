@@ -67,6 +67,13 @@ export function initBookingEngine(options = {}) {
   const publicBookingLoadState = findElementById("publicBookingLoadState");
   const publicBookingLoadActions = findElementById("publicBookingLoadActions");
   const publicBookingRetryBtn = findElementById("publicBookingRetryBtn");
+  const publicManageRecoveryCard = findElementById("publicManageRecoveryCard");
+  const publicManageRecoveryToggle = findElementById("publicManageRecoveryToggle");
+  const publicManageRecoveryForm = findElementById("publicManageRecoveryForm");
+  const publicManageRecoveryContact = findElementById("publicManageRecoveryContact");
+  const publicManageRecoveryShop = findElementById("publicManageRecoveryShop");
+  const publicManageRecoveryDate = findElementById("publicManageRecoveryDate");
+  const publicManageRecoveryStatus = findElementById("publicManageRecoveryStatus");
   const shopSelectLabel = findElement('label[for="shopSelect"]');
   const changeBarberHelp = findElementById("changeBarberHelp");
   const changeBarberLink = findElementById("changeBarberLink");
@@ -215,6 +222,8 @@ export function initBookingEngine(options = {}) {
       updateBookButtonState();
     });
     bookBtn?.addEventListener("click", handleBook);
+    publicManageRecoveryToggle?.addEventListener("click", togglePublicManageRecoveryForm);
+    publicManageRecoveryForm?.addEventListener("submit", handlePublicManageRecovery);
     bindBookingSyncListeners();
     updateChangeBarberHelp();
     updateBookButtonState();
@@ -1051,6 +1060,44 @@ export function initBookingEngine(options = {}) {
     publicShopPickerSection?.classList.toggle("hidden", !showPicker);
     publicShopHero?.classList.toggle("hidden", showPicker);
     bookingPanel?.classList.toggle("hidden", showPicker);
+    syncPublicManageRecoveryShop();
+  }
+
+  function syncPublicManageRecoveryShop() {
+    if (!publicManageRecoveryShop) return;
+    const shop = getShops().find((entry) => entry.id === selectedShopId) || null;
+    if (shop) publicManageRecoveryShop.value = shop.name;
+  }
+
+  function togglePublicManageRecoveryForm() {
+    if (!publicManageRecoveryForm || !publicManageRecoveryToggle) return;
+    const willOpen = publicManageRecoveryForm.classList.contains("hidden");
+    publicManageRecoveryForm.classList.toggle("hidden", !willOpen);
+    publicManageRecoveryToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    if (willOpen) {
+      syncPublicManageRecoveryShop();
+      (publicManageRecoveryContact || publicManageRecoveryShop)?.focus();
+    }
+  }
+
+  async function handlePublicManageRecovery(event) {
+    event.preventDefault();
+    const genericMessage = "If we find a matching booking, we'll send the manage link to the contact used for the booking.";
+    const submitButton = publicManageRecoveryForm?.querySelector("button[type='submit']");
+    if (submitButton) submitButton.disabled = true;
+    if (publicManageRecoveryStatus) publicManageRecoveryStatus.textContent = "Checking your request...";
+    try {
+      const result = await dataStore.requestPublicManageLinkRecoveryAsync({
+        contact: publicManageRecoveryContact?.value,
+        shopId: publicManageRecoveryShop?.value,
+        appointmentDate: publicManageRecoveryDate?.value,
+      });
+      if (publicManageRecoveryStatus) publicManageRecoveryStatus.textContent = String(result?.message || genericMessage);
+    } catch {
+      if (publicManageRecoveryStatus) publicManageRecoveryStatus.textContent = genericMessage;
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
   }
 
   function replacePublicShopUrl(slug) {
@@ -1392,6 +1439,7 @@ export function initBookingEngine(options = {}) {
     if (!isPublicBookingPage || !publicBookingLoadState) return;
     if (kind === "ready") {
       publicBookingLoadState.classList.add("hidden");
+      publicManageRecoveryCard?.classList.remove("hidden");
       return;
     }
 

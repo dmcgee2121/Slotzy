@@ -173,6 +173,30 @@
         <p id="bookingStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
     </section>
+
+    <section id="publicManageRecoveryCard" class="card owner-panel section-stack hidden" aria-labelledby="publicManageRecoveryTitle">
+      <div class="card-head">
+        <h2 id="publicManageRecoveryTitle">Already booked but lost your private manage link?</h2>
+        <p class="small">Request a replacement using the same email, shop, and appointment date used for the booking.</p>
+      </div>
+      <button id="publicManageRecoveryToggle" class="btn btn-ghost" type="button" aria-expanded="false" aria-controls="publicManageRecoveryForm">Recover manage link</button>
+      <form id="publicManageRecoveryForm" class="form-stack hidden">
+        <div class="field">
+          <label for="publicManageRecoveryContact">Booking email</label>
+          <input id="publicManageRecoveryContact" type="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="publicManageRecoveryShop">Shop name</label>
+          <input id="publicManageRecoveryShop" type="text" autocomplete="organization" required />
+        </div>
+        <div class="field">
+          <label for="publicManageRecoveryDate">Appointment date</label>
+          <input id="publicManageRecoveryDate" type="date" required />
+        </div>
+        <button class="btn btn-primary" type="submit">Send recovery link</button>
+      </form>
+      <p id="publicManageRecoveryStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
   </main>
 
   <footer>
