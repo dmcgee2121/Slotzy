@@ -395,6 +395,8 @@ export function createAuthUi({
         </div>
 
         <button type="submit" class="btn btn-primary" id="submit-btn">Continue</button>
+        <button type="button" class="btn btn-ghost" id="owner-recovery-help" aria-expanded="false" aria-controls="owner-recovery-message">Need help accessing your owner account?</button>
+        <p id="owner-recovery-message" class="small muted hidden" role="status" aria-live="polite">Owner recovery is operator-assisted during beta. Contact the private pilot support channel. For privacy, this page cannot confirm whether an account exists. Never send your password.</p>
         <button type="button" class="btn btn-ghost" id="close-modal">Close</button>
         <div id="auth-error" class="small auth-error hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
       </form>
@@ -444,6 +446,14 @@ export function createAuthUi({
     showRegisterBtn.addEventListener("click", () => setMode("register"));
 
     document.getElementById("close-modal")?.addEventListener("click", hideModal);
+    document.getElementById("owner-recovery-help")?.addEventListener("click", (event) => {
+      const button = event.currentTarget;
+      const message = document.getElementById("owner-recovery-message");
+      if (!message) return;
+      const willShow = message.classList.contains("hidden");
+      message.classList.toggle("hidden", !willShow);
+      button?.setAttribute("aria-expanded", willShow ? "true" : "false");
+    });
 
     document.getElementById("auth-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();

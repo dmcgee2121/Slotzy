@@ -1,5 +1,12 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Owner account/profile/recovery beta cleanup (2026-10-04)
+
+- Chosen scope: **Option B — intentional hosted read-only profile plus clearer recovery help.** Hosted profile fields have no authoritative write API, and registration does not establish a verified recovery email, so enabling edits or automated recovery would create identity and persistence risk.
+- Settings now separates immutable account identity, local/demo-only personal profile fields, and editable public Shop settings. Username, password, hosted personal email, hosted personal phone, and hosted display name remain read-only for beta; public shop contact and branding remain editable through the existing authoritative shop path.
+- Login and Settings expose generic operator-assisted recovery help. They perform no account lookup, do not reveal whether an account exists, and do not send or expose credentials or tokens.
+- Self-service password reset, verified recovery-email enrollment, password change, username changes, and per-user JWT revocation remain post-beta work. This is frontend/documentation only: Netlify deploy required; Render and Supabase changes are not required.
+
 ## Recurring weekly scheduling blocks (2026-10-04)
 
 - **Beta package complete on staging.** The additive Supabase migration was applied to staging, the deployed guarded staging suite passed **3/3**, and manual owner/customer UAT passed. Production was not touched.

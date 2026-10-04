@@ -7,6 +7,9 @@ import { wireLogoutButton } from "./logout.js";
   const fullNameInput = document.getElementById("fullNameInput");
   const emailInput = document.getElementById("emailInput");
   const phoneInput = document.getElementById("phoneInput");
+  const accountUsernameInput = document.getElementById("accountUsernameInput");
+  const ownerRecoveryHelpBtn = document.getElementById("ownerRecoveryHelpBtn");
+  const ownerRecoveryHelpMessage = document.getElementById("ownerRecoveryHelpMessage");
   const profileCompletenessText = document.getElementById("profileCompletenessText");
   const profileProgressBar = document.getElementById("profileProgressBar");
   const missingFields = document.getElementById("missingFields");
@@ -120,6 +123,8 @@ import { wireLogoutButton } from "./logout.js";
     });
 
     loadProfile();
+    if (accountUsernameInput) accountUsernameInput.value = currentUsername;
+    ownerRecoveryHelpBtn?.addEventListener("click", toggleOwnerRecoveryHelp);
     bindCompletenessEvents();
     updateProfileCompleteness();
     configureProfileEditing();
@@ -174,10 +179,18 @@ import { wireLogoutButton } from "./logout.js";
         saveProfileBtn.disabled = true;
         saveProfileBtn.setAttribute("aria-disabled", "true");
       }
-      setProfileStatus("Profile editing is not available during the pilot.", false);
+      clearProfileStatus();
+      if (profileStatus) profileStatus.textContent = "Hosted profile editing is read-only during beta. Update public business details in Shop settings.";
       return;
     }
     saveProfileBtn?.addEventListener("click", handleSaveProfile);
+  }
+
+  function toggleOwnerRecoveryHelp() {
+    if (!ownerRecoveryHelpMessage || !ownerRecoveryHelpBtn) return;
+    const willShow = ownerRecoveryHelpMessage.classList.contains("hidden");
+    ownerRecoveryHelpMessage.classList.toggle("hidden", !willShow);
+    ownerRecoveryHelpBtn.setAttribute("aria-expanded", willShow ? "true" : "false");
   }
 
   async function handleSaveProfile() {

@@ -1,5 +1,13 @@
 # Staging QA checklist
 
+## Owner account/profile/recovery cleanup (run after Netlify deploy)
+
+- [ ] Open hosted Settings and confirm the signed-in username is visible but read-only; hosted full name, personal email, and personal phone cannot be edited or saved.
+- [ ] Confirm public business phone/email and branding remain editable only in Shop settings and persist after reload.
+- [ ] Open “Need help accessing your owner account?” from login and Settings; confirm the copy is generic, operator-assisted, and does not say whether an account exists.
+- [ ] Confirm neither help entry point sends a recovery request or displays a JWT, reset token, internal ID, password, or customer information.
+- [ ] Recheck owner setup, public booking, customer manage-link recovery, recurring blocks, services, availability, and branding through the guarded staging suite.
+
 ## Recurring weekly scheduling blocks — complete for beta (2026-10-04)
 
 - [x] Apply the additive migration to staging and deploy the recurring scheduling package; production was not touched.

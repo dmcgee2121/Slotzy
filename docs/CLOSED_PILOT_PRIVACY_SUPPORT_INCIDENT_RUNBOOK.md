@@ -81,6 +81,8 @@ Owner/operator and next update time:
 
 For forgotten credentials or owner/barber lockout, use [the owner recovery runbook](CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md). It requires out-of-band identity verification and a targeted operator action. Do not use a booking link, a username alone, or a newly supplied email address as proof of ownership.
 
+The login and Settings recovery-help controls are generic informational entry points only. They do not query accounts, send messages, or create reset credentials. Route requests through the approved private support channel and do not confirm account existence before verification.
+
 Current limitation: a password change does not revoke an already-issued JWT, which can remain valid for up to seven days. Treat suspected compromise as an incident; the recovery runbook describes the limited, coordinated escalation option.
 
 ### Data correction or deletion request

@@ -3,7 +3,7 @@ import * as dataStore from "./dataStore.js";
 
 const rootEl = document.querySelector("main.owner-layout");
 const params = new URLSearchParams(window.location.search);
-const PUBLIC_BOOKING_BUILD = "slotzy-shell-v4";
+const PUBLIC_BOOKING_BUILD = "slotzy-shell-v5";
 
 document.documentElement.dataset.publicBookingBuild = PUBLIC_BOOKING_BUILD;
 

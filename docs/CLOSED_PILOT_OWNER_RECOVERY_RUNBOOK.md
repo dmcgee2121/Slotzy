@@ -8,6 +8,10 @@ Owner registration currently uses a username and password; it does not collect o
 
 The Supabase schema reserves a unique active-user email field, but the current hosted registration flow does not populate it. Do not assume a profile or shop email is verified ownership proof.
 
+The login modal and authenticated Settings page now expose “Need help accessing your owner account?” guidance. This is an informational entry point only: it performs no account lookup, sends no email/SMS, creates no reset token, and must use the same generic wording regardless of whether an account exists. The requester must contact the approved private pilot support channel and complete the verification steps below.
+
+Hosted Settings intentionally keeps username, personal display name, personal email, and personal phone read-only. Public shop phone/email remain editable business-profile fields, not verified account-recovery factors.
+
 ## Before changing anything
 
 1. Open an incident record with the date/time, requesting username, affected environment, operator, and a short reason. Do not include passwords, JWTs, reset values, raw database rows, or customer data.

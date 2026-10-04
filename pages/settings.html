@@ -409,10 +409,31 @@
       <p id="supportStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
 
-    <section class="card owner-panel settings-card section-stack">
+    <section class="card owner-panel settings-card section-stack" id="ownerAccountCard">
       <div class="card-head">
-        <h2>Profile Settings</h2>
-        <p>Keep your personal contact details current for booking updates and reminders.</p>
+        <h2>Owner account and profile</h2>
+        <p>Account access, personal profile details, and public shop information are handled separately during beta.</p>
+      </div>
+      <section class="settings-subcard section-stack" aria-labelledby="accountIdentityHeading">
+        <div>
+          <p class="settings-kicker">Account identity</p>
+          <h3 id="accountIdentityHeading">Sign-in details</h3>
+        </div>
+        <div class="field">
+          <label for="accountUsernameInput">Username</label>
+          <input id="accountUsernameInput" type="text" readonly aria-readonly="true" />
+          <p class="small settings-field-help">Your username identifies your account and provider schedule, so it cannot be changed during beta.</p>
+        </div>
+        <p class="small">Password changes and self-service password reset are not available yet.</p>
+        <button id="ownerRecoveryHelpBtn" class="btn btn-ghost owner-action-btn" type="button" aria-expanded="false" aria-controls="ownerRecoveryHelpMessage">Need help accessing your owner account?</button>
+        <p id="ownerRecoveryHelpMessage" class="small hidden" role="status" aria-live="polite">Owner recovery is operator-assisted during beta. Contact the private pilot support channel. Never send a password, sign-in token, or customer information.</p>
+      </section>
+
+      <section class="settings-subcard section-stack" aria-labelledby="personalProfileHeading">
+      <div>
+        <p class="settings-kicker">Personal profile</p>
+        <h3 id="personalProfileHeading">Display and contact details</h3>
+        <p id="profileEditingHelp" class="small">These details are stored only in local/demo mode. Hosted beta profile editing is read-only until an authoritative verified profile path is available.</p>
       </div>
       <p id="profileCompletenessText" class="small">Profile completeness: 0%</p>
       <div class="progress" aria-hidden="true">
@@ -441,6 +462,9 @@
       </div>
       <p class="small">Your contact info helps us send booking updates and reminders.</p>
       <p id="profileStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </section>
+
+      <p class="small">Public business name, phone, email, address, booking rules, and branding are edited in Shop settings above. They do not change your sign-in identity.</p>
     </section>
   </main>
 

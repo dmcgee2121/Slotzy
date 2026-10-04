@@ -616,7 +616,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   await page.goto(bookingLink);
   await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
-  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("slotzy-shell-v4"))).toBe(true);
+  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("slotzy-shell-v5"))).toBe(true);
 
   await page.locator("#serviceSelect").selectOption(SERVICE_ID);
   const bookingDate = new Date();
@@ -682,7 +682,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     selectedTimePresent: true,
     selectedSlotShape: "iso-utc",
     serviceWorkerControlled: true,
-    frontendCacheVersion: "slotzy-shell-v4",
+    frontendCacheVersion: "slotzy-shell-v5",
   }));
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("E2E Diagnostic Client");
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("diagnostic-client@example.test");
@@ -1518,17 +1518,44 @@ test("public booking recognizes API logo and cover branding fields", async ({ pa
   await expectNoPageOverflow(page, "direct API booking link with canonical cover");
 });
 
-test("hosted profile settings clearly disable unsupported editing", async ({ page }) => {
+test("hosted account settings separate identity, public shop fields, profile editing, and recovery help", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
 
   await page.goto("/pages/settings.html");
 
+  await expect(page.getByRole("heading", { name: "Sign-in details" })).toBeVisible();
+  await expect(page.locator("#accountUsernameInput")).toHaveValue(OWNER_USERNAME);
+  await expect(page.locator("#accountUsernameInput")).toHaveAttribute("readonly", "");
   await expect(page.locator("#saveProfileBtn")).toBeDisabled();
   await expect(page.locator("#fullNameInput")).toBeDisabled();
   await expect(page.locator("#emailInput")).toBeDisabled();
   await expect(page.locator("#phoneInput")).toBeDisabled();
-  await expect(page.locator("#profileStatus")).toHaveText("Profile editing is not available during the pilot.");
+  await expect(page.locator("#profileStatus")).toHaveText("Hosted profile editing is read-only during beta. Update public business details in Shop settings.");
+  await expect(page.getByText("Public business name, phone, email, address, booking rules, and branding are edited in Shop settings above.")).toBeVisible();
+  const recoveryButton = page.locator("#ownerRecoveryHelpBtn");
+  await expectControlFits(page, recoveryButton);
+  await recoveryButton.click();
+  const recoveryMessage = page.locator("#ownerRecoveryHelpMessage");
+  await expect(recoveryMessage).toContainText("operator-assisted during beta");
+  await expect(recoveryMessage).not.toContainText(/token=|jwt|internal id/i);
+  await expectNoPageOverflow(page, "hosted owner account settings");
+});
+
+test("owner login recovery help is generic and performs no account lookup", async ({ page }) => {
+  let recoveryRequests = 0;
+  page.on("request", (request) => {
+    if (/\/api\/.*(recover|reset|password)/i.test(request.url())) recoveryRequests += 1;
+  });
+  await page.goto("/pages/index.html");
+  await page.locator(".mobile-nav-toggle").click();
+  await page.locator("#btn-login").click();
+  await page.locator("#owner-recovery-help").click();
+  const message = page.locator("#owner-recovery-message");
+  await expect(message).toContainText("cannot confirm whether an account exists");
+  await expect(message).not.toContainText(/token=|jwt|internal id/i);
+  expect(recoveryRequests).toBe(0);
+  await expectControlFits(page, "#owner-recovery-help");
 });
 
 test("team provider page is honest for the pilot and preserves public provider booking", async ({ page }) => {

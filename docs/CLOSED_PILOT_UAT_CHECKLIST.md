@@ -2,6 +2,13 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
+## Owner account/profile/recovery cleanup (pending Netlify deploy)
+
+- [ ] On a real phone, confirm Settings clearly distinguishes sign-in identity, personal profile details, and public Shop settings without horizontal overflow.
+- [ ] Confirm hosted username/full name/personal email/personal phone are read-only and there is no broken profile Save path.
+- [ ] Confirm Shop settings still saves public business contact/branding details normally.
+- [ ] Open owner recovery help from login and Settings; confirm it directs the tester to the private pilot support channel without revealing account existence or promising email/SMS delivery.
+
 ## Recurring weekly scheduling blocks — passed (2026-10-04)
 
 - [x] Staging migration and deployment completed; guarded staging suite passed **3/3**. Production was not touched.
