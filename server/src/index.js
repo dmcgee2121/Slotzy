@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, storeManageToken, writeStore } from "./storage/index.js";
+import { STORAGE_ADAPTER, readStore, storeManageToken, writeShop, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 
@@ -1514,7 +1514,7 @@ app.patch("/api/shops/:shopId", requireAuth, async (req, res) => {
 
     next.updatedAtISO = new Date().toISOString();
     db.shops[index] = next;
-    await writeStore(db);
+    await writeShop(next, db);
 
     return res.json({ shop: next });
   } catch (error) {

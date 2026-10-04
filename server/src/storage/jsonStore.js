@@ -85,9 +85,14 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     return { cleared };
   }
 
+  async function writeShop(_shop, store) {
+    await writeStore(store);
+  }
+
   return {
     readStore,
     writeStore,
+    writeShop,
     appendOutboxEmail,
     listOutboxEmails,
     clearOutboxEmails,
@@ -99,6 +104,7 @@ const defaultJsonStore = createJsonStore();
 
 export const readStore = defaultJsonStore.readStore;
 export const writeStore = defaultJsonStore.writeStore;
+export const writeShop = defaultJsonStore.writeShop;
 export const appendOutboxEmail = defaultJsonStore.appendOutboxEmail;
 export const listOutboxEmails = defaultJsonStore.listOutboxEmails;
 export const clearOutboxEmails = defaultJsonStore.clearOutboxEmails;

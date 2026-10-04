@@ -82,7 +82,11 @@ import { wireLogoutButton } from "./logout.js";
   const showToast = window.showToast;
   const APP_VERSION = "0.1.0-beta";
   const DEFAULT_SHOP_LOGO_URL = new URL("../assets/images/slotzy-logo.png", import.meta.url).href;
-  const MAX_SHOP_IMAGE_BYTES = 5 * 1024 * 1024;
+  // Branding is currently persisted inside the legacy whole-store Postgres
+  // snapshot. Keep each shop comfortably below the hosted RPC's practical
+  // request ceiling until images move to object storage.
+  const MAX_SHOP_LOGO_BYTES = 512 * 1024;
+  const MAX_SHOP_COVER_BYTES = 1024 * 1024;
   const VALID_SHOP_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
   const OWNER_STYLES_WARNING_BANNER_ID = "ownerStylesWarningBanner";
   let saveFeedbackTimer = null;
@@ -723,9 +727,9 @@ import { wireLogoutButton } from "./logout.js";
       return;
     }
 
-    if (Number(file.size ?? 0) > MAX_SHOP_IMAGE_BYTES) {
+    if (Number(file.size ?? 0) > MAX_SHOP_LOGO_BYTES) {
       if (shopLogoInput) shopLogoInput.value = "";
-      setShopLogoInputStatus("Logo must be 5 MB or smaller.", false);
+      setShopLogoInputStatus("Logo must be 512 KB or smaller.", false);
       renderShopLogoPreview();
       return;
     }
@@ -767,9 +771,9 @@ import { wireLogoutButton } from "./logout.js";
       return;
     }
 
-    if (Number(file.size ?? 0) > MAX_SHOP_IMAGE_BYTES) {
+    if (Number(file.size ?? 0) > MAX_SHOP_COVER_BYTES) {
       if (shopCoverInput) shopCoverInput.value = "";
-      setShopCoverInputStatus("Cover image must be 5 MB or smaller.", false);
+      setShopCoverInputStatus("Cover image must be 1 MB or smaller.", false);
       renderShopCoverPreview();
       return;
     }
@@ -1055,7 +1059,15 @@ import { wireLogoutButton } from "./logout.js";
       setShopStatus("Shop settings saved successfully.", true);
       showToast?.("Settings saved.", { type: "success" });
     } catch (error) {
-      console.error("[Slotzy:settings] Failed to save shop settings.", error);
+      console.error("[Slotzy:settings] Failed to save shop settings.", {
+        name: String(error?.name ?? "Error"),
+        code: String(error?.code ?? ""),
+        httpStatus: Number(error?.httpStatus ?? 0),
+        endpointPath: String(error?.endpointPath ?? ""),
+        requestAttempted: Boolean(error?.requestAttempted),
+        payloadBytes: Number(error?.payloadBytes ?? 0),
+        responseKeys: Array.isArray(error?.responseKeys) ? error.responseKeys : [],
+      });
       setShopStatus(getShopSaveErrorMessage(error), false);
     } finally {
       if (saveShopBtn) {
@@ -1464,6 +1476,15 @@ import { wireLogoutButton } from "./logout.js";
 
   function getShopSaveErrorMessage(error) {
     const status = Number(error?.httpStatus ?? 0);
+    if (error?.code === "network_error") {
+      return "Could not reach the shop settings service. Check your connection and try again.";
+    }
+    if (status === 400) {
+      return "Some shop settings were not accepted. Review the fields and try again.";
+    }
+    if (status === 401) {
+      return "Your sign-in expired. Sign in again before saving shop settings.";
+    }
     if (status === 403) {
       return "Only the shop owner can save shop settings during the pilot.";
     }

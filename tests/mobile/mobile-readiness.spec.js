@@ -1207,7 +1207,7 @@ test("business profile settings give clear mobile save, validation, and share-li
   await expectNoPageOverflow(page, "public booking after business profile save");
 });
 
-test("branding accepts modern-photo-sized images and clearly rejects larger files", async ({ page }) => {
+test("branding accepts hosted-safe images and clearly rejects larger files", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await page.goto("/pages/settings.html");
 
@@ -1215,16 +1215,16 @@ test("branding accepts modern-photo-sized images and clearly rejects larger file
   await page.locator("#shopLogoInput").setInputFiles({
     name: "phone-photo.jpg",
     mimeType: "image/jpeg",
-    buffer: Buffer.alloc(2 * 1024 * 1024),
+    buffer: Buffer.alloc(512 * 1024),
   });
   await expect(page.locator("#shopLogoInputStatus")).toContainText("ready to save");
 
   await page.locator("#shopCoverInput").setInputFiles({
     name: "too-large.webp",
     mimeType: "image/webp",
-    buffer: Buffer.alloc((5 * 1024 * 1024) + 1),
+    buffer: Buffer.alloc((1024 * 1024) + 1),
   });
-  await expect(page.locator("#shopCoverInputStatus")).toContainText("5 MB or smaller");
+  await expect(page.locator("#shopCoverInputStatus")).toContainText("1 MB or smaller");
 });
 
 test("saved shop branding appears in the public chooser and selected booking page", async ({ page }) => {
@@ -1251,6 +1251,134 @@ test("saved shop branding appears in the public chooser and selected booking pag
   await shopCard.click();
   await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
   await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+});
+
+test("hosted shop settings sends canonical branding and renders it in public contexts", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const owner = seed.session.Slotzy_user;
+  let savedShop = { ...seed.local.Slotzy_shops[0] };
+  let savedRequestDiagnostic = null;
+
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(({ sessionOwner }) => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-hosted-branding-token");
+    sessionStorage.setItem("Slotzy_user", JSON.stringify(sessionOwner));
+  }, { sessionOwner: owner });
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    const method = request.method();
+    const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+
+    if (method === "GET" && path === "/api/auth/me") return json({ user: owner });
+    if (method === "GET" && path === "/api/shops") return json({ shops: [savedShop] });
+    if (method === "PATCH" && path === `/api/shops/${SHOP_ID}`) {
+      const raw = request.postData() || "";
+      const payload = JSON.parse(raw);
+      savedRequestDiagnostic = {
+        approximatePayloadBytes: Buffer.byteLength(raw),
+        keys: Object.keys(payload).sort(),
+        logoIsDataUrl: String(payload.logo || "").startsWith("data:image/png;base64,"),
+        coverIsDataUrl: String(payload.cover || "").startsWith("data:image/webp;base64,"),
+        hasBrandingAlias: ["logoDataUrl", "coverDataUrl", "logoImageDataUrl", "coverImageDataUrl"]
+          .some((key) => Object.prototype.hasOwnProperty.call(payload, key)),
+      };
+      savedShop = { ...savedShop, ...payload, id: SHOP_ID };
+      return json({ shop: savedShop });
+    }
+    if (method === "GET" && path === "/api/public/booking-context") {
+      return json({
+        shops: [savedShop],
+        providers: seed.local.Slotzy_users,
+        services: seed.local.Slotzy_services,
+        bookings: [],
+        availabilityByBarber: seed.local.Slotzy_availability,
+      });
+    }
+    if (method === "GET" && path === "/api/services") return json({ services: seed.local.Slotzy_services });
+    if (method === "GET" && path === "/api/availability") return json({ availability: seed.local.Slotzy_availability });
+    if (method === "GET" && path === "/api/bookings") return json({ bookings: [] });
+    return json({ error: "unexpected synthetic API request" }, 404);
+  });
+
+  await page.goto("/pages/settings.html");
+  await page.locator("#businessNameInput").fill("Hosted Branding Test Shop");
+  await page.locator("#shopLogoInput").setInputFiles({
+    name: "hosted-logo.png",
+    mimeType: "image/png",
+    buffer: Buffer.alloc(256 * 1024, 1),
+  });
+  await page.locator("#shopCoverInput").setInputFiles({
+    name: "hosted-cover.webp",
+    mimeType: "image/webp",
+    buffer: Buffer.alloc(512 * 1024, 2),
+  });
+  await page.locator("#saveShopBtn").click();
+  await expect(page.locator("#shopStatus")).toContainText("Shop settings saved successfully.");
+  expect(savedRequestDiagnostic).toEqual(expect.objectContaining({
+    logoIsDataUrl: true,
+    coverIsDataUrl: true,
+    hasBrandingAlias: false,
+  }));
+  expect(savedRequestDiagnostic.approximatePayloadBytes).toBeGreaterThan(1024 * 1024);
+  expect(JSON.stringify(savedRequestDiagnostic)).not.toContain("base64,");
+
+  await page.goto("/pages/book.html");
+  const shopCard = page.locator(".public-shop-directory-card").filter({ hasText: savedShop.name });
+  await expect(shopCard.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+  await page.goto(`/pages/book.html?shop=${encodeURIComponent(savedShop.slug)}`);
+  await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
+  await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+});
+
+test("hosted shop settings reports payload limits without logging image data", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const owner = seed.session.Slotzy_user;
+  const consoleErrors = [];
+  page.on("console", async (message) => {
+    if (message.type() !== "error" || !message.text().includes("Failed to save shop settings")) return;
+    const values = await Promise.all(message.args().map((arg) => arg.jsonValue().catch(() => null)));
+    consoleErrors.push(values);
+  });
+
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(({ sessionOwner }) => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-hosted-payload-token");
+    sessionStorage.setItem("Slotzy_user", JSON.stringify(sessionOwner));
+  }, { sessionOwner: owner });
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (request.method() === "GET" && path === "/api/auth/me") return json({ user: owner });
+    if (request.method() === "GET" && path === "/api/shops") return json({ shops: seed.local.Slotzy_shops });
+    if (request.method() === "PATCH" && path === `/api/shops/${SHOP_ID}`) {
+      return json({ error: "request payload too large", code: "payload_too_large" }, 413);
+    }
+    if (request.method() === "GET" && path === "/api/services") return json({ services: seed.local.Slotzy_services });
+    if (request.method() === "GET" && path === "/api/availability") return json({ availability: seed.local.Slotzy_availability });
+    if (request.method() === "GET" && path === "/api/bookings") return json({ bookings: [] });
+    return json({ error: "unexpected synthetic API request" }, 404);
+  });
+
+  await page.goto("/pages/settings.html");
+  await page.locator("#shopCoverInput").setInputFiles({
+    name: "payload-limited-cover.webp",
+    mimeType: "image/webp",
+    buffer: Buffer.alloc(128 * 1024, 3),
+  });
+  await page.locator("#saveShopBtn").click();
+  await expect(page.locator("#shopStatus")).toContainText("Shop photos are too large to save together.");
+  await expect.poll(() => consoleErrors.length).toBe(1);
+  const serializedDiagnostics = JSON.stringify(consoleErrors);
+  expect(serializedDiagnostics).toContain('"httpStatus":413');
+  expect(serializedDiagnostics).toContain('"payloadBytes":');
+  expect(serializedDiagnostics).not.toContain("data:image");
+  expect(serializedDiagnostics).not.toContain("base64,");
 });
 
 test("public booking recognizes API logo and cover branding fields", async ({ page }) => {

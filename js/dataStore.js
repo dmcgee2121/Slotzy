@@ -244,6 +244,7 @@ function createApiRequestError(message, details = {}) {
   error.requestAttempted = Boolean(details.requestAttempted);
   error.endpointPath = String(details.endpointPath || "").trim();
   error.httpStatus = Number(details.httpStatus || 0);
+  error.payloadBytes = Number(details.payloadBytes || 0);
   error.responseKeys = Array.isArray(details.responseKeys)
     ? details.responseKeys.map((key) => String(key)).sort()
     : [];
@@ -267,6 +268,13 @@ async function apiRequest(path, { method = "GET", body, headers = {}, requireAut
     });
   }
 
+  const serializedBody = body !== undefined ? JSON.stringify(body) : undefined;
+  const payloadBytes = serializedBody === undefined
+    ? 0
+    : (typeof TextEncoder === "function"
+      ? new TextEncoder().encode(serializedBody).byteLength
+      : serializedBody.length);
+
   let response;
   try {
     response = await fetch(buildApiUrl(path), {
@@ -276,13 +284,14 @@ async function apiRequest(path, { method = "GET", body, headers = {}, requireAut
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(serializedBody !== undefined ? { body: serializedBody } : {}),
     });
   } catch (error) {
     throw createApiRequestError(String(error?.message ?? "Network request failed"), {
       code: "network_error",
       requestAttempted: true,
       endpointPath,
+      payloadBytes,
     });
   }
 
@@ -299,6 +308,7 @@ async function apiRequest(path, { method = "GET", body, headers = {}, requireAut
       requestAttempted: true,
       endpointPath,
       httpStatus: response.status,
+      payloadBytes,
       responseKeys: isObjectRecord(payload) ? Object.keys(payload) : [],
     });
   }

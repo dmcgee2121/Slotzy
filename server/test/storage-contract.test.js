@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createJsonStore } from "../src/storage/jsonStore.js";
-import { normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
+import { buildPostgresShopSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
 
 const temporaryDirectories = [];
 
@@ -60,6 +60,24 @@ test("Postgres snapshots map browser branding aliases to RPC logo and cover fiel
   });
   assert.equal(removed.shops[0].logo, "");
   assert.equal(removed.shops[0].cover, "");
+});
+
+test("Postgres shop writes exclude unrelated rows and preserve canonical branding", () => {
+  const snapshot = buildPostgresShopSnapshot({
+    id: "shop_1",
+    ownerUsername: "owner",
+    logoDataUrl: "data:image/png;base64,small-logo-fixture",
+    coverDataUrl: "data:image/webp;base64,small-cover-fixture",
+  });
+
+  assert.deepEqual(snapshot.users, []);
+  assert.deepEqual(snapshot.services, []);
+  assert.deepEqual(snapshot.availability, {});
+  assert.deepEqual(snapshot.bookings, []);
+  assert.deepEqual(snapshot.emails, []);
+  assert.equal(snapshot.shops.length, 1);
+  assert.equal(snapshot.shops[0].logo, "data:image/png;base64,small-logo-fixture");
+  assert.equal(snapshot.shops[0].cover, "data:image/webp;base64,small-cover-fixture");
 });
 
 test("JSON storage normalizes incomplete persisted data without losing valid user records", async () => {

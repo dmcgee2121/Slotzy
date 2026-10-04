@@ -702,6 +702,45 @@ test("focused staging owner setup API chain", async ({ request }) => {
     failStage("B", "shop create/link failed", shopDiagnostic);
   }
 
+  // Exercise the hosted branding persistence path with representative image
+  // data while keeping diagnostics limited to byte counts and field presence.
+  const logoDataUrl = `data:image/png;base64,${Buffer.alloc(64 * 1024, 1).toString("base64")}`;
+  const coverDataUrl = `data:image/webp;base64,${Buffer.alloc(128 * 1024, 2).toString("base64")}`;
+  const brandingBody = {
+    name: apiIdentity.shopName,
+    businessName: apiIdentity.shopName,
+    slug: apiIdentity.slug,
+    logo: logoDataUrl,
+    cover: coverDataUrl,
+  };
+  const brandingResponse = await request.patch(endpoint(`/api/shops/${encodeURIComponent(shopId)}`), {
+    headers,
+    data: brandingBody,
+  });
+  const brandingPayload = await readJson(brandingResponse);
+  const brandingDiagnostic = {
+    ...safeResponse(brandingResponse, brandingPayload),
+    approximatePayloadBytes: Buffer.byteLength(JSON.stringify(brandingBody)),
+    returnedLogoIsDataUrl: String(brandingPayload?.shop?.logo ?? "").startsWith("data:image/png;base64,"),
+    returnedCoverIsDataUrl: String(brandingPayload?.shop?.cover ?? "").startsWith("data:image/webp;base64,"),
+  };
+  if (brandingResponse.status() !== 200 || !brandingDiagnostic.returnedLogoIsDataUrl || !brandingDiagnostic.returnedCoverIsDataUrl) {
+    failStage("B-branding", "hosted logo/cover save failed", brandingDiagnostic);
+  }
+
+  const publicBrandingResponse = await request.get(endpoint(`/api/public/booking-context?shop=${encodeURIComponent(apiIdentity.slug)}`));
+  const publicBrandingPayload = await readJson(publicBrandingResponse);
+  const publicShop = Array.isArray(publicBrandingPayload?.shops) ? publicBrandingPayload.shops[0] : null;
+  const publicBrandingDiagnostic = {
+    ...safeResponse(publicBrandingResponse, publicBrandingPayload),
+    shopCount: Array.isArray(publicBrandingPayload?.shops) ? publicBrandingPayload.shops.length : 0,
+    chooserHasCustomLogo: String(publicShop?.logo ?? "").startsWith("data:image/png;base64,"),
+    directContextHasCustomCover: String(publicShop?.cover ?? "").startsWith("data:image/webp;base64,"),
+  };
+  if (publicBrandingResponse.status() !== 200 || !publicBrandingDiagnostic.chooserHasCustomLogo || !publicBrandingDiagnostic.directContextHasCustomCover) {
+    failStage("B-public-branding", "public branding did not match the saved shop", publicBrandingDiagnostic);
+  }
+
   // C. Re-read through auth middleware rather than trusting the create body.
   const meResponse = await request.get(endpoint("/api/auth/me"), { headers });
   const mePayload = await readJson(meResponse);
