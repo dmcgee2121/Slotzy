@@ -74,6 +74,40 @@ function createManageToken() {
   return randomBytes(32).toString("base64url");
 }
 
+const MANAGE_RECOVERY_WINDOW_MS = 15 * 60 * 1000;
+const MANAGE_RECOVERY_MAX_REQUESTS = 5;
+const manageRecoveryAttempts = new Map();
+
+function normalizeRecoveryContact(value) {
+  return normalizeUsername(value).toLowerCase().replace(/[\s().-]/g, "");
+}
+
+function isRecoveryRequestAllowed(contact) {
+  const now = Date.now();
+  const key = hashManageToken(normalizeRecoveryContact(contact));
+  const attempts = (manageRecoveryAttempts.get(key) ?? []).filter((time) => now - time < MANAGE_RECOVERY_WINDOW_MS);
+  if (attempts.length >= MANAGE_RECOVERY_MAX_REQUESTS) {
+    manageRecoveryAttempts.set(key, attempts);
+    return false;
+  }
+  attempts.push(now);
+  manageRecoveryAttempts.set(key, attempts);
+  return true;
+}
+
+function getManageLinkOrigin(req) {
+  const configured = normalizeUsername(process.env.SLOTZY_APP_ORIGIN);
+  if (configured) return configured.replace(/\/$/, "");
+  if (!IS_PRODUCTION_LIKE) return normalizeUsername(req.get("origin")).replace(/\/$/, "");
+  return "";
+}
+
+function buildManageLinkForRecovery(req, token) {
+  const origin = getManageLinkOrigin(req);
+  if (!origin || !token) return "";
+  return `${origin}/pages/manage.html#token=${encodeURIComponent(token)}`;
+}
+
 function hashManageToken(token) {
   return createHash("sha256").update(String(token ?? "")).digest("hex");
 }
@@ -841,7 +875,6 @@ function buildBookingEmailPayloads(
   pushDetailLine(providerDetailLines, "Duration", `${durationMinutes} min`);
   pushDetailLine(providerDetailLines, "Price", priceText);
   pushDetailLine(providerDetailLines, "Confirmation", confirmationCode);
-  pushDetailLine(providerDetailLines, "Manage link", manageLinkText);
   pushDetailLine(providerDetailLines, "Deposit", depositText.replace(/^Deposit:\s*/i, ""));
 
   let clientSubject = `Slotzy Booking Confirmed: ${serviceName}`;
@@ -922,7 +955,6 @@ function buildBookingEmailPayloads(
         shopId: shopContext.id ?? null,
         recipient: recipient.kind,
         eventType: type,
-        manageLink: manageLinkText || null,
         source: normalizeUsername(source) || null,
       },
     });
@@ -945,11 +977,7 @@ async function dispatchBookingEmails(emails, { suppressErrors = true } = {}) {
         subject: email?.subject ?? "",
         message,
       });
-      console.warn("[Slotzy:email] Could not send booking email.", {
-        to: email?.to,
-        subject: email?.subject,
-        error: message,
-      });
+      console.warn("[Slotzy:email] Could not dispatch notification.", { error: message });
       if (!suppressErrors) {
         throw new Error(message);
       }
@@ -2031,6 +2059,53 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
   }
 });
 
+// Request context only identifies a notification target; it is never public
+// appointment authority and the response is intentionally non-enumerating.
+app.post("/api/public/manage/recover", async (req, res) => {
+  const genericResponse = () => res.json({ ok: true, message: "If we find a matching booking, we'll send the manage link to the contact used for the booking." });
+  try {
+    const contact = normalizeUsername(req.body?.contact);
+    const shopReference = normalizeUsername(req.body?.shopId);
+    const appointmentDate = normalizeUsername(req.body?.appointmentDate);
+    if (!contact || !shopReference || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate) || !isRecoveryRequestAllowed(contact)) return genericResponse();
+    const db = await readStore();
+    const requestedShop = db.shops.find((shop) => {
+      const reference = shopReference.toLowerCase();
+      return [shop?.id, shop?.slug, shop?.name, shop?.businessName]
+        .some((value) => normalizeUsername(value).toLowerCase() === reference);
+    });
+    const shopId = normalizeUsername(requestedShop?.id);
+    if (!shopId) return genericResponse();
+    const normalizedContact = normalizeRecoveryContact(contact);
+    const booking = db.bookings.find((entry) => {
+      const start = getBookingStartDate(entry);
+      return normalizeUsername(entry?.shopId) === shopId
+        && normalizeRecoveryContact(entry?.clientContact) === normalizedContact
+        && start?.toISOString().slice(0, 10) === appointmentDate
+        && ["booked", "confirmed"].includes(normalizeBookingStatus(entry?.status));
+    });
+    if (!booking || !resolveClientEmailTarget(booking)) return genericResponse();
+    const token = createManageToken();
+    const manageLink = buildManageLinkForRecovery(req, token);
+    if (!manageLink) return genericResponse();
+    const nextBooking = { ...booking, manageTokenHash: hashManageToken(token), updatedAtISO: new Date().toISOString() };
+    const index = db.bookings.findIndex((entry) => String(entry?.id) === String(booking.id));
+    if (index < 0) return genericResponse();
+    db.bookings[index] = nextBooking;
+    await writeStore(db);
+    if (STORAGE_ADAPTER === "postgres") await storeManageToken(nextBooking.id, nextBooking.manageTokenHash, new Date(new Date(nextBooking.endISO).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString());
+    await dispatchBookingEmails([{
+      to: resolveClientEmailTarget(nextBooking), subject: "Slotzy: your private manage link",
+      html: buildEmailHtml({ headline: "Your private manage link", greeting: `Hi ${normalizeUsername(nextBooking.clientName) || "there"},`, intro: "Use this private link to view or cancel your appointment.", detailLines: [`Manage link: ${manageLink}`], closing: "If you did not request this, you can ignore this message." }),
+      text: buildEmailText({ greeting: `Hi ${normalizeUsername(nextBooking.clientName) || "there"},`, intro: "Use this private link to view or cancel your appointment.", detailLines: [`Manage link: ${manageLink}`], closing: "If you did not request this, you can ignore this message." }),
+      tags: ["manage_link_recovery", "client"], meta: { bookingId: nextBooking.id ?? null, shopId, recipient: "client", eventType: "manage_link_recovery" },
+    }]);
+    return genericResponse();
+  } catch {
+    return genericResponse();
+  }
+});
+
 app.post("/api/bookings", optionalAuth, async (req, res) => {
   try {
     const db = req.db;
@@ -2201,6 +2276,10 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     await sendBookingNotifications(db, {
       type: "booking_created",
       booking,
+      // The raw token is available only during this request. When a hosted
+      // app origin is configured, include its fragment link in the client
+      // confirmation; provider messages intentionally receive no token.
+      manageLink: buildManageLinkForRecovery(req, manageToken),
     });
 
     // The token is returned once and is never included in logs, owner reads, or

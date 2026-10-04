@@ -503,11 +503,12 @@ export function initBookingEngine(options = {}) {
           ? `
             <section class="booking-receipt-manage-link-panel" aria-label="Manage your appointment">
               <h2>Manage your appointment</h2>
-              <p class="small muted">Save this private manage link. It lets you view the appointment and cancel or reschedule within the shop's allowed window.</p>
+              <p class="small muted"><strong>Save this private link. You will need it to cancel your appointment.</strong> Rescheduling is not available from token links yet; cancel and rebook if you need a different time.</p>
               <div class="booking-receipt-manage-link-row">
                 <a id="bookingReceiptManageLink" class="booking-receipt-manage-link" href="${escapeHtml(manageLinkUrl)}" aria-label="Manage this appointment">${escapeHtml(manageLinkUrl)}</a>
                 <a id="btn-receipt-open-manage-link" class="btn btn-primary" href="${escapeHtml(manageLinkUrl)}">Open Manage Page</a>
-                <button type="button" class="btn btn-ghost" id="btn-receipt-copy-manage-link">Copy Link</button>
+                <button type="button" class="btn btn-ghost" id="btn-receipt-copy-manage-link">Copy Manage Link</button>
+                <button type="button" class="btn btn-ghost" id="btn-receipt-share-manage-link">Share Manage Link</button>
               </div>
             </section>
           `
@@ -569,6 +570,22 @@ export function initBookingEngine(options = {}) {
         showToast?.("Manage link copied.", "success", 2000);
       } catch {
         showToast?.("Could not copy manage link.", "error");
+      }
+    });
+    section.querySelector("#btn-receipt-share-manage-link")?.addEventListener("click", async () => {
+      clearReceiptError();
+      try {
+        if (typeof navigator.share === "function") {
+          await navigator.share({ title: "My Slotzy appointment", text: "My private Slotzy manage link", url: manageLinkUrl });
+          showToast?.("Manage link ready to share.", "success", 2000);
+          return;
+        }
+        const copied = await copyText(manageLinkUrl);
+        if (!copied) throw new Error("share_unavailable");
+        showToast?.("Sharing is unavailable; manage link copied instead.", "success", 2500);
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+        showToast?.("Could not share manage link. Use Copy Manage Link instead.", "error");
       }
     });
     section.querySelector("#btn-receipt-cancel")?.addEventListener("click", () => {

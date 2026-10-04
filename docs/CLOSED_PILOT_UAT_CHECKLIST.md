@@ -152,3 +152,9 @@ Round 1 is complete and stabilized. Its core client booking, owner/barber appoin
 - [ ] Test the booking link, confirm the owner sees the booking, and verify the client manage link.
 - [ ] Collect feedback on clarity, layout, trust, and ease of use.
 - [ ] Pause and investigate before new activity if booking, manage-link, cancellation, reschedule, or save behavior fails.
+# Customer confirmation and recovery beta
+
+- [ ] Customer can save the private manage link from the completed booking receipt using Copy, Open, or Share.
+- [ ] Lost-link recovery requests always show the same generic result and never reveal booking details in the browser.
+- [ ] Pilot operator verifies the booking email and recovery context before handling any outbox-only recovery; never share a token publicly or through an unverified contact.
+- [ ] Full customer accounts/history are not part of this pilot beta.

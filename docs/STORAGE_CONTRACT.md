@@ -20,6 +20,8 @@ The canonical selector exports these named functions and `STORAGE_ADAPTER`. `SLO
 
 Anonymous booking creation generates a cryptographically random bearer token and returns it once. The browser puts it in the manage URL fragment; the API receives it only on explicit token-scoped lookup/cancel routes. Contact, shop slug, booking id, and confirmation code are not public authorization inputs in API/hosted mode. Postgres stores only a SHA-256 hash in `booking_manage_tokens`; JSON demo storage retains only the hash alongside its booking. Owner and barber booking reads remain authenticated and do not require this token.
 
+The non-enumerating `POST /api/public/manage/recover` endpoint accepts contact, shop reference, and appointment date only to identify a notification recipient. It always returns the same success message and never returns a booking, token, or manage URL. A matching email booking rotates the prior token, then sends or queues the replacement link through the existing server email path. Postgres revokes active prior token hashes before persisting the replacement; no schema migration is required.
+
 ```js
 {
   users: [],

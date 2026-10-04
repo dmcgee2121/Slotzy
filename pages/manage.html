@@ -47,6 +47,20 @@
       </div>
     </section>
 
+    <section id="manageRecoveryCard" class="card owner-panel section-stack">
+      <div class="card-head">
+        <h2>Lost your private manage link?</h2>
+        <p class="small">Enter the same email used to book, shop name, and appointment date. For privacy, we will not show whether a booking was found.</p>
+      </div>
+      <form id="manageRecoveryForm" class="form-stack">
+        <div class="field"><label for="manageRecoveryContact">Booking email</label><input id="manageRecoveryContact" type="email" autocomplete="email" required /></div>
+        <div class="field"><label for="manageRecoveryShop">Shop name</label><input id="manageRecoveryShop" type="text" autocomplete="organization" required /></div>
+        <div class="field"><label for="manageRecoveryDate">Appointment date</label><input id="manageRecoveryDate" type="date" required /></div>
+        <button class="btn btn-primary" type="submit">Recover Manage Link</button>
+      </form>
+      <p id="manageRecoveryStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+
     <section id="manageUpcomingSection" class="card owner-panel section-stack">
       <div class="owner-section-head">
         <h2>Upcoming</h2>

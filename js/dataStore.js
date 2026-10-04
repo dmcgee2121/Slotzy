@@ -382,6 +382,14 @@ export async function cancelPublicManageBookingAsync(manageToken) {
   return apiRequest("/public/manage/cancel", { method: "PATCH", requireAuth: false, headers: { "X-Slotzy-Manage-Token": token } });
 }
 
+export async function requestPublicManageLinkRecoveryAsync({ contact, shopId, appointmentDate } = {}) {
+  return apiRequest("/public/manage/recover", {
+    method: "POST",
+    requireAuth: false,
+    body: { contact: String(contact ?? "").trim(), shopId: String(shopId ?? "").trim(), appointmentDate: String(appointmentDate ?? "").trim() },
+  });
+}
+
 export function safeParse(json, fallback) {
   try {
     if (!json) return fallback;

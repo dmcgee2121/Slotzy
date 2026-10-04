@@ -349,3 +349,9 @@ Branding/profile regression gate:
 - [ ] Verify the client manage link opens and can safely manage the booking within policy.
 - [ ] Collect feedback on clarity, layout, trust, and ease of use.
 - [ ] Pause Round 2 and investigate before further activity if booking, manage-link, cancellation, reschedule, or save behavior fails.
+# Customer confirmation and recovery beta checks
+
+- [ ] Confirm the booking receipt says “Save this private link. You will need it to cancel your appointment.” and Copy, Open, and Share controls work (Share may copy as a fallback).
+- [ ] With a known email booking, submit recovery with its shop and date. Confirm the browser receives only the generic response and no token/link; verify the replacement notification privately in SMTP or the protected outbox.
+- [ ] Repeat with a wrong contact/date and confirm the identical response and no notification. Verify the old manage URL no longer works after a successful recovery.
+- [ ] Confirm Render staging has `SLOTZY_APP_ORIGIN` set to the exact Netlify staging origin. Do not enable or test recovery against production.

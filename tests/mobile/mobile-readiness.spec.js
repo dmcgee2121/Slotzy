@@ -449,8 +449,9 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await expectNoPageOverflow(page, "booking receipt");
   await expectControlFits(page, "#btn-receipt-open-manage-link");
   await expectControlFits(page, "#btn-receipt-copy-manage-link");
+  await expectControlFits(page, "#btn-receipt-share-manage-link");
   await expectControlFits(page, "#bookingReceiptManageLink");
-  await expect(page.locator(".booking-receipt-manage-link-panel")).toContainText("private manage link");
+  await expect(page.locator(".booking-receipt-manage-link-panel")).toContainText("Save this private link. You will need it to cancel your appointment.");
 
   const manageLink = await page.locator("#bookingReceiptManageLink").getAttribute("href");
   expect(manageLink).toBeTruthy();
@@ -466,6 +467,24 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await expect(managedCard.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" }).locator(".appointment-actions .badge")).toHaveText("Cancelled");
+});
+
+test("hosted manage-link recovery stays generic and never renders a token", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }));
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+  let recoveryRequest = null;
+  await page.route("**/api/public/manage/recover", async (route) => {
+    recoveryRequest = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, message: "If we find a matching booking, we'll send the manage link to the contact used for the booking." }) });
+  });
+  await page.goto("/pages/manage.html");
+  await page.locator("#manageRecoveryContact").fill("client@example.test");
+  await page.locator("#manageRecoveryShop").fill("E2E Mobile Pilot Shop");
+  await page.locator("#manageRecoveryDate").fill("2026-12-01");
+  await page.locator("#manageRecoveryForm button").click();
+  await expect(page.locator("#manageRecoveryStatus")).toContainText("If we find a matching booking");
+  expect(recoveryRequest).toEqual({ contact: "client@example.test", shopId: "E2E Mobile Pilot Shop", appointmentDate: "2026-12-01" });
+  await expect(page.locator("body")).not.toContainText("token=");
 });
 
 test("dashboard public link creates an authoritative anonymous booking under service-worker control", async ({ page }) => {

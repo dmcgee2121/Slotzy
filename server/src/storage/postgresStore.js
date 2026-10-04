@@ -248,6 +248,13 @@ export function createPostgresStore(env = process.env) {
     const { data: mapping, error: mapError } = await client.from("legacy_source_ids").select("target_id").eq("entity_type", "booking").eq("source_id", bookingSourceId).eq("is_canonical", true).maybeSingle();
     fail(mapError, "resolve manage token booking", networkFailures);
     const bookingId = mapping?.target_id ?? bookingSourceId;
+    // A recovery request rotates the credential. Revoke active predecessors
+    // before adding the replacement; first-time issuance simply matches none.
+    const { error: revokeError } = await client.from("booking_manage_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("booking_id", bookingId)
+      .is("revoked_at", null);
+    fail(revokeError, "revoke previous manage token", networkFailures);
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }

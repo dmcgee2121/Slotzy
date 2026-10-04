@@ -861,3 +861,8 @@ This is acceptable only for local development. It blocks real pilot and staging 
 - Evidence after the fixes: local mobile coverage passed **104/104** and guarded hosted staging passed **3/3**. No further functional-flow blocker was reported after the lunch/break correction.
 - **Round 2 recommendation:** remain staging-only; invite only 1–2 trusted barbers/operators and 3–5 trusted customer testers; use no payments and minimum test-only customer data; provide one private support channel. Pause new activity and investigate immediately if booking, manage-link, cancellation, reschedule, or save behavior fails.
 - This remains below production readiness. Manual owner recovery/session revocation, restore-target app validation, iPhone small-screen UAT, and broader production launch work remain open; Calendar overflow remains parked and non-blocking.
+# Customer confirmation and recovery beta
+
+- Public booking receipts now make the private manage link prominent with copy, open, copy, and Web Share (copy fallback) controls. A receipt still appears only after authoritative booking success.
+- Hosted customers can request a recovery link using booking email, shop name, and appointment date. The response is generic, rate-limited, and never exposes a booking or token; a match rotates the prior token and uses the server email/outbox path.
+- SMTP is real delivery only when configured. Without SMTP, messages are safely stored in `email_outbox` for pilot operator handling; this is not customer-facing delivery. Full client accounts and appointment history remain post-beta.

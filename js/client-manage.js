@@ -15,6 +15,12 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   const manageContinueLink = document.getElementById("manageContinueLink");
   const manageRetryActions = document.getElementById("manageRetryActions");
   const manageRetryBtn = document.getElementById("manageRetryBtn");
+  const manageRecoveryCard = document.getElementById("manageRecoveryCard");
+  const manageRecoveryForm = document.getElementById("manageRecoveryForm");
+  const manageRecoveryContact = document.getElementById("manageRecoveryContact");
+  const manageRecoveryShop = document.getElementById("manageRecoveryShop");
+  const manageRecoveryDate = document.getElementById("manageRecoveryDate");
+  const manageRecoveryStatus = document.getElementById("manageRecoveryStatus");
   const manageUpcomingSection = document.getElementById("manageUpcomingSection");
   const manageUpcomingList = document.getElementById("manageUpcomingList");
   const manageUpcomingEmpty = document.getElementById("manageUpcomingEmpty");
@@ -82,6 +88,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     clientRescheduleConfirm?.addEventListener("click", handleRescheduleConfirm);
     clientRescheduleClose?.addEventListener("click", closeRescheduleModal);
     manageRetryBtn?.addEventListener("click", () => void renderClientManagePage());
+    manageRecoveryForm?.addEventListener("submit", handleManageRecovery);
     clientRescheduleModal?.addEventListener("click", (event) => {
       if (event.target === clientRescheduleModal) {
         closeRescheduleModal();
@@ -100,6 +107,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     currentQuery = getManageQueryState();
     renderContinueCard();
     setManageRetryVisible(false);
+    manageRecoveryCard?.classList.toggle("hidden", Boolean(currentQuery.token));
 
     if (currentQuery.token) {
       try {
@@ -240,6 +248,29 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       manageIdentitySummary.textContent = "";
       setStatus("We could not load your appointments. Try again.", false);
       setManageRetryVisible(true);
+    }
+  }
+
+  async function handleManageRecovery(event) {
+    event.preventDefault();
+    if (!dataStore.shouldUsePublicBookingApi()) {
+      if (manageRecoveryStatus) manageRecoveryStatus.textContent = "Recovery email is available on the hosted booking service only.";
+      return;
+    }
+    const button = manageRecoveryForm?.querySelector("button[type='submit']");
+    if (button) button.disabled = true;
+    if (manageRecoveryStatus) manageRecoveryStatus.textContent = "Checking your request...";
+    try {
+      const result = await dataStore.requestPublicManageLinkRecoveryAsync({
+        contact: manageRecoveryContact?.value,
+        shopId: manageRecoveryShop?.value,
+        appointmentDate: manageRecoveryDate?.value,
+      });
+      if (manageRecoveryStatus) manageRecoveryStatus.textContent = String(result?.message || "If we find a matching booking, we'll send the manage link to the contact used for the booking.");
+    } catch {
+      if (manageRecoveryStatus) manageRecoveryStatus.textContent = "If we find a matching booking, we'll send the manage link to the contact used for the booking.";
+    } finally {
+      if (button) button.disabled = false;
     }
   }
 
