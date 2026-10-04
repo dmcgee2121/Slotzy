@@ -580,6 +580,22 @@ function createDefaultAvailability() {
       return acc;
     }, {}),
     timeOff: [],
+    recurringBlocks: [],
+  };
+}
+
+function normalizeRecurringBlock(block) {
+  const weekday = String(block?.weekday ?? "").trim().toLowerCase();
+  const start = normalizeTimeValue(block?.start, "");
+  const end = normalizeTimeValue(block?.end, "");
+  if (!DAY_KEYS.includes(weekday) || !start || !end || start >= end) return null;
+  return {
+    id: String(block?.id ?? createId("rb")),
+    weekday,
+    start,
+    end,
+    label: String(block?.label ?? "Unavailable").trim().slice(0, 80) || "Unavailable",
+    enabled: block?.enabled !== false,
   };
 }
 
@@ -604,12 +620,16 @@ function normalizeAvailabilityEntry(entry) {
   const timeOff = Array.isArray(source.timeOff)
     ? source.timeOff.map(normalizeTimeOffBlock).filter(Boolean)
     : [];
+  const recurringBlocks = Array.isArray(source.recurringBlocks)
+    ? source.recurringBlocks.map(normalizeRecurringBlock).filter(Boolean)
+    : [];
 
   return {
     timezone,
     bufferMinutes,
     weekly,
     timeOff,
+    recurringBlocks,
   };
 }
 

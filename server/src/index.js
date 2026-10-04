@@ -9,6 +9,7 @@ import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
 import { STORAGE_ADAPTER, readStore, storeManageToken, writeShop, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
+import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ const DEFAULT_AVAILABILITY = {
     sun: { enabled: false, start: "09:00", end: "17:00" },
   },
   timeOff: [],
+  recurringBlocks: [],
 };
 
 const EMPTY_DB = {
@@ -423,6 +425,24 @@ function createDefaultAvailability() {
       return acc;
     }, {}),
     timeOff: [],
+    recurringBlocks: [],
+  };
+}
+
+function normalizeRecurringBlock(block) {
+  const source = block && typeof block === "object" && !Array.isArray(block) ? block : {};
+  const weekday = normalizeUsername(source.weekday).toLowerCase();
+  const start = normalizeTimeValue(source.start, "");
+  const end = normalizeTimeValue(source.end, "");
+  if (!DAY_KEYS.includes(weekday) || !start || !end || start >= end) return null;
+  const candidateId = normalizeUsername(source.id);
+  return {
+    id: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidateId) ? candidateId : randomUUID(),
+    weekday,
+    start,
+    end,
+    label: String(source.label ?? "Unavailable").trim().slice(0, 80) || "Unavailable",
+    enabled: boolOrDefault(source.enabled, true),
   };
 }
 
@@ -447,14 +467,19 @@ function normalizeAvailabilityEntry(entry) {
   const timeOff = Array.isArray(source.timeOff)
     ? source.timeOff.map(normalizeTimeOffBlock).filter(Boolean)
     : [];
+  const recurringBlocks = Array.isArray(source.recurringBlocks)
+    ? source.recurringBlocks.map(normalizeRecurringBlock).filter(Boolean)
+    : [];
 
   return {
     timezone,
     bufferMinutes,
     weekly,
     timeOff,
+    recurringBlocks,
   };
 }
+
 
 function normalizeDepositFields(value) {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -2208,6 +2233,9 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     const requestedStart = startISO ? new Date(startISO) : null;
     const requestedEnd = endISO ? new Date(endISO) : null;
     if (isAnonymous && requestedStart && requestedEnd) {
+      if (!isBookingAllowedByAvailability(normalizeAvailabilityEntry(db.availability?.[provider.username]), requestedStart, requestedEnd)) {
+        return res.status(409).json({ error: "selected time is no longer available", code: "slot_unavailable" });
+      }
       const conflict = db.bookings.some((existing) => {
         const status = normalizeBookingStatus(existing?.status);
         if (status !== "booked" && status !== "confirmed") return false;

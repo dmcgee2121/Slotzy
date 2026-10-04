@@ -2,6 +2,13 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
+## Recurring weekly scheduling blocks (pending deploy)
+
+- [ ] On a real phone, add a weekly lunch/break for at least one open weekday and confirm it remains after reload.
+- [ ] Open the public booking page and confirm overlapping times are absent while times before/after remain usable.
+- [ ] Delete the recurring block and confirm eligible times return after refresh; one-time time off remains unchanged.
+- [ ] Treat any ability to book through a recurring block, or any hosted save that appears successful but vanishes after reload, as a pilot stop condition.
+
 ## Recorded results — 2026-10-03
 
 ### Pilot Round 2 cover-rendering follow-up — 2026-10-04

@@ -1,5 +1,12 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Recurring weekly scheduling blocks (2026-10-04)
+
+- Owners can create a weekly Lunch, Break, or custom unavailable range for one or more weekdays, review it separately from one-time time off, and delete it with authoritative save feedback.
+- Public slot generation excludes any service interval that overlaps an enabled recurring block. Express independently rejects crafted bookings outside weekly hours or overlapping one-time/recurring blocks.
+- Local JSON and relational Postgres mappings preserve the same recurring-block shape. The additive Supabase migration is checked in but not applied; no existing data, staging, or production environment was changed.
+- Rollout order is migration, Render, then Netlify. Guarded staging validation remains pending until those deploys.
+
 ## Closed-pilot operational gate (2026-10-03)
 
 ## Pilot Round 2 cover-rendering follow-up (2026-10-04)

@@ -160,12 +160,13 @@ export function createPostgresStore(env = process.env) {
       ["read provider services", () => client.from("provider_services").select("*").order("provider_member_id").order("service_id")],
       ["read availability", () => client.from("availability").select("*").order("id")],
       ["read time off", () => client.from("time_off").select("*").order("id")],
+      ["read recurring time blocks", () => client.from("recurring_time_blocks").select("*").order("provider_member_id").order("weekday").order("start_time")],
       ["read bookings", () => client.from("bookings").select("*").order("id")],
       ["read manage tokens", () => client.from("booking_manage_tokens").select("booking_id, token_hash, revoked_at, expires_at").is("revoked_at", null)],
       ["read email outbox", () => client.from("email_outbox").select("*").order("id")],
       ["read canonical identity mappings", () => client.from("legacy_source_ids").select("entity_type,source_id,target_id").eq("is_canonical", true).order("entity_type").order("source_id")],
     ];
-    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, bookings, manageTokens, emails, canonicalMappings] = await Promise.all(
+    const [users, shops, settings, members, services, providerServices, availabilityRows, timeOffRows, recurringRows, bookings, manageTokens, emails, canonicalMappings] = await Promise.all(
       reads.map(([operation, buildQuery]) => readAllRows(operation, buildQuery))
     );
     const canonicalSourceByTarget = new Map(canonicalMappings.map((row) => [`${row.entity_type}:${row.target_id}`, row.source_id]));
@@ -174,20 +175,25 @@ export function createPostgresStore(env = process.env) {
     const membersById = new Map(members.map((row) => [row.id, row]));
     const shopByUser = new Map(); members.forEach((row) => { if (!shopByUser.has(row.user_id)) shopByUser.set(row.user_id, row.shop_id); });
     const settingsByShop = new Map(settings.map((row) => [row.shop_id, row]));
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     const offByMember = new Map(); timeOffRows.forEach((row) => {
       const value = offByMember.get(row.provider_member_id) ?? [];
       value.push({ id: sourceId("time_off", row.id), startISO: iso(row.starts_at), endISO: iso(row.ends_at), note: row.note ?? "" }); offByMember.set(row.provider_member_id, value);
     });
+    const recurringByMember = new Map(); recurringRows.forEach((row) => {
+      const value = recurringByMember.get(row.provider_member_id) ?? [];
+      value.push({ id: row.id, weekday: days[row.weekday], start: String(row.start_time).slice(0, 5), end: String(row.end_time).slice(0, 5), label: row.label ?? "Unavailable", enabled: row.is_enabled !== false });
+      recurringByMember.set(row.provider_member_id, value);
+    });
     const scheduleByMember = new Map(); availabilityRows.forEach((row) => {
       const value = scheduleByMember.get(row.provider_member_id) ?? []; value.push(row); scheduleByMember.set(row.provider_member_id, value);
     });
-    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     const availability = {};
     members.forEach((member) => {
       const user = usersById.get(member.user_id); if (!user) return;
       const rows = scheduleByMember.get(member.id) ?? []; const weekly = {};
       rows.forEach((row) => { weekly[days[row.weekday]] = { enabled: row.is_enabled, start: String(row.start_time).slice(0, 5), end: String(row.end_time).slice(0, 5) }; });
-      availability[user.username] = { timezone: rows[0]?.timezone ?? "America/Chicago", bufferMinutes: rows[0]?.buffer_minutes ?? 0, weekly, timeOff: offByMember.get(member.id) ?? [] };
+      availability[user.username] = { timezone: rows[0]?.timezone ?? "America/Chicago", bufferMinutes: rows[0]?.buffer_minutes ?? 0, weekly, timeOff: offByMember.get(member.id) ?? [], recurringBlocks: recurringByMember.get(member.id) ?? [] };
     });
     const tokenHashByBookingId = new Map(manageTokens.map((row) => [row.booking_id, row.token_hash]));
     const providerByService = new Map(); providerServices.forEach((row) => {
@@ -207,7 +213,7 @@ export function createPostgresStore(env = process.env) {
   // database RPC; it is never a browser call or a JSON fallback.
   async function writeStore(store) {
     beginOperation();
-    const { error } = await client.rpc("slotzy_storage_write_snapshot", { snapshot: normalizePostgresSnapshot(store) });
+    const { error } = await client.rpc("slotzy_storage_write_snapshot_with_recurring", { snapshot: normalizePostgresSnapshot(store) });
     fail(error, "write snapshot", networkFailures);
   }
 

@@ -2149,6 +2149,7 @@ export function initBookingEngine(options = {}) {
         sun: { enabled: false, start: "09:00", end: "17:00" },
       },
       timeOff: [],
+      recurringBlocks: [],
     };
 
     const parsed = getAvailabilityForBarberSource(key) || {};
@@ -2174,12 +2175,23 @@ export function initBookingEngine(options = {}) {
         }))
         .filter((block) => Number.isFinite(new Date(block.startISO).getTime()) && Number.isFinite(new Date(block.endISO).getTime()))
       : [];
+    const recurringBlocks = Array.isArray(parsed?.recurringBlocks)
+      ? parsed.recurringBlocks.map((block) => ({
+        id: String(block?.id ?? ""),
+        weekday: String(block?.weekday ?? "").trim().toLowerCase(),
+        start: normalizeTime(String(block?.start ?? "")),
+        end: normalizeTime(String(block?.end ?? "")),
+        label: String(block?.label ?? "Unavailable"),
+        enabled: block?.enabled !== false,
+      })).filter((block) => DAY_KEYS.includes(block.weekday) && block.start && block.end && block.start < block.end)
+      : [];
 
     return {
       timezone: String(parsed?.timezone ?? defaults.timezone),
       bufferMinutes,
       weekly,
       timeOff,
+      recurringBlocks,
     };
   }
 
@@ -2323,6 +2335,7 @@ export function initBookingEngine(options = {}) {
 
     const bookedWindows = getBookedWindowsForBarber(barberUsername, availability.bufferMinutes);
     const timeOffWindows = getTimeOffWindows(availability);
+    const recurringWindows = getRecurringBlockWindows(availability, date);
     // A date input is a calendar date, not a UTC instant.  Only apply the
     // clock-based past-slot check when that calendar date is today; otherwise
     // a valid future day must not be discarded because of an instant/timezone
@@ -2338,6 +2351,7 @@ export function initBookingEngine(options = {}) {
       if (isToday && startDate.getTime() < nowTs) continue;
       if (overlapsAnyWindow(startDate, endDate, bookedWindows)) continue;
       if (overlapsAnyWindow(startDate, endDate, timeOffWindows)) continue;
+      if (overlapsAnyWindow(startDate, endDate, recurringWindows)) continue;
 
       slots.push(minutesToHhmm(startMin));
     }
@@ -2369,6 +2383,23 @@ export function initBookingEngine(options = {}) {
         const end = new Date(block.endISO);
         if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) return null;
         return { start, end };
+      })
+      .filter(Boolean);
+  }
+
+  function getRecurringBlockWindows(availability, date) {
+    if (!availability || !Array.isArray(availability.recurringBlocks) || !(date instanceof Date)) return [];
+    const dayKey = DAY_KEYS[date.getDay()];
+    return availability.recurringBlocks
+      .filter((block) => block.enabled !== false && block.weekday === dayKey)
+      .map((block) => {
+        const startMinutes = hhmmToMinutes(block.start);
+        const endMinutes = hhmmToMinutes(block.end);
+        if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes) || startMinutes >= endMinutes) return null;
+        return {
+          start: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, startMinutes, 0, 0),
+          end: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, endMinutes, 0, 0),
+        };
       })
       .filter(Boolean);
   }

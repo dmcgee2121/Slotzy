@@ -1,5 +1,13 @@
 # Staging QA checklist
 
+## Recurring weekly scheduling blocks (run only after migration and deploy)
+
+- [ ] Create a synthetic weekday Lunch block, reload Availability, and confirm its label/day/time persist.
+- [ ] Confirm the public booking page hides every service start that would overlap the block, including starts before the block whose duration crosses into it.
+- [ ] Confirm a direct API request for an overlapping interval returns unavailable and creates no booking.
+- [ ] Delete the block, reload, and confirm eligible public times return; confirm one-time time off still behaves independently.
+- [ ] Create and cancel one ordinary non-overlapping synthetic booking. Do not record customer data or private manage tokens.
+
 ## Pilot Round 2 cover-rendering retest (2026-10-04)
 
 - [x] Record the hosted pre-fix result: saved logo appears in the anonymous chooser and selected booking page; saved cover does not appear in the selected hero.

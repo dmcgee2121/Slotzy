@@ -31,7 +31,7 @@ function baseState(overrides = {}) {
     users: [{ id: "user-owner", username: "fixture-owner", displayName: "Fixture Owner", passwordHash: "not-a-real-password", role: "owner", email: "fixture-owner@example.test", shopId: "shop-fixture" }],
     shops: [{ id: "shop-fixture", name: "Fixture Cuts", slug: "fixture-cuts", ownerUsername: "fixture-owner", shopEmail: "fixture-shop@example.test", bookingPolicy: { allowSameDay: true, maxDaysAdvance: 30, cancelHours: 24, bufferMinutes: 5, requireDeposit: false, depositAmount: 0, lateGraceMinutes: 10, noShowStrikeLimit: 2, reminder24Hours: true, reminder2Hours: true, reminderCustomEnabled: false, reminderCustomMinutes: 60 } }],
     services: [{ id: "service-cut", shopId: "shop-fixture", name: "Fixture Cut", price: 32.5, durationMinutes: 30, barberUsername: "fixture-owner", active: true }],
-    availability: { "fixture-owner": { timezone: "America/Chicago", bufferMinutes: 5, weekly: { mon: { enabled: true, start: "09:00", end: "17:00" } }, timeOff: [] } },
+    availability: { "fixture-owner": { timezone: "America/Chicago", bufferMinutes: 5, weekly: { mon: { enabled: true, start: "09:00", end: "17:00" }, thu: { enabled: true, start: "09:00", end: "17:00" } }, timeOff: [], recurringBlocks: [] } },
     bookings: [], emails: [], ...overrides,
   };
 }
@@ -92,9 +92,11 @@ postgresTest("Postgres service CRUD contract", async () => {
 });
 
 postgresTest("Postgres availability round trip contract", async () => {
-  const { state } = await seedBase(); state.availability["fixture-owner"].timeOff.push({ id: "fixture-time-off", startISO: "2032-06-04T15:00:00.000Z", endISO: "2032-06-04T16:00:00.000Z", note: "Training" });
+  const { state } = await seedBase(); state.availability["fixture-owner"].timeOff.push({ id: "fixture-time-off", startISO: "2032-06-04T15:00:00.000Z", endISO: "2032-06-04T16:00:00.000Z", note: "Training" }); state.availability["fixture-owner"].recurringBlocks.push({ id: "22222222-2222-4222-8222-222222222222", weekday: "mon", start: "12:00", end: "13:00", label: "Lunch", enabled: true });
   await store.writeStore(state); const schedule = (await store.readStore()).availability["fixture-owner"];
-  assert.deepEqual(schedule.weekly.mon, { enabled: true, start: "09:00", end: "17:00" }); assert.equal(schedule.timeOff[0].note, "Training");
+  assert.deepEqual(schedule.weekly.mon, { enabled: true, start: "09:00", end: "17:00" }); assert.equal(schedule.timeOff[0].note, "Training"); assert.equal(schedule.recurringBlocks[0].label, "Lunch");
+  state.availability["fixture-owner"].recurringBlocks = []; await store.writeStore(state);
+  assert.deepEqual((await store.readStore()).availability["fixture-owner"].recurringBlocks, []);
 });
 
 postgresTest("Postgres booking create/read/update and overlap rejection contract", async () => {

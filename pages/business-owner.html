@@ -222,8 +222,37 @@
         </article>
 
         <article class="card owner-action-card">
-          <h3>Time Off</h3>
-          <p class="small">Each block applies only to the selected date or time range. Recurring weekly lunch or break blocks are planned for a future update.</p>
+          <h3>Weekly recurring blocks</h3>
+          <p class="small">Repeats every selected weekday until you remove it. Use this for regular lunches, breaks, or unavailable hours.</p>
+          <fieldset class="availability-recurring-days">
+            <legend>Select weekdays</legend>
+            <div class="availability-recurring-day-grid">
+              <label><input type="checkbox" name="availability-recurring-day" value="mon" /> Monday</label>
+              <label><input type="checkbox" name="availability-recurring-day" value="tue" /> Tuesday</label>
+              <label><input type="checkbox" name="availability-recurring-day" value="wed" /> Wednesday</label>
+              <label><input type="checkbox" name="availability-recurring-day" value="thu" /> Thursday</label>
+              <label><input type="checkbox" name="availability-recurring-day" value="fri" /> Friday</label>
+              <label><input type="checkbox" name="availability-recurring-day" value="sat" /> Saturday</label>
+              <label><input type="checkbox" name="availability-recurring-day" value="sun" /> Sunday</label>
+            </div>
+          </fieldset>
+          <div class="form-grid-2">
+            <div class="field"><label for="availability-recurring-start">Start time</label><input id="availability-recurring-start" type="time" value="12:00" /></div>
+            <div class="field"><label for="availability-recurring-end">End time</label><input id="availability-recurring-end" type="time" value="13:00" /></div>
+          </div>
+          <div class="field">
+            <label for="availability-recurring-label">Label</label>
+            <input id="availability-recurring-label" type="text" list="availability-recurring-labels" value="Lunch" maxlength="80" />
+            <datalist id="availability-recurring-labels"><option value="Lunch"></option><option value="Break"></option><option value="Unavailable"></option></datalist>
+          </div>
+          <div id="availability-recurring-error" class="service-form-error hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
+          <button id="availability-add-recurring" class="btn btn-primary" type="button">Save recurring block</button>
+          <div id="availability-recurring-list" class="availability-timeoff-list"></div>
+        </article>
+
+        <article class="card owner-action-card">
+          <h3>One-time time off</h3>
+          <p class="small">Applies only to the selected date or date range. Use this for vacation, appointments, special events, or a one-off break.</p>
           <div class="field">
             <label for="availability-quick-date">Break Date</label>
             <input id="availability-quick-date" type="date" />

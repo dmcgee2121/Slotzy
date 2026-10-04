@@ -48,6 +48,8 @@ function initOwnerAvailability() {
   document.getElementById("availability-add-custom-break")?.addEventListener("click", handleAddCustomBreak);
   weeklyBody.addEventListener("change", handleWeeklyFieldChange);
   document.getElementById("availability-timeoff-list")?.addEventListener("click", handleTimeOffListClick);
+  document.getElementById("availability-add-recurring")?.addEventListener("click", addRecurringBlocks);
+  document.getElementById("availability-recurring-list")?.addEventListener("click", handleRecurringListClick);
 }
 
 function renderStaffOnlyState() {
@@ -76,6 +78,7 @@ function createDefaultAvailability() {
       sun: { enabled: false, start: "09:00", end: "17:00" },
     },
     timeOff: [],
+    recurringBlocks: [],
   };
 }
 
@@ -105,8 +108,12 @@ function loadAvailability() {
       .filter(Boolean)
       .sort((a, b) => a.startISO.localeCompare(b.startISO))
     : [];
+  const recurringBlocks = Array.isArray(parsed?.recurringBlocks)
+    ? parsed.recurringBlocks.map(normalizeRecurringBlock).filter(Boolean)
+      .sort((a, b) => DAY_ORDER.indexOf(a.weekday) - DAY_ORDER.indexOf(b.weekday) || a.start.localeCompare(b.start))
+    : [];
 
-  return { timezone, bufferMinutes, weekly, timeOff };
+  return { timezone, bufferMinutes, weekly, timeOff, recurringBlocks };
 }
 
 function saveAvailability(availability) {
@@ -119,8 +126,10 @@ function renderAvailability() {
   renderAvailabilityMeta(availability);
   renderQuickBreakDate();
   renderTimeOffList(availability.timeOff);
+  renderRecurringBlocks(availability.recurringBlocks);
   clearWeeklyError();
   clearTimeOffError();
+  clearRecurringError();
 }
 
 function renderQuickBreakDate() {
@@ -344,6 +353,92 @@ async function addTimeOffBlock() {
     console.error("[Slotzy:availability] Could not save time off.", error);
     showTimeOffError("Could not save changes. Try again.");
   }
+}
+
+function renderRecurringBlocks(blocks) {
+  const list = document.getElementById("availability-recurring-list");
+  if (!list) return;
+  if (!blocks.length) {
+    list.innerHTML = '<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No recurring blocks</h3><p>Add a weekly lunch, break, or unavailable period.</p></section>';
+    return;
+  }
+  list.innerHTML = `<ul class="availability-timeoff-items">${blocks.map((block) => `
+    <li class="availability-timeoff-item">
+      <div><strong>${escapeHtml(DAY_LABELS[block.weekday])}: ${escapeHtml(formatTimeLabel(block.start))}–${escapeHtml(formatTimeLabel(block.end))}</strong><p class="small">${escapeHtml(block.label)}</p></div>
+      <button class="btn btn-danger" type="button" data-action="delete-recurring" data-id="${escapeHtml(block.id)}">Delete</button>
+    </li>`).join("")}</ul>`;
+}
+
+async function addRecurringBlocks() {
+  const availability = loadAvailability();
+  const days = Array.from(document.querySelectorAll('input[name="availability-recurring-day"]:checked'))
+    .map((input) => String(input.value ?? "")).filter((day) => DAY_ORDER.includes(day));
+  const start = String(document.getElementById("availability-recurring-start")?.value ?? "").trim();
+  const end = String(document.getElementById("availability-recurring-end")?.value ?? "").trim();
+  const label = String(document.getElementById("availability-recurring-label")?.value ?? "").trim() || "Unavailable";
+  const errors = [];
+  if (!days.length) errors.push("Select at least one weekday.");
+  if (!start) errors.push("Start time is required.");
+  if (!end) errors.push("End time is required.");
+  if (start && end && start >= end) errors.push("End time must be later than start time.");
+  if (errors.length) {
+    showRecurringError(errors.join("<br />"));
+    return;
+  }
+  const additions = days.map((weekday) => ({
+    id: typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : fallbackUuid(),
+    weekday, start, end, label: label.slice(0, 80), enabled: true,
+  }));
+  availability.recurringBlocks = [...availability.recurringBlocks, ...additions];
+  try {
+    await saveAvailability(availability);
+    document.querySelectorAll('input[name="availability-recurring-day"]:checked').forEach((input) => { input.checked = false; });
+    renderAvailability();
+    window.showToast?.("Recurring block saved.", "success");
+  } catch (error) {
+    console.error("[Slotzy:availability] Could not save recurring block.", String(error?.message ?? "save_failed"));
+    showRecurringError("Could not save recurring block. Please try again.");
+  }
+}
+
+async function handleRecurringListClick(event) {
+  const target = event.target?.closest?.('button[data-action="delete-recurring"]');
+  if (!target) return;
+  const id = String(target.getAttribute("data-id") ?? "");
+  const availability = loadAvailability();
+  if (!availability.recurringBlocks.some((block) => block.id === id)) return;
+  availability.recurringBlocks = availability.recurringBlocks.filter((block) => block.id !== id);
+  target.disabled = true;
+  try {
+    await saveAvailability(availability);
+    renderAvailability();
+  } catch (error) {
+    target.disabled = false;
+    console.error("[Slotzy:availability] Could not delete recurring block.", String(error?.message ?? "delete_failed"));
+    showRecurringError("Could not delete that recurring block. It is still unavailable. Please try again.");
+  }
+}
+
+function normalizeRecurringBlock(block) {
+  const weekday = String(block?.weekday ?? "").trim().toLowerCase();
+  const start = normalizeTimeValue(block?.start, "");
+  const end = normalizeTimeValue(block?.end, "");
+  if (!DAY_ORDER.includes(weekday) || !start || !end || start >= end) return null;
+  return { id: String(block?.id ?? fallbackUuid()), weekday, start, end, label: String(block?.label ?? "Unavailable").trim() || "Unavailable", enabled: block?.enabled !== false };
+}
+
+function fallbackUuid() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    return (char === "x" ? value : (value & 0x3) | 0x8).toString(16);
+  });
+}
+
+function formatTimeLabel(value) {
+  const [hourText, minuteText] = String(value).split(":");
+  const hour = Number(hourText);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  return `${hour % 12 || 12}:${minuteText} ${suffix}`;
 }
 
 async function handleAddCustomBreak() {
@@ -639,6 +734,20 @@ function clearTimeOffError() {
   const el = document.getElementById("availability-timeoff-error");
   if (!el) return;
   el.innerHTML = "";
+  el.classList.add("hidden");
+}
+
+function showRecurringError(messageHtml) {
+  const el = document.getElementById("availability-recurring-error");
+  if (!el) return;
+  el.innerHTML = messageHtml;
+  el.classList.remove("hidden");
+}
+
+function clearRecurringError() {
+  const el = document.getElementById("availability-recurring-error");
+  if (!el) return;
+  el.textContent = "";
   el.classList.add("hidden");
 }
 

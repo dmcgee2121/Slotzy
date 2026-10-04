@@ -1676,6 +1676,62 @@ test("owner can delete a lunch, break, or time-off block and the deletion persis
   await expect(page.getByText("No time off blocks")).toBeVisible();
 });
 
+test("owner recurring lunch persists, blocks public slots, and can be deleted", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const bookingDate = new Date();
+  bookingDate.setDate(bookingDate.getDate() + 2);
+  const dayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const weekday = dayKeys[bookingDate.getDay()];
+  seed.local.Slotzy_availability[OWNER_USERNAME].timeOff = [{
+    id: "one-time-afternoon",
+    startISO: new Date(`${toYmd(bookingDate)}T14:00:00`).toISOString(),
+    endISO: new Date(`${toYmd(bookingDate)}T14:30:00`).toISOString(),
+    note: "One-time appointment",
+  }];
+  await seedStorage(page, seed, { includeSession: true });
+  await page.goto("/pages/business-owner.html");
+  await page.locator(`input[name="availability-recurring-day"][value="${weekday}"]`).check();
+  await page.locator("#availability-recurring-start").fill("12:00");
+  await page.locator("#availability-recurring-end").fill("13:00");
+  await page.locator("#availability-recurring-label").fill("Lunch");
+  await page.locator("#availability-add-recurring").click();
+  await expect(page.locator("#availability-recurring-list")).toContainText("Lunch");
+  await expectControlFits(page, "button[data-action='delete-recurring']");
+  const recurring = await page.evaluate((username) => JSON.parse(localStorage.getItem("Slotzy_availability") || "{}")[username]?.recurringBlocks || [], OWNER_USERNAME);
+  expect(recurring).toEqual([expect.objectContaining({ weekday, start: "12:00", end: "13:00", label: "Lunch", enabled: true })]);
+
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+  await page.locator("#serviceSelect").selectOption(SERVICE_ID);
+  await page.locator("#bookingDate").fill(toYmd(bookingDate));
+  const options = await page.locator("#time-slot-select option").allTextContents();
+  expect(options.some((text) => text.startsWith("11:30"))).toBeTruthy();
+  expect(options.some((text) => text.startsWith("12:00"))).toBeFalsy();
+  expect(options.some((text) => text.startsWith("1:00"))).toBeTruthy();
+  expect(options.some((text) => text.startsWith("2:00"))).toBeFalsy();
+
+  await page.addInitScript((username) => sessionStorage.setItem("Slotzy_user", JSON.stringify({ username, role: "owner" })), OWNER_USERNAME);
+  await page.goto("/pages/business-owner.html");
+  await page.locator("button[data-action='delete-recurring']").click();
+  await expect(page.locator("#availability-recurring-list")).toContainText("No recurring blocks");
+  await expect.poll(() => page.evaluate((username) => JSON.parse(localStorage.getItem("Slotzy_availability") || "{}")[username]?.recurringBlocks?.length || 0, OWNER_USERNAME)).toBe(0);
+});
+
+test("hosted recurring block save failure does not create local-only success", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/availability**", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) }));
+  await page.goto("/pages/business-owner.html");
+  await page.locator('input[name="availability-recurring-day"][value="mon"]').check();
+  await page.locator("#availability-add-recurring").click();
+  await expect(page.locator("#availability-recurring-error")).toContainText("Could not save recurring block");
+  await expect(page.locator("#availability-recurring-list")).toContainText("No recurring blocks");
+  await expect.poll(() => page.evaluate((username) => JSON.parse(localStorage.getItem("Slotzy_availability") || "{}")[username]?.recurringBlocks?.length || 0, OWNER_USERNAME)).toBe(0);
+});
+
 test("hosted time-off delete failure keeps the block and offers a retryable error", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   const block = {

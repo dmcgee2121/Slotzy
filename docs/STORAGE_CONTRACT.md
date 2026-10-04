@@ -35,6 +35,8 @@ The non-enumerating `POST /api/public/manage/recover` endpoint accepts contact, 
 
 `readStore` and `writeStore` normalize malformed or missing top-level collections to that shape. This normalization is a compatibility requirement for the current Express helpers, which read and mutate these collections in memory before persistence.
 
+Each provider availability entry also preserves `recurringBlocks`, an array of `{ id, weekday, start, end, label, enabled }`. `weekday` uses `sun` through `sat`; times are local `HH:mm` values in the entry's timezone. These weekly exclusions are distinct from absolute-date `timeOff` entries.
+
 ## Adapter rules
 
 - The adapter must preserve the route-visible data shapes and existing API status/response behavior.
@@ -47,7 +49,9 @@ The non-enumerating `POST /api/public/manage/recover` endpoint accepts contact, 
 
 `postgresStore.js` now creates a server-only Supabase client from `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; it never imports into browser code. It performs relational reads for users, shops/settings, members/providers, services/provider services, availability/time off, bookings, and outbox records, mapping them back to the current JSON-style application shape. It also writes/reads/clears `email_outbox` through parameterized Supabase SDK calls.
 
-Current Express routes still mutate and save a complete legacy document. In Postgres mode, `writeStore` invokes the required `slotzy_storage_write_snapshot` database RPC so any full-document reconciliation is atomic. That RPC must be reviewed and applied to a disposable test database before Postgres mode can be enabled. This intentional boundary avoids a race-prone sequence of browser/server check-then-write operations.
+Current Express routes still mutate and save a complete legacy document. In Postgres mode, `writeStore` invokes `slotzy_storage_write_snapshot_with_recurring`. The wrapper runs existing snapshot reconciliation and recurring-block reconciliation in one database transaction. It upserts retained block IDs and deletes omitted IDs only for providers explicitly present in the snapshot; unrelated providers and existing availability/time-off rows are untouched. `docs/SUPABASE_RECURRING_BLOCKS_MIGRATION.sql` must be applied before deploying this server version. Until then, Postgres writes intentionally fail rather than silently losing recurring blocks.
+
+Public booking creation must enforce weekly hours, one-time time off, recurring blocks, and active-booking overlap on the authoritative server path. Browser slot filtering is presentation only and is not the security boundary.
 
 ## Shop branding field contract
 

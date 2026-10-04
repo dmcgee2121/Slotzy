@@ -1,6 +1,6 @@
 # Slotzy Supabase schema notes and migration plan
 
-Status: design only, 2026-09-27. `SUPABASE_SCHEMA.sql` is a reviewed foundation, not an applied migration. No Supabase project, application runtime, `db.json`, authentication, or booking behavior changes are part of this document.
+Status: `SUPABASE_SCHEMA.sql` is the reviewed full-schema foundation. The additive recurring-block delta is in `SUPABASE_RECURRING_BLOCKS_MIGRATION.sql`; it has not been applied by this change.
 
 ## Design decisions
 
@@ -21,7 +21,7 @@ Status: design only, 2026-09-27. `SUPABASE_SCHEMA.sql` is a reviewed foundation,
 | `shop_settings` | Policy fields now embedded in local shop data | Computed policy text only through Express | Owner of shop | Keep one row per shop; update in place. |
 | `services` | Price/duration/bookability | Active services only through Express public booking profile | Owner shop; barber's provider relationship | Soft deactivate if bookings reference it. |
 | `provider_services` | Which provider can perform which service | No raw access | Owner manages shop; barber self as allowed | Hard delete only if unreferenced; otherwise deactivate. |
-| `availability`, `time_off` | Recurring provider hours and exceptions | Slots only, computed by Express | Owner shop; barber self | Availability update in place; time off can be hard-deleted if not audited elsewhere. |
+| `availability`, `time_off`, `recurring_time_blocks` | Recurring provider hours, date-specific exceptions, and weekly exclusions | Slots only, computed by Express | Owner shop; barber self | Availability updates in place; omitted recurring IDs are deleted only for the provider being saved. |
 | `bookings`, `booking_events` | Appointment record and immutable lifecycle history | Token-scoped booking only through Express | Owner by shop; barber by provider | Never hard-delete during normal operations. |
 | `booking_manage_tokens` | Opaque client manage-link credentials | Token verification only through Express | No staff listing needed by default | Revoke/expire; retain hash audit record. |
 | `email_outbox` | Optional delivery queue/audit | None | Operational staff only | Retain/redact under an explicit policy. |
@@ -40,6 +40,14 @@ The existing file has top-level `users`, `shops`, `services`, `availability` (ob
 | `services[].id`, `name`/`title`, `price`, `durationMinutes`/`duration`, `shopId`, `barberUsername`/`ownerUsername`, `active` | `services`, `provider_services` | Convert price dollars to cents; choose canonical name/duration; resolve shop and provider membership; generate IDs when not UUID. Seed provider-service row as active unless source says inactive. |
 | `availability[username].timezone`, `bufferMinutes`, `weekly.{mon..sun}` | `availability` | Resolve provider membership; map days to 1..6/0; create seven rows per provider; preserve enabled/start/end and buffer; default missing entries from current server defaults. |
 | `availability[username].timeOff[]` | `time_off` | Generate UUID if needed; parse `startISO`/`endISO` to UTC; reject invalid/non-positive ranges into an import exception report. |
+| `availability[username].recurringBlocks[]` | `recurring_time_blocks` | Preserve UUID IDs; map weekday names to 0..6 and local start/end times. Reconciliation is provider-scoped and idempotent. |
+
+## Recurring weekly block rollout (2026-10-04)
+
+- Apply `SUPABASE_RECURRING_BLOCKS_MIGRATION.sql` to a disposable database first, then staging after a verified backup. It creates one table/index/trigger and service-role-only RPCs; it does not modify existing business data when applied.
+- Deploy Render only after the migration, because the Postgres adapter now calls the wrapper RPC. Deploy Netlify after Render so the owner UI and public slot filtering match the authoritative server.
+- Roll back application code by redeploying the prior Render/Netlify versions. Leave the additive table in place during rollback; dropping it risks deleting newly entered blocks. Prefer a later reviewed cleanup migration only after exporting and confirming the table is unused.
+- Run guarded staging E2E and manually verify create, reload, public exclusion, crafted-request rejection, delete, and ordinary booking after deploy. Do not reset staging.
 | `bookings[].id`, `shopId`, `barberUsername`/`ownerUsername`, service fields | `bookings` | Resolve UUID foreign keys; copy service and policy snapshots; derive service linkage only when source service resolves. Do not fabricate a service silently—quarantine unmatched rows. |
 | `bookings[].clientName`, `clientContact`, client email/phone fields | `bookings` | Preserve contact string for compatibility; split validated email/phone when possible. Encrypt migration exports and redact logs. |
 | `bookings[].startISO`/`endISO` or `date` + `time`, duration | `bookings.start_at/end_at/duration_minutes` | Prefer valid ISO fields; otherwise compose with documented legacy timezone. Verify range equals duration; quarantine ambiguous/DST-invalid records. |

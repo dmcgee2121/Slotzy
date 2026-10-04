@@ -1,5 +1,13 @@
 # Pilot readiness
 
+## Recurring weekly scheduling blocks gate (2026-10-04)
+
+- [x] Owner UI creates, lists, persists, and deletes recurring weekly unavailable blocks separately from one-time time off.
+- [x] Public slots exclude overlapping service intervals; server policy rejects direct bypass attempts.
+- [x] Hosted save failures remain visible and cannot become local-only success.
+- [ ] Apply `SUPABASE_RECURRING_BLOCKS_MIGRATION.sql` after backup, deploy Render then Netlify, and run guarded staging validation without resetting data.
+- [ ] Manually verify a recurring lunch disappears from public availability, deletion restores eligible times, and a normal non-overlapping booking still succeeds.
+
 ## Closed-pilot go/no-go (2026-10-03)
 
 ### Current decision

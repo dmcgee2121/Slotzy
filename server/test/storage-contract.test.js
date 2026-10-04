@@ -32,7 +32,7 @@ test("JSON storage round-trips users, shops, services, availability, and booking
     users: [{ id: "user_1", username: "owner", role: "owner" }],
     shops: [{ id: "shop_1", name: "Test Shop", slug: "test-shop", ownerUsername: "owner" }],
     services: [{ id: "service_1", shopId: "shop_1", name: "Cut", price: 30, durationMinutes: 30 }],
-    availability: { owner: { timezone: "America/Chicago", weekly: { mon: { enabled: true, start: "09:00", end: "17:00" } }, timeOff: [] } },
+    availability: { owner: { timezone: "America/Chicago", weekly: { mon: { enabled: true, start: "09:00", end: "17:00" } }, timeOff: [], recurringBlocks: [{ id: "11111111-1111-4111-8111-111111111111", weekday: "mon", start: "12:00", end: "13:00", label: "Lunch", enabled: true }] } },
     bookings: [{ id: "booking_1", shopId: "shop_1", barberUsername: "owner", serviceName: "Cut", status: "booked" }],
     emails: [],
   };

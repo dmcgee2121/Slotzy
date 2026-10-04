@@ -160,6 +160,22 @@ create table if not exists public.time_off (
 create index if not exists time_off_provider_range_idx
   on public.time_off (provider_member_id, starts_at, ends_at);
 
+create table if not exists public.recurring_time_blocks (
+  id uuid primary key default gen_random_uuid(),
+  provider_member_id uuid not null references public.shop_members(id) on delete restrict,
+  weekday smallint not null check (weekday between 0 and 6),
+  start_time time not null,
+  end_time time not null,
+  label text,
+  is_enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint recurring_time_blocks_valid_times check (end_time > start_time)
+);
+create index if not exists recurring_time_blocks_provider_weekday_idx
+  on public.recurring_time_blocks (provider_member_id, weekday, start_time);
+alter table public.recurring_time_blocks enable row level security;
+
 create table if not exists public.bookings (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid not null references public.shops(id) on delete restrict,
@@ -408,6 +424,37 @@ begin
 end;
 $$;
 
+create or replace function public.slotzy_reconcile_recurring_blocks(snapshot jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_schedule jsonb; v_block jsonb; v_username text; v_member_id uuid;
+begin
+  if jsonb_typeof(snapshot) <> 'object' then raise exception 'snapshot must be an object'; end if;
+  for v_username, v_schedule in select entry.key, entry.value from jsonb_each(coalesce(snapshot->'availability', '{}'::jsonb)) as entry(key, value) loop
+    -- Stale/partial clients that omit recurringBlocks do not own this portion
+    -- of the schedule and must not turn an absent key into an empty replacement.
+    if not (v_schedule ? 'recurringBlocks') then continue; end if;
+    select m.id into v_member_id from public.shop_members m join public.users u on u.id = m.user_id where u.username = v_username and u.deleted_at is null and m.deleted_at is null order by m.created_at limit 1;
+    if v_member_id is null then continue; end if;
+    delete from public.recurring_time_blocks r where r.provider_member_id = v_member_id and not exists (
+      select 1 from jsonb_array_elements(coalesce(v_schedule->'recurringBlocks', '[]'::jsonb)) as retained(value) where retained.value->>'id' = r.id::text
+    );
+    for v_block in select entry.value from jsonb_array_elements(coalesce(v_schedule->'recurringBlocks', '[]'::jsonb)) as entry(value) loop
+      insert into public.recurring_time_blocks (id, provider_member_id, weekday, start_time, end_time, label, is_enabled)
+      values ((v_block->>'id')::uuid, v_member_id, case v_block->>'weekday' when 'sun' then 0 when 'mon' then 1 when 'tue' then 2 when 'wed' then 3 when 'thu' then 4 when 'fri' then 5 when 'sat' then 6 else null end, (v_block->>'start')::time, (v_block->>'end')::time, nullif(btrim(v_block->>'label'), ''), coalesce((v_block->>'enabled')::boolean, true))
+      on conflict (id) do update set provider_member_id = excluded.provider_member_id, weekday = excluded.weekday, start_time = excluded.start_time, end_time = excluded.end_time, label = excluded.label, is_enabled = excluded.is_enabled;
+    end loop;
+  end loop;
+end;
+$$;
+
+create or replace function public.slotzy_storage_write_snapshot_with_recurring(snapshot jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  perform public.slotzy_storage_write_snapshot(snapshot);
+  perform public.slotzy_reconcile_recurring_blocks(snapshot);
+end;
+$$;
+
 -- Destructive reset guard for a manually marked disposable test project only.
 create table if not exists public.slotzy_test_control (id boolean primary key default true check (id), is_disposable boolean not null default false);
 insert into public.slotzy_test_control (id, is_disposable) values (true, false) on conflict (id) do nothing;
@@ -415,7 +462,7 @@ create or replace function public.slotzy_reset_disposable_test_data(p_confirmati
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if p_confirmation <> 'DISPOSABLE_SLOTZY_TEST_RESET' or not (select is_disposable from public.slotzy_test_control where id) then raise exception 'disposable test reset is not enabled'; end if;
-  truncate public.email_outbox, public.booking_manage_tokens, public.booking_events, public.bookings, public.time_off, public.availability, public.provider_services, public.services, public.shop_settings, public.shop_members, public.shops, public.users, public.legacy_source_ids restart identity;
+  truncate public.email_outbox, public.booking_manage_tokens, public.booking_events, public.bookings, public.recurring_time_blocks, public.time_off, public.availability, public.provider_services, public.services, public.shop_settings, public.shop_members, public.shops, public.users, public.legacy_source_ids restart identity;
 end;
 $$;
 
@@ -451,6 +498,9 @@ for each row execute function public.set_updated_at();
 drop trigger if exists time_off_set_updated_at on public.time_off;
 create trigger time_off_set_updated_at before update on public.time_off
 for each row execute function public.set_updated_at();
+drop trigger if exists recurring_time_blocks_set_updated_at on public.recurring_time_blocks;
+create trigger recurring_time_blocks_set_updated_at before update on public.recurring_time_blocks
+for each row execute function public.set_updated_at();
 drop trigger if exists bookings_set_updated_at on public.bookings;
 create trigger bookings_set_updated_at before update on public.bookings
 for each row execute function public.set_updated_at();
@@ -470,7 +520,19 @@ as $$
 declare
   new_booking public.bookings;
   token_expiry timestamptz;
+  v_start timestamptz := (payload->>'start_at')::timestamptz;
+  v_end timestamptz := (payload->>'end_at')::timestamptz;
+  v_availability public.availability;
+  v_local_start timestamp;
+  v_local_end timestamp;
 begin
+  select a.* into v_availability from public.availability a where a.provider_member_id = (payload->>'provider_member_id')::uuid and a.weekday = extract(dow from (v_start at time zone a.timezone))::integer;
+  if not found or not v_availability.is_enabled then raise exception 'slot_unavailable'; end if;
+  v_local_start := v_start at time zone v_availability.timezone;
+  v_local_end := v_end at time zone v_availability.timezone;
+  if v_local_start::date <> v_local_end::date or v_local_start::time < v_availability.start_time or v_local_end::time > v_availability.end_time then raise exception 'slot_unavailable'; end if;
+  if exists (select 1 from public.time_off t where t.provider_member_id = v_availability.provider_member_id and v_start < t.ends_at and v_end > t.starts_at) then raise exception 'slot_unavailable'; end if;
+  if exists (select 1 from public.recurring_time_blocks r where r.provider_member_id = v_availability.provider_member_id and r.is_enabled and r.weekday = v_availability.weekday and v_local_start::time < r.end_time and v_local_end::time > r.start_time) then raise exception 'slot_unavailable'; end if;
   insert into public.bookings (
     shop_id, provider_member_id, service_id, client_name, client_email, client_phone,
     client_contact, start_at, end_at, timezone, duration_minutes, status,
@@ -480,7 +542,7 @@ begin
     (payload->>'shop_id')::uuid, (payload->>'provider_member_id')::uuid,
     (payload->>'service_id')::uuid, payload->>'client_name', nullif(payload->>'client_email', '')::citext,
     nullif(payload->>'client_phone', ''), payload->>'client_contact',
-    (payload->>'start_at')::timestamptz, (payload->>'end_at')::timestamptz,
+    v_start, v_end,
     coalesce(nullif(payload->>'timezone', ''), 'America/Chicago'), (payload->>'duration_minutes')::integer,
     coalesce((payload->>'status')::public.booking_status, 'booked'), payload->>'confirmation_code',
     coalesce((payload->>'deposit_required')::boolean, false), coalesce((payload->>'deposit_amount_cents')::integer, 0),
@@ -514,7 +576,7 @@ $$;
 grant usage on schema public to service_role;
 grant select, insert, update, delete on table public.users, public.shops,
   public.shop_members, public.shop_settings, public.services,
-  public.provider_services, public.availability, public.time_off,
+  public.provider_services, public.availability, public.time_off, public.recurring_time_blocks,
   public.bookings, public.booking_events, public.booking_manage_tokens,
   public.email_outbox, public.legacy_source_ids, public.slotzy_test_control
   to service_role;
@@ -522,8 +584,10 @@ revoke all on function public.slotzy_legacy_target_id(text, text) from public;
 revoke all on function public.slotzy_storage_write_snapshot(jsonb) from public;
 revoke all on function public.slotzy_reset_disposable_test_data(text) from public;
 revoke all on function public.slotzy_create_booking(jsonb) from public;
+revoke all on function public.slotzy_reconcile_recurring_blocks(jsonb) from public;
+revoke all on function public.slotzy_storage_write_snapshot_with_recurring(jsonb) from public;
 grant execute on function public.slotzy_legacy_target_id(text, text),
-  public.slotzy_storage_write_snapshot(jsonb),
+  public.slotzy_storage_write_snapshot(jsonb), public.slotzy_reconcile_recurring_blocks(jsonb), public.slotzy_storage_write_snapshot_with_recurring(jsonb),
   public.slotzy_reset_disposable_test_data(text), public.slotzy_create_booking(jsonb)
   to service_role;
 

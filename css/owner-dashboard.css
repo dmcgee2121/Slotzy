@@ -1053,6 +1053,33 @@
   overflow: hidden;
 }
 
+.availability-recurring-days {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.availability-recurring-days legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.availability-recurring-day-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.availability-recurring-day-grid label {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
 .owner-page .shop-logo-preview-copy {
   display: grid;
   justify-items: start;
