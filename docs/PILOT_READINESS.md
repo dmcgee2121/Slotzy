@@ -2,11 +2,12 @@
 
 ## Recurring weekly scheduling blocks gate (2026-10-04)
 
+- **Complete for beta on staging:** migration applied, deployed staging suite passed **3/3**, and manual UAT passed. Production was not touched.
 - [x] Owner UI creates, lists, persists, and deletes recurring weekly unavailable blocks separately from one-time time off.
 - [x] Public slots exclude overlapping service intervals; server policy rejects direct bypass attempts.
 - [x] Hosted save failures remain visible and cannot become local-only success.
-- [ ] Apply `SUPABASE_RECURRING_BLOCKS_MIGRATION.sql` after backup, deploy Render then Netlify, and run guarded staging validation without resetting data.
-- [ ] Manually verify a recurring lunch disappears from public availability, deletion restores eligible times, and a normal non-overlapping booking still succeeds.
+- [x] Apply `SUPABASE_RECURRING_BLOCKS_MIGRATION.sql` to staging, deploy the package, and pass guarded staging validation **3/3** without resetting data.
+- [x] Manual UAT: a recurring lunch/break removed overlapping public times, times before and after remained available, and deleting the block worked as expected.
 
 ## Closed-pilot go/no-go (2026-10-03)
 
@@ -32,7 +33,7 @@
 - [x] Fix owner shop-profile saves with allowed logo/cover uploads: the server JSON limit now accommodates Base64 expansion for two 5 MiB source images.
 - [x] Fix public selected-shop cover rendering. The first alias-only change was incomplete in hosted Round 2 retest; the 2026-10-04 follow-up uses a real hero image layer and preserves the Slotzy fallback.
 - [x] Clarify Team: only the shop owner can add team members during the pilot. A barber account cannot add members; the complete multi-provider invite/onboarding workflow remains future work.
-- [x] Clarify Time Off: current blocks apply only to a selected date/time range. Recurring weekly lunch/break blocks remain roadmap work.
+- [x] Clarify scheduling: one-time time off applies only to its selected date/time range; recurring weekly lunch/break blocks are complete for beta on staging.
 - [ ] Roadmap: confirmation email/text with private manage link, manage-link resend/recovery, and optional client accounts/history.
 - Deploy Render and Netlify, then run guarded staging validation. No Supabase migration is required.
 

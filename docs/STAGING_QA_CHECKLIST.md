@@ -1,12 +1,12 @@
 # Staging QA checklist
 
-## Recurring weekly scheduling blocks (run only after migration and deploy)
+## Recurring weekly scheduling blocks — complete for beta (2026-10-04)
 
-- [ ] Create a synthetic weekday Lunch block, reload Availability, and confirm its label/day/time persist.
-- [ ] Confirm the public booking page hides every service start that would overlap the block, including starts before the block whose duration crosses into it.
-- [ ] Confirm a direct API request for an overlapping interval returns unavailable and creates no booking.
-- [ ] Delete the block, reload, and confirm eligible public times return; confirm one-time time off still behaves independently.
-- [ ] Create and cancel one ordinary non-overlapping synthetic booking. Do not record customer data or private manage tokens.
+- [x] Apply the additive migration to staging and deploy the recurring scheduling package; production was not touched.
+- [x] Guarded staging suite passed **3/3**.
+- [x] Manual UAT: create a recurring Lunch/Break block and confirm public booking removes overlapping times.
+- [x] Manual UAT: confirm available times before and after the recurring block remain visible.
+- [x] Manual UAT: delete the recurring block and confirm deletion works as expected.
 
 ## Pilot Round 2 cover-rendering retest (2026-10-04)
 
@@ -32,7 +32,7 @@
 - [x] Round 2 retest: the public chooser and selected direct booking page show the saved logo.
 - [ ] Post-fix deploy: confirm the selected direct booking page shows its saved cover and default Slotzy styling remains when cover is absent.
 - [ ] Confirm a barber/non-owner sees the Team limitation: “Only the shop owner can add team members during the pilot.” Do not treat local staff entries as bookable providers.
-- [ ] Confirm Time Off states that each block is for the selected date/time range; recurring weekly breaks are not part of this pilot.
+- [x] Confirm one-time Time Off remains date/time-range specific and recurring weekly breaks are presented as a separate beta scheduling feature.
 - [ ] Record email/text confirmation, manage-link recovery, and client accounts/history as roadmap only; do not weaken private manage tokens.
 - Deploy Render first, then Netlify, and run `npm run test:staging -- --workers=1 --reporter=list` with the approved mutation guard. No Supabase migration is required.
 

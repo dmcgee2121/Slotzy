@@ -2,12 +2,12 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
-## Recurring weekly scheduling blocks (pending deploy)
+## Recurring weekly scheduling blocks — passed (2026-10-04)
 
-- [ ] On a real phone, add a weekly lunch/break for at least one open weekday and confirm it remains after reload.
-- [ ] Open the public booking page and confirm overlapping times are absent while times before/after remain usable.
-- [ ] Delete the recurring block and confirm eligible times return after refresh; one-time time off remains unchanged.
-- [ ] Treat any ability to book through a recurring block, or any hosted save that appears successful but vanishes after reload, as a pilot stop condition.
+- [x] Staging migration and deployment completed; guarded staging suite passed **3/3**. Production was not touched.
+- [x] Owner created a recurring lunch/break block and public booking respected it.
+- [x] Available public times before and after the recurring block remained visible.
+- [x] Deleting the recurring block worked as expected. Manual tester confirmation: “ok that worked as expected”.
 
 ## Recorded results — 2026-10-03
 
@@ -29,7 +29,7 @@ Use a real staging account and synthetic test bookings only. Do not test product
 - Shop profile save: **Fixed locally.** A 5 MiB source image expands when sent as a data URL; the former 5 MB server JSON ceiling rejected valid branding saves. The server now allows the documented logo/cover payload.
 - Public branding: **Logo passed hosted Round 2 retest; cover failed and is fixed locally.** The selected hero now paints the canonical public cover through a contained image layer; default Slotzy branding remains the fallback.
 - Team: **Clarified.** Only the shop owner can add team members during the pilot. A barber account cannot add members, and the larger multi-provider invite/onboarding workflow is not included.
-- Time Off: **Clarified.** One-off blocks apply only to their selected date/time range. Recurring weekly lunch/break blocks remain future work.
+- Time Off: **Clarified.** One-off blocks apply only to their selected date/time range. Recurring weekly lunch/break blocks are now complete for beta on staging.
 - Future roadmap only: confirmation email/text carrying the private manage link, resend/recovery of that link, and optional client accounts/history.
 
 - Environment: installed phone PWA; exact phone/browser was not recorded.

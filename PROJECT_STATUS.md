@@ -2,10 +2,11 @@
 
 ## Recurring weekly scheduling blocks (2026-10-04)
 
+- **Beta package complete on staging.** The additive Supabase migration was applied to staging, the deployed guarded staging suite passed **3/3**, and manual owner/customer UAT passed. Production was not touched.
 - Owners can create a weekly Lunch, Break, or custom unavailable range for one or more weekdays, review it separately from one-time time off, and delete it with authoritative save feedback.
 - Public slot generation excludes any service interval that overlaps an enabled recurring block. Express independently rejects crafted bookings outside weekly hours or overlapping one-time/recurring blocks.
-- Local JSON and relational Postgres mappings preserve the same recurring-block shape. The additive Supabase migration is checked in but not applied; no existing data, staging, or production environment was changed.
-- Rollout order is migration, Render, then Netlify. Guarded staging validation remains pending until those deploys.
+- Manual UAT confirmed a recurring lunch/break hides overlapping public times, preserves available times before and after the block, and can be deleted successfully.
+- Local JSON and relational Postgres mappings preserve the same recurring-block shape. No production migration or deployment was performed.
 
 ## Closed-pilot operational gate (2026-10-03)
 
@@ -28,7 +29,7 @@
 - Shop settings could fail after an otherwise accepted logo/cover upload because a 5 MiB source image expands as a data URL; saving sends the complete shop record and exceeded the server's prior 5 MB JSON request limit. The server limit is raised to 15 MB to support the documented two-image 5 MiB maximum.
 - The first cover fix accepted the public `cover` field in alias lookup, but hosted Round 2 retest still showed only the logo. The 2026-10-04 follow-up replaces the hero's CSS custom-property background with a real contained image layer and keeps the unbranded fallback.
 - Team management remains owner-only and the pilot still does not offer a complete multi-provider invite/onboarding workflow. Team now explicitly tells barber accounts: “Only the shop owner can add team members during the pilot.”
-- Recurring weekly lunch/break blocks, confirmation email/text and manage-link recovery, and optional client accounts/history remain roadmap work. Current time-off blocks are explicitly date/time-range specific.
+- Recurring weekly lunch/break blocks are complete for beta on staging. Confirmation email/text and manage-link recovery, and optional client accounts/history remain separate roadmap work. One-time time-off blocks remain explicitly date/time-range specific.
 - This batch requires Netlify and Render deployment; no Supabase migration is required.
 
 - **Ready for internal staged UAT:** **Yes.** Guarded hosted staging is passing **3/3**: focused staging owner setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks.
