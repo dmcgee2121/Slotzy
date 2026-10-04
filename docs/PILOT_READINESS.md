@@ -2,11 +2,12 @@
 
 ## Owner account/profile/recovery cleanup gate (2026-10-04)
 
+- **Complete for beta on staging:** Netlify deployed, guarded staging passed **3/3**, and manual UAT passed. No Render deploy, Supabase migration, or production change was required.
 - [x] Clearly separate account identity, local/demo personal profile details, and authoritative public Shop settings.
 - [x] Keep username and hosted personal profile fields read-only; explain that username anchors account/provider identity and hosted personal profiles lack a safe authoritative write path.
 - [x] Keep public business contact fields editable through existing Shop settings without implying they change login identity.
 - [x] Add generic owner recovery help to login and authenticated Settings without account lookup, enumeration, delivery claims, tokens, or internal IDs.
-- [ ] After Netlify deploy, verify the read-only hosted state and recovery copy on staging. Render and Supabase changes are not required.
+- [x] After Netlify deploy, verify on staging that hosted profile fields remain intentionally read-only, public Shop settings remain editable, and recovery remains generic and operator-assisted through private pilot support.
 
 ## Recurring weekly scheduling blocks gate (2026-10-04)
 

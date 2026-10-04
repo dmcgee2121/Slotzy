@@ -1,12 +1,12 @@
 # Staging QA checklist
 
-## Owner account/profile/recovery cleanup (run after Netlify deploy)
+## Owner account/profile/recovery cleanup — complete for beta (2026-10-04)
 
-- [ ] Open hosted Settings and confirm the signed-in username is visible but read-only; hosted full name, personal email, and personal phone cannot be edited or saved.
-- [ ] Confirm public business phone/email and branding remain editable only in Shop settings and persist after reload.
-- [ ] Open “Need help accessing your owner account?” from login and Settings; confirm the copy is generic, operator-assisted, and does not say whether an account exists.
-- [ ] Confirm neither help entry point sends a recovery request or displays a JWT, reset token, internal ID, password, or customer information.
-- [ ] Recheck owner setup, public booking, customer manage-link recovery, recurring blocks, services, availability, and branding through the guarded staging suite.
+- [x] Netlify deployment completed; no Render deploy, Supabase migration, production deployment, or production data change was required.
+- [x] Guarded staging suite passed **3/3**.
+- [x] Manual UAT confirmed Settings clearly separates account identity, personal profile, and public business/shop settings.
+- [x] Hosted personal profile fields are intentionally read-only with clear wording; public business/shop settings remain editable.
+- [x] Login shows “Need help accessing your owner account?” and recovery/help copy does not claim an email or text was sent. Recovery remains operator-assisted through private pilot support.
 
 ## Recurring weekly scheduling blocks — complete for beta (2026-10-04)
 

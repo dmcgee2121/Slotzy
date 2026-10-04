@@ -12,6 +12,8 @@ The login modal and authenticated Settings page now expose “Need help accessin
 
 Hosted Settings intentionally keeps username, personal display name, personal email, and personal phone read-only. Public shop phone/email remain editable business-profile fields, not verified account-recovery factors.
 
+Beta staging verification completed on 2026-10-04: Netlify was deployed, guarded staging passed **3/3**, and manual UAT confirmed the help entry point, read-only hosted profile boundary, editable public Shop settings, and absence of email/text delivery claims. Recovery remains operator-assisted; no Render deploy, Supabase migration, or production change was required.
+
 ## Before changing anything
 
 1. Open an incident record with the date/time, requesting username, affected environment, operator, and a short reason. Do not include passwords, JWTs, reset values, raw database rows, or customer data.

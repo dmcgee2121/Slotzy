@@ -83,6 +83,8 @@ For forgotten credentials or owner/barber lockout, use [the owner recovery runbo
 
 The login and Settings recovery-help controls are generic informational entry points only. They do not query accounts, send messages, or create reset credentials. Route requests through the approved private support channel and do not confirm account existence before verification.
 
+The owner account/profile/recovery cleanup passed staging **3/3** and manual UAT after its Netlify deployment on 2026-10-04. Hosted personal profile editing remains intentionally read-only, and recovery remains operator-assisted through private pilot support. No Render deploy, Supabase migration, or production change was made for this package.
+
 Current limitation: a password change does not revoke an already-issued JWT, which can remain valid for up to seven days. Treat suspected compromise as an incident; the recovery runbook describes the limited, coordinated escalation option.
 
 ### Data correction or deletion request

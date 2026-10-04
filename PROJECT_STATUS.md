@@ -2,10 +2,12 @@
 
 ## Owner account/profile/recovery beta cleanup (2026-10-04)
 
+- **Complete for beta on staging.** Netlify is deployed, the guarded staging suite passed **3/3**, and manual UAT passed with confirmation that “all of that looks right.” No Render deploy, Supabase migration, or production change was required.
 - Chosen scope: **Option B — intentional hosted read-only profile plus clearer recovery help.** Hosted profile fields have no authoritative write API, and registration does not establish a verified recovery email, so enabling edits or automated recovery would create identity and persistence risk.
 - Settings now separates immutable account identity, local/demo-only personal profile fields, and editable public Shop settings. Username, password, hosted personal email, hosted personal phone, and hosted display name remain read-only for beta; public shop contact and branding remain editable through the existing authoritative shop path.
 - Login and Settings expose generic operator-assisted recovery help. They perform no account lookup, do not reveal whether an account exists, and do not send or expose credentials or tokens.
-- Self-service password reset, verified recovery-email enrollment, password change, username changes, and per-user JWT revocation remain post-beta work. This is frontend/documentation only: Netlify deploy required; Render and Supabase changes are not required.
+- Manual UAT confirmed the login help entry point, clear separation of account/profile/shop settings, intentional hosted read-only profile fields, editable public business settings, and recovery copy that makes no email/text delivery claim.
+- Self-service password reset, verified recovery-email enrollment, password change, username changes, and per-user JWT revocation remain post-beta work. Recovery remains operator-assisted through private pilot support.
 
 ## Recurring weekly scheduling blocks (2026-10-04)
 
