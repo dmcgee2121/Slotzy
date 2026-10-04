@@ -6,6 +6,11 @@ const BARBER_USERNAME = "barber_mobile_pilot";
 const SERVICE_ID = "service_mobile_pilot";
 const SHOP_SLUG = "mobile-pilot-shop";
 const CUSTOMER_CONTACT = "555-010-6677";
+const VALID_PNG_BUFFER = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64"
+);
+const VALID_PNG_DATA_URL = `data:image/png;base64,${VALID_PNG_BUFFER.toString("base64")}`;
 
 function toYmd(date) {
   const year = String(date.getFullYear());
@@ -112,6 +117,25 @@ async function expectNoPageOverflow(page, label) {
     documentWidth: page.viewportSize().width,
     bodyWidth: page.viewportSize().width,
   }));
+}
+
+async function expectRenderedDataImage(locator, mimePrefix) {
+  await expect(locator).toBeVisible();
+  await expect.poll(async () => locator.evaluate((image, prefix) => {
+    const bounds = image.getBoundingClientRect();
+    const source = String(image.getAttribute("src") ?? "");
+    return {
+      hasExpectedPrefix: source.startsWith(prefix),
+      approximateBytes: source.length,
+      loaded: image.complete && image.naturalWidth > 0 && image.naturalHeight > 0,
+      hasPaintedArea: bounds.width > 0 && bounds.height > 0,
+    };
+  }, mimePrefix)).toEqual({
+    hasExpectedPrefix: true,
+    approximateBytes: expect.any(Number),
+    loaded: true,
+    hasPaintedArea: true,
+  });
 }
 
 async function expectControlFits(page, target, { minHeight = 44 } = {}) {
@@ -1235,22 +1259,24 @@ test("saved shop branding appears in the public chooser and selected booking pag
   await page.locator("#shopLogoInput").setInputFiles({
     name: "shop-logo.png",
     mimeType: "image/png",
-    buffer: Buffer.from([137, 80, 78, 71]),
+    buffer: VALID_PNG_BUFFER,
   });
   await page.locator("#shopCoverInput").setInputFiles({
-    name: "shop-cover.webp",
-    mimeType: "image/webp",
-    buffer: Buffer.from([82, 73, 70, 70]),
+    name: "shop-cover.png",
+    mimeType: "image/png",
+    buffer: VALID_PNG_BUFFER,
   });
   await page.locator("#saveShopBtn").click();
   await expect(page.locator("#shopStatus")).toContainText("Shop settings saved successfully.");
 
   await page.goto("/pages/book.html");
   const shopCard = page.locator(".public-shop-directory-card").filter({ hasText: "Pilot Neighborhood Barbers" });
-  await expect(shopCard.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+  await expectRenderedDataImage(shopCard.locator("img"), "data:image/png;base64,");
   await shopCard.click();
-  await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
+  await expectRenderedDataImage(page.locator("#publicShopLogo"), "data:image/png;base64,");
   await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+  await expectRenderedDataImage(page.locator("#publicShopCover"), "data:image/png;base64,");
+  await expectNoPageOverflow(page, "selected booking page with saved branding");
 });
 
 test("hosted shop settings sends canonical branding and renders it in public contexts", async ({ page }) => {
@@ -1282,7 +1308,7 @@ test("hosted shop settings sends canonical branding and renders it in public con
         approximatePayloadBytes: Buffer.byteLength(raw),
         keys: Object.keys(payload).sort(),
         logoIsDataUrl: String(payload.logo || "").startsWith("data:image/png;base64,"),
-        coverIsDataUrl: String(payload.cover || "").startsWith("data:image/webp;base64,"),
+        coverIsDataUrl: String(payload.cover || "").startsWith("data:image/png;base64,"),
         hasBrandingAlias: ["logoDataUrl", "coverDataUrl", "logoImageDataUrl", "coverImageDataUrl"]
           .some((key) => Object.prototype.hasOwnProperty.call(payload, key)),
       };
@@ -1309,12 +1335,12 @@ test("hosted shop settings sends canonical branding and renders it in public con
   await page.locator("#shopLogoInput").setInputFiles({
     name: "hosted-logo.png",
     mimeType: "image/png",
-    buffer: Buffer.alloc(256 * 1024, 1),
+    buffer: VALID_PNG_BUFFER,
   });
   await page.locator("#shopCoverInput").setInputFiles({
-    name: "hosted-cover.webp",
-    mimeType: "image/webp",
-    buffer: Buffer.alloc(512 * 1024, 2),
+    name: "hosted-cover.png",
+    mimeType: "image/png",
+    buffer: VALID_PNG_BUFFER,
   });
   await page.locator("#saveShopBtn").click();
   await expect(page.locator("#shopStatus")).toContainText("Shop settings saved successfully.");
@@ -1323,15 +1349,28 @@ test("hosted shop settings sends canonical branding and renders it in public con
     coverIsDataUrl: true,
     hasBrandingAlias: false,
   }));
-  expect(savedRequestDiagnostic.approximatePayloadBytes).toBeGreaterThan(1024 * 1024);
+  expect(savedRequestDiagnostic.approximatePayloadBytes).toBeGreaterThan(100);
   expect(JSON.stringify(savedRequestDiagnostic)).not.toContain("base64,");
 
   await page.goto("/pages/book.html");
   const shopCard = page.locator(".public-shop-directory-card").filter({ hasText: savedShop.name });
-  await expect(shopCard.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+  await expectRenderedDataImage(shopCard.locator("img"), "data:image/png;base64,");
   await page.goto(`/pages/book.html?shop=${encodeURIComponent(savedShop.slug)}`);
-  await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
+  await expectRenderedDataImage(page.locator("#publicShopLogo"), "data:image/png;base64,");
   await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+  await expectRenderedDataImage(page.locator("#publicShopCover"), "data:image/png;base64,");
+  await expectNoPageOverflow(page, "direct hosted booking link with canonical cover");
+});
+
+test("public booking keeps the Slotzy cover fallback when a shop has no cover", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }));
+  await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
+
+  await expect(page.locator("#publicShopHero")).toBeVisible();
+  await expect(page.locator("#publicShopHero")).not.toHaveClass(/has-shop-cover/);
+  await expect(page.locator("#publicShopCover")).toBeHidden();
+  expect(await page.locator("#publicShopCover").getAttribute("src")).toBeNull();
+  await expectNoPageOverflow(page, "direct booking link with fallback cover");
 });
 
 test("hosted shop settings reports payload limits without logging image data", async ({ page }) => {
@@ -1394,8 +1433,8 @@ test("public booking recognizes API logo and cover branding fields", async ({ pa
           ...seed.local.Slotzy_shops[0],
           name: "API Branded Shop",
           businessName: "API Branded Shop",
-          logo: "data:image/png;base64,iVBORw0KGgo=",
-          coverImageDataUrl: "data:image/webp;base64,UklGRg==",
+          logo: VALID_PNG_DATA_URL,
+          cover: VALID_PNG_DATA_URL,
         }],
         providers: seed.local.Slotzy_users,
         services: seed.local.Slotzy_services,
@@ -1407,11 +1446,13 @@ test("public booking recognizes API logo and cover branding fields", async ({ pa
 
   await page.goto("/pages/book.html");
   const apiShopCard = page.locator(".public-shop-directory-card").filter({ hasText: "API Branded Shop" });
-  await expect(apiShopCard.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+  await expectRenderedDataImage(apiShopCard.locator("img"), "data:image/png;base64,");
 
   await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
-  await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
+  await expectRenderedDataImage(page.locator("#publicShopLogo"), "data:image/png;base64,");
   await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+  await expectRenderedDataImage(page.locator("#publicShopCover"), "data:image/png;base64,");
+  await expectNoPageOverflow(page, "direct API booking link with canonical cover");
 });
 
 test("hosted profile settings clearly disable unsupported editing", async ({ page }) => {

@@ -2,6 +2,12 @@
 
 ## Closed-pilot operational gate (2026-10-03)
 
+## Pilot Round 2 cover-rendering follow-up (2026-10-04)
+
+- Hosted Round 2 retest confirmed that branding persistence and logo delivery are fixed: the saved logo appears in both the public shop chooser and the selected booking page.
+- The same retest found the saved cover still missing from the selected booking hero. Storage and the allowlisted public booking-context response already use the canonical `cover` field; the remaining defect was frontend-only. The booking page now normalizes `cover` and historical cover aliases and renders the selected cover through a contained decorative `<img>` layer instead of a CSS custom-property/pseudo-element background. An absent cover retains the existing Slotzy fallback.
+- Local regression coverage now checks decoded, visible logo and cover images, the no-cover fallback, direct `?shop=` links, and mobile horizontal containment. Publish this fix with a Netlify deploy, then rerun guarded staging and manual Round 2 branding checks. Render and Supabase changes are not required.
+
 ## Pilot Round 2 iPhone Safari/PWA feedback follow-up (2026-10-03)
 
 - Core iPhone Safari/PWA Round 2 flow passed: booking, actual available times, Sunday/Monday availability blocking, private manage-link opening, cancellation, and owner/customer flow.
@@ -13,7 +19,7 @@
 ## Pilot Round 2 profile, branding, and team follow-up (2026-10-03)
 
 - Shop settings could fail after an otherwise accepted logo/cover upload because a 5 MiB source image expands as a data URL; saving sends the complete shop record and exceeded the server's prior 5 MB JSON request limit. The server limit is raised to 15 MB to support the documented two-image 5 MiB maximum.
-- Public booking already accepts the public `logo` field, but cover rendering only checked `coverDataUrl`; it now accepts the public `cover` field too. Saved branding is covered in the chooser and selected-shop mobile flow.
+- The first cover fix accepted the public `cover` field in alias lookup, but hosted Round 2 retest still showed only the logo. The 2026-10-04 follow-up replaces the hero's CSS custom-property background with a real contained image layer and keeps the unbranded fallback.
 - Team management remains owner-only and the pilot still does not offer a complete multi-provider invite/onboarding workflow. Team now explicitly tells barber accounts: “Only the shop owner can add team members during the pilot.”
 - Recurring weekly lunch/break blocks, confirmation email/text and manage-link recovery, and optional client accounts/history remain roadmap work. Current time-off blocks are explicitly date/time-range specific.
 - This batch requires Netlify and Render deployment; no Supabase migration is required.

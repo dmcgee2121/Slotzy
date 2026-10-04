@@ -4,6 +4,12 @@ Use a real staging account and synthetic test bookings only. Do not test product
 
 ## Recorded results — 2026-10-03
 
+### Pilot Round 2 cover-rendering follow-up — 2026-10-04
+
+- Branding persistence and logos: **Pass on hosted retest.** Owner logo/cover save succeeded; the saved logo appeared in the public chooser and on the selected booking page.
+- Selected booking hero cover: **Failed on hosted retest; fixed locally.** The public contract already returned canonical `cover`, but the frontend hero did not reliably paint it. The hero now uses a contained decorative image layer, with the existing Slotzy fallback when cover is absent.
+- Deployment status: **Pending Netlify deploy and hosted retest.** No Render deploy, Supabase migration, staging reset, or production change is required.
+
 ### Pilot Round 2 iPhone Safari/PWA feedback follow-up
 
 - Core booking, actual available times, Sunday/Monday blocking, token manage-link opening, cancellation, and general barber/customer flow: **Pass**.
@@ -14,7 +20,7 @@ Use a real staging account and synthetic test bookings only. Do not test product
 ### Pilot Round 2 profile, branding, and team follow-up
 
 - Shop profile save: **Fixed locally.** A 5 MiB source image expands when sent as a data URL; the former 5 MB server JSON ceiling rejected valid branding saves. The server now allows the documented logo/cover payload.
-- Public branding: **Fixed locally.** The chooser uses a saved logo and the selected booking page now recognizes the public API cover field; default Slotzy branding remains the fallback.
+- Public branding: **Logo passed hosted Round 2 retest; cover failed and is fixed locally.** The selected hero now paints the canonical public cover through a contained image layer; default Slotzy branding remains the fallback.
 - Team: **Clarified.** Only the shop owner can add team members during the pilot. A barber account cannot add members, and the larger multi-provider invite/onboarding workflow is not included.
 - Time Off: **Clarified.** One-off blocks apply only to their selected date/time range. Recurring weekly lunch/break blocks remain future work.
 - Future roadmap only: confirmation email/text carrying the private manage link, resend/recovery of that link, and optional client accounts/history.
@@ -132,7 +138,8 @@ Known parked/non-gate work: mobile Calendar overflow; richer multi-provider invi
 Round 2 branding/profile follow-up:
 
 - [ ] After Render and Netlify staging deploys, save a test logo and cover and verify both survive reload.
-- [ ] As an anonymous client, verify the custom logo in the chooser and custom cover/logo on the direct booking page.
+- [x] As an anonymous client, verify the custom logo in the chooser and on the direct booking page.
+- [ ] After the cover-fix Netlify deploy, verify the custom cover on the direct booking page.
 - [ ] Verify unbranded shops retain default Slotzy branding.
 - [ ] Verify hosted Profile Settings clearly reports that editing is unavailable and never shows the generic retry error.
 - [ ] Keep invitations paused if branding or any booking/manage/availability path regresses.

@@ -721,6 +721,11 @@ test("focused staging owner setup API chain", async ({ request }) => {
   const brandingDiagnostic = {
     ...safeResponse(brandingResponse, brandingPayload),
     approximatePayloadBytes: Buffer.byteLength(JSON.stringify(brandingBody)),
+    shopResponseKeys: brandingPayload?.shop && typeof brandingPayload.shop === "object"
+      ? Object.keys(brandingPayload.shop).sort()
+      : [],
+    returnedLogoApproximateBytes: String(brandingPayload?.shop?.logo ?? "").length,
+    returnedCoverApproximateBytes: String(brandingPayload?.shop?.cover ?? "").length,
     returnedLogoIsDataUrl: String(brandingPayload?.shop?.logo ?? "").startsWith("data:image/png;base64,"),
     returnedCoverIsDataUrl: String(brandingPayload?.shop?.cover ?? "").startsWith("data:image/webp;base64,"),
   };
@@ -734,6 +739,9 @@ test("focused staging owner setup API chain", async ({ request }) => {
   const publicBrandingDiagnostic = {
     ...safeResponse(publicBrandingResponse, publicBrandingPayload),
     shopCount: Array.isArray(publicBrandingPayload?.shops) ? publicBrandingPayload.shops.length : 0,
+    publicShopKeys: publicShop && typeof publicShop === "object" ? Object.keys(publicShop).sort() : [],
+    publicLogoApproximateBytes: String(publicShop?.logo ?? "").length,
+    publicCoverApproximateBytes: String(publicShop?.cover ?? "").length,
     chooserHasCustomLogo: String(publicShop?.logo ?? "").startsWith("data:image/png;base64,"),
     directContextHasCustomCover: String(publicShop?.cover ?? "").startsWith("data:image/webp;base64,"),
   };

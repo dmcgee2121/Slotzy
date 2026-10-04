@@ -1215,14 +1215,20 @@
   isolation: isolate;
 }
 
-#publicShopHero.has-shop-cover::before {
-  content: "";
+#publicShopHero::before {
+  content: none;
+}
+
+.public-shop-cover {
   position: absolute;
   inset: 0;
-  z-index: -2;
-  background-image: var(--shop-cover-image);
-  background-size: cover;
-  background-position: center;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
   transform: scale(1.02);
 }
 
@@ -1230,7 +1236,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 1;
   background:
     linear-gradient(135deg, rgba(15, 23, 42, 0.68), rgba(15, 23, 42, 0.34) 52%, rgba(255, 255, 255, 0.84)),
     linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
@@ -1281,6 +1287,11 @@
 
 .owner-page .booking-status.status-error {
   color: var(--danger);
+}
+
+#publicShopHero .public-shop-hero-head {
+  position: relative;
+  z-index: 2;
 }
 
 .owner-page .booking-status:not(:empty) {

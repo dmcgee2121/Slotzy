@@ -4,6 +4,13 @@
 
 ### Current decision
 
+## Pilot Round 2 cover-rendering follow-up (2026-10-04)
+
+- [x] Record hosted retest evidence: owner logo/cover save succeeded, the chooser logo passed, and the selected-page logo passed; the selected-page cover failed to render.
+- [x] Trace the persisted/public contract: Postgres maps `shops.cover_url` to canonical `cover`, and anonymous booking context allowlists `cover` alongside `logo`.
+- [x] Fix the frontend hero to accept canonical and historical cover keys and paint the cover with a contained decorative image layer. No-cover shops retain the current Slotzy fallback, and direct `?shop=` links remain covered.
+- [ ] Deploy Netlify and rerun the guarded staging suite plus the manual branded/unbranded direct-link checks. Render and Supabase deployment/configuration are not required for this follow-up.
+
 ## Pilot Round 2 iPhone Safari/PWA feedback follow-up (2026-10-03)
 
 - [x] Core booking, actual availability, Sunday/Monday blocking, token manage-link opening, cancellation, and owner/customer flow passed on the exercised iPhone Safari/PWA paths.
@@ -15,7 +22,7 @@
 ## Pilot Round 2 profile, branding, and team follow-up (2026-10-03)
 
 - [x] Fix owner shop-profile saves with allowed logo/cover uploads: the server JSON limit now accommodates Base64 expansion for two 5 MiB source images.
-- [x] Fix public selected-shop cover rendering by accepting the API's public `cover` field; chooser and selected-page logo/cover fall back to Slotzy branding when absent.
+- [x] Fix public selected-shop cover rendering. The first alias-only change was incomplete in hosted Round 2 retest; the 2026-10-04 follow-up uses a real hero image layer and preserves the Slotzy fallback.
 - [x] Clarify Team: only the shop owner can add team members during the pilot. A barber account cannot add members; the complete multi-provider invite/onboarding workflow remains future work.
 - [x] Clarify Time Off: current blocks apply only to a selected date/time range. Recurring weekly lunch/break blocks remain roadmap work.
 - [ ] Roadmap: confirmation email/text with private manage link, manage-link resend/recovery, and optional client accounts/history.

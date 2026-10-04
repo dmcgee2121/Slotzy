@@ -63,6 +63,7 @@ export function initBookingEngine(options = {}) {
   const publicShopAddress = findElementById("publicShopAddress");
   const publicShopError = findElementById("publicShopError");
   const publicShopLogo = findElementById("publicShopLogo");
+  const publicShopCover = findElementById("publicShopCover");
   const publicBookingLoadState = findElementById("publicBookingLoadState");
   const publicBookingLoadActions = findElementById("publicBookingLoadActions");
   const publicBookingRetryBtn = findElementById("publicBookingRetryBtn");
@@ -105,6 +106,11 @@ export function initBookingEngine(options = {}) {
     engineRoot.dataset.bookingEngineMode = mode;
   }
   publicBookingRetryBtn?.addEventListener("click", () => window.location.reload());
+  publicShopCover?.addEventListener("error", () => {
+    publicShopCover.removeAttribute("src");
+    publicShopCover.classList.add("hidden");
+    publicShopHero?.classList.remove("has-shop-cover");
+  });
 
   return Promise.resolve()
     .then(() => (
@@ -1313,10 +1319,13 @@ export function initBookingEngine(options = {}) {
     }
     if (publicShopHero) {
       const coverDataUrl = shop ? getCustomShopCoverDataUrl(shop) : "";
-      if (coverDataUrl) {
-        publicShopHero.style.setProperty("--shop-cover-image", `url("${coverDataUrl.replace(/"/g, '\\"')}")`);
-      } else {
-        publicShopHero.style.removeProperty("--shop-cover-image");
+      if (publicShopCover) {
+        if (coverDataUrl) {
+          publicShopCover.src = coverDataUrl;
+        } else {
+          publicShopCover.removeAttribute("src");
+        }
+        publicShopCover.classList.toggle("hidden", !coverDataUrl);
       }
       publicShopHero.classList.toggle("has-shop-cover", Boolean(coverDataUrl));
     }
@@ -1404,7 +1413,14 @@ export function initBookingEngine(options = {}) {
           branding: String(shop?.tagline ?? shop?.description ?? "").trim(),
           shopEmail: String(shop?.shopEmail ?? "").trim(),
           logoDataUrl: String(shop?.logoDataUrl ?? legacyLogoDataUrl ?? "").trim() || null,
-          coverDataUrl: String(shop?.coverDataUrl ?? getLegacyShopCoverDataUrl(shopId) ?? "").trim() || null,
+          coverDataUrl: String(
+            shop?.coverDataUrl ??
+            shop?.coverImageDataUrl ??
+            shop?.coverImage ??
+            shop?.cover ??
+            getLegacyShopCoverDataUrl(shopId) ??
+            ""
+          ).trim() || null,
           logoUrl: String(shop?.logoUrl ?? shop?.logo ?? legacyLogoDataUrl ?? "").trim(),
           phone: directPhone || legacyContact.phone,
           address: directAddress || legacyContact.address,

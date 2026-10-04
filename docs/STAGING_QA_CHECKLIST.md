@@ -1,5 +1,13 @@
 # Staging QA checklist
 
+## Pilot Round 2 cover-rendering retest (2026-10-04)
+
+- [x] Record the hosted pre-fix result: saved logo appears in the anonymous chooser and selected booking page; saved cover does not appear in the selected hero.
+- [x] Local fix and automation: canonical `cover` reaches a decoded visible hero image, no-cover fallback remains, direct `?shop=` works, and the page has no mobile horizontal overflow.
+- [ ] After the Netlify deploy, confirm the existing saved cover appears on the selected public page without resaving or resetting staging data.
+- [ ] Confirm an unbranded shop still shows the existing Slotzy fallback, then run `npm run test:staging -- --workers=1 --reporter=list` with the approved guard.
+- This follow-up is frontend-only. Render and Supabase deployment/configuration are not required.
+
 ## Closed-pilot day-one gate (2026-10-03)
 
 ## Pilot Round 2 iPhone Safari/PWA follow-up (2026-10-03)
@@ -13,7 +21,8 @@
 ## Pilot Round 2 profile, branding, and team follow-up (2026-10-03)
 
 - [ ] As an owner, save Shop Settings with permitted logo and cover images; require authoritative success and persisted values after reload.
-- [ ] Confirm the public chooser shows the saved logo and the selected direct booking page shows its saved cover. Confirm default Slotzy branding remains when either image is absent.
+- [x] Round 2 retest: the public chooser and selected direct booking page show the saved logo.
+- [ ] Post-fix deploy: confirm the selected direct booking page shows its saved cover and default Slotzy styling remains when cover is absent.
 - [ ] Confirm a barber/non-owner sees the Team limitation: “Only the shop owner can add team members during the pilot.” Do not treat local staff entries as bookable providers.
 - [ ] Confirm Time Off states that each block is for the selected date/time range; recurring weekly breaks are not part of this pilot.
 - [ ] Record email/text confirmation, manage-link recovery, and client accounts/history as roadmap only; do not weaken private manage tokens.
