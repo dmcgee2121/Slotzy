@@ -36,12 +36,11 @@ Use [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md) for the operator/
 
 ## Pilot feedback triage 1 retest (2026-10-04)
 
-- [ ] Phone owner appointments: confirm a visible, readable month grid appears below Today/previous/next controls with no horizontal overflow.
-- [ ] Desktop owner appointments: confirm the calendar is no longer cramped in a narrow side column.
-- [ ] Mobile owner header: confirm account identity is visually distinct from navigation buttons and all navigation remains tappable.
-- [ ] Availability: delete a recurring lunch/break and a one-time/day block; confirm progress wording, persisted removal, and retryable failure behavior.
-- [ ] Public branding: confirm the shop logo is centered/contained in its rounded frame; cover and default Slotzy logo remain correct.
-- [ ] Keep service descriptions out of this retest: they need a separate end-to-end data-model/API/public-booking package.
+- [x] Staging rerun passed **3/3** after the initial cancellation-observation flake: focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks.
+- [x] Manual UAT: owner mobile screens, calendar, and header improvements were acceptable; delete feedback polish was accepted.
+- [x] Manual UAT: public shop logo alignment improved. It is not yet perfectly flush, but remaining alignment polish is a beta improvement rather than a blocker.
+- [x] Keep service descriptions out of this retest: they need a separate end-to-end data-model/API/public-booking package.
+- [x] Tiny trusted staging pilot remains active, staging-only, without payments or production activity.
 
 ## Owner account/profile/recovery cleanup — passed (2026-10-04)
 

@@ -33,6 +33,8 @@ Launch handouts are ready: use [tester instructions](CLOSED_PILOT_TESTER_INSTRUC
 - [x] Public logo uses a centered, contained rounded frame without changing cover behavior or the Slotzy fallback.
 - [ ] Service descriptions are not safe to add in this patch: the hosted/Postgres/public contract is incomplete. Plan separately as a beta-improvement data-model/API package.
 
+**Deployed verification: passed.** Following an initial cancellation-observation flake, staging rerun passed **3/3**: focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks. Manual UAT accepted the owner mobile calendar/header improvements. The public logo is improved but not perfectly flush; treat this as a non-blocking beta improvement. Service descriptions remain a separate beta-improvement package. The tiny trusted staging pilot remains active.
+
 ## Beta readiness gate review (2026-10-04)
 
 - **Decision: Conditional go for the next tiny trusted staging round.** No unresolved core product blocker was found across owner setup, services, scheduling, public booking, branding, manage/cancel/recovery, owner visibility, or beta account/recovery UX.

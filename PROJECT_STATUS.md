@@ -16,6 +16,8 @@ Pilot customer feedback confirms booking, available times, recovery, and cancell
 
 **Service descriptions:** not implemented. A legacy local/demo `desc` value exists, but managed services do not edit it, the Postgres `services` schema/adapter does not preserve it, and public booking does not render it. This is a beta improvement requiring a deliberate additive data-model/API/public-contract package and migration review.
 
+**Deployed UAT result: passed.** After an initial cancellation-observation flake, the guarded staging rerun passed **3/3** (focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks). Manual UAT found the owner mobile calendar/header improvements acceptable. Public logo alignment improved; the remaining not-perfectly-flush logo detail is a beta improvement, not a blocker. The tiny trusted staging pilot remains active.
+
 ## Beta reliability and recovery validation (2026-10-04)
 
 **Result: the conditional tiny-pilot go decision remains appropriate.** Local mobile automation now covers logout credential cleanup, duplicate booking prevention, duplicate cancellation prevention, canceled-booking safety, and retryable cancellation failure. The cancellation UI was hardened so a failed token cancellation restores an enabled Cancel action instead of remaining stuck in a pending state. No backend, storage contract, Supabase, staging, or production behavior changed.

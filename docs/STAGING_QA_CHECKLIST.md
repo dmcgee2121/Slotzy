@@ -14,11 +14,10 @@ Before sending an invitation, provide the applicable [tester instructions](CLOSE
 
 ## Pilot feedback triage 1 follow-up (2026-10-04)
 
-- [ ] After the required Netlify deploy, verify on a phone that the owner appointments page shows a visible month grid below Today/previous/next controls, without horizontal overflow.
-- [ ] Verify desktop calendar has a comfortable main-column layout and owner header/account badge is visually distinct from navigation controls.
-- [ ] Verify a recurring block and a one-time/day block show clear deleting/clearing feedback; on a safely induced hosted failure, the item remains and its action is retryable.
-- [ ] Verify an uploaded logo is centered and contained in the public rounded frame; cover rendering and the Slotzy fallback remain unchanged.
-- [ ] Do not add service descriptions during this patch. The current hosted/Postgres/public service contract does not support them end-to-end.
+- [x] Staging rerun passed **3/3** after the initial cancellation-observation flake: focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks.
+- [x] Manual UAT accepted the owner mobile calendar/header improvements and delete-feedback polish.
+- [x] Manual UAT confirmed public logo alignment improved; remaining flush/alignment polish is non-blocking for this beta.
+- [x] Keep service descriptions out of this patch. The hosted/Postgres/public service contract does not support them end-to-end; plan a separate beta-improvement package.
 
 ## Beta reliability/recovery local validation (2026-10-04)
 
