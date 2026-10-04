@@ -1,5 +1,19 @@
 # Staging QA checklist
 
+## Beta readiness day-one gate (2026-10-04)
+
+- [ ] Confirm the named private support channel, authorized staging operator, and incident decision maker are recorded outside Git. This is the only remaining pre-invitation blocker.
+- [ ] Run the guarded staging suite with synthetic data and require **3/3** immediately before invitations.
+- [ ] Create one synthetic public booking, confirm owner visibility, open its private manage link, cancel it, and confirm cancellation persists after refresh.
+- [ ] Confirm recurring scheduling and owner account/recovery deployed behavior remain present without changing staging configuration or data outside the synthetic test.
+- [ ] Invite only the limited named cohort if all checks pass; otherwise stop and investigate.
+
+### Next-package validation backlog (non-blocking for this tiny round)
+
+- [ ] Exercise logout/session expiry, invalid/expired manage links, slow/offline/reconnect recovery, and duplicate-submit resistance.
+- [ ] Verify installed-PWA cache rollover and iPhone-size Safari/home-screen behavior where a device is available.
+- [ ] Run isolated restore-target API/UI smoke and explicitly verify recurring scheduling data; do not repoint active staging.
+
 ## Owner account/profile/recovery cleanup — complete for beta (2026-10-04)
 
 - [x] Netlify deployment completed; no Render deploy, Supabase migration, production deployment, or production data change was required.

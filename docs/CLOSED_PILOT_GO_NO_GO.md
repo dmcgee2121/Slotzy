@@ -1,12 +1,20 @@
 # Closed-pilot go/no-go decision
 
-Decision date: 2026-10-03
+Decision date: 2026-10-04
 
 ## Recommendation
 
-**Go — Ready for tiny trusted closed pilot with strict limits.**
+**Conditional go — Ready for the next tiny trusted closed-pilot staging round with strict limits.**
 
-Pilot Round 1 is complete and stabilized. This authorizes a controlled **Round 2** staging test with one to two trusted barbers/operators and three to five trusted customer testers. It is not production readiness, approval for a broader pilot, or authorization to process payments.
+Core product evidence is sufficient for a controlled next staging round with one to two trusted barbers/operators and three to five trusted customer testers. Invitations remain blocked until the named private support channel, authorized staging operator, and incident decision maker are confirmed outside Git and the day-one synthetic lifecycle check passes. This is not production readiness, approval for a broader/open beta, or authorization to process payments.
+
+## 2026-10-04 gate review update
+
+- Recurring weekly scheduling is deployed, migrated on staging, staging-tested 3/3, and manually accepted.
+- Owner account/profile/recovery cleanup is deployed, staging-tested 3/3, and manually accepted. Hosted personal profile editing intentionally remains read-only, while public Shop settings remain editable.
+- Customer manage-link recovery is generic and preserves private-token boundaries.
+- No new core product blocker was found. The remaining blocker is the operational role/support-channel confirmation above.
+- Recommended next package is **Beta Reliability and Recovery Validation**, covering adverse session/network/cache cases, iPhone-size testing where available, and application smoke against the isolated restore target including recurring scheduling data.
 
 ## Readiness completed
 
@@ -36,6 +44,15 @@ Pilot Round 1 is complete and stabilized. This authorizes a controlled **Round 2
 - Mobile Calendar overflow and future dashboard mockup refinements are parked and non-blocking for this scope; the Round 1 iPad/tablet alignment and dashboard/settings polish shipped.
 - The private support channel, incident decision maker, and authorized staging operator must be named and recorded outside the repository before invitations.
 - Broader-pilot gaps remain, including production privacy/retention/monitoring, rate limiting/abuse decisions, and fuller account-recovery/session-revocation capability.
+- The isolated restore rehearsal predates final recurring-block rollout evidence; application/API smoke and explicit recurring-block verification against the restore target remain unperformed.
+
+## Post-beta backlog
+
+- Verified self-service owner recovery, password change, and per-user session/JWT revocation.
+- Full multi-provider invitation, onboarding, permissions, and schedule assignment.
+- Customer accounts/history and token-authorized rescheduling.
+- Production privacy/retention/monitoring, abuse/rate-limit controls, and production backup/restore readiness.
+- Payments, Calendar/dashboard/tablet polish, app-store packaging, and production launch planning.
 
 ## Day-one checklist
 

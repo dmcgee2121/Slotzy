@@ -2,6 +2,19 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
+## Beta gate — next trusted tester round (2026-10-04)
+
+**Scope:** one to two named trusted operators and three to five named trusted customers, staging only. Use minimum synthetic/test contact data; no payments or production activity.
+
+- [ ] Before invitations, confirm the private support channel, authorized staging operator, and incident decision maker.
+- [ ] Run the day-one synthetic booking → owner visibility → private manage link → cancellation persistence check.
+- [ ] Tell testers that owner profile editing is read-only, owner recovery is operator-assisted, manage-link rescheduling is unavailable, and this is staging—not a live service.
+- [ ] Ask testers to cover normal owner setup/services/hours, recurring and one-time blocks, chooser/direct booking, branding, receipt/manage/cancel/recovery, and owner appointment visibility.
+- [ ] Stop immediately on an authoritative save discrepancy, unauthorized/private-link access, failed persisted cancellation, missing owner booking, or apparent data disclosure.
+- [ ] Record only redacted observations through the private support channel; never collect passwords, private manage links, tokens, screenshots with customer data, or secrets.
+
+**Non-blocking observations for this round:** Calendar overflow/tablet polish, iPhone-specific device coverage, adverse network/session/cache behavior, and restore-target app validation remain targeted follow-ups rather than reasons to withhold this tiny trusted staging round.
+
 ## Owner account/profile/recovery cleanup — passed (2026-10-04)
 
 - [x] Netlify deployed and guarded staging passed **3/3**; no Render deploy, Supabase migration, or production change was required.

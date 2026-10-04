@@ -1,5 +1,31 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Beta readiness gate review (2026-10-04)
+
+**Decision: Conditional go — ready for the next tiny trusted real-user staging round, within the documented limits.** Core owner setup, services, scheduling, public booking, branding, private manage/cancel/recovery, owner visibility, and operator support procedures have deployed staging evidence. This is not production readiness or approval for a broad/open beta.
+
+The only remaining pre-invitation blocker is operational: the pilot owner must confirm outside Git the named private support channel, authorized staging operator, and incident decision maker. If those roles are already recorded and the day-one synthetic booking/manage/cancel check passes, invitations may proceed.
+
+| Area | Gate classification | Evidence / limitation |
+| --- | --- | --- |
+| Owner onboarding/setup | Already complete / acceptable for beta | Authoritative hosted setup chain is covered by guarded staging. |
+| Services | Already complete / acceptable for beta | Owner CRUD and public selection are covered; richer team/provider assignment is deferred. |
+| Availability and recurring blocks | Already complete / acceptable for beta | Weekly hours, recurring exclusions, backend enforcement, staging migration, staging 3/3, and manual UAT passed. |
+| One-time time off | Already complete / acceptable for beta | Create/delete and public exclusion paths are covered independently from recurring blocks. |
+| Public chooser and booking | Already complete / acceptable for beta | Chooser/direct links, date/time selection, authoritative save, receipt-after-save, and negative states are covered. |
+| Branding | Already complete / acceptable for beta | Logo/cover persistence and public rendering are implemented; continue real-device visual observation. |
+| Receipt/manage link/cancel/recovery | Already complete / acceptable for beta | Opaque token links, persisted cancellation, generic recovery, and no browser token recovery response are covered. |
+| Owner appointment visibility/management | Already complete / acceptable for beta | Owner visibility and core management work; Calendar overflow remains a non-blocking improvement. |
+| Owner account/profile/recovery | Already complete / acceptable for beta | Hosted personal profile is intentionally read-only; recovery is operator-assisted through private support. |
+| Backup/restore | Beta improvement | Database-level isolated restore passed. App/API smoke against the restore target and explicit recurring-block restore coverage remain unverified. |
+| Privacy/support/incident | Beta blocker until operational names are confirmed | Runbooks are adequate for a tiny pilot; the private channel, operator, and incident decision maker must exist before invitations. |
+| Mobile/PWA usability | Already complete / acceptable for beta | Android and iPad browser/home-screen core flows passed; iPhone-specific and adverse network/cache cases remain improvements. |
+| Staging reliability | Already complete / acceptable for beta | Multiple guarded 3/3 passes, including after recent deployed packages. Run the day-one check before invitations. |
+
+**Recommended next development package:** Beta Reliability and Recovery Validation. Keep it validation/hardening focused: exercise logout/session expiry, invalid/expired manage links, slow/offline/reconnect and duplicate-submit behavior, installed-PWA cache rollover, iPhone-size Safari/home-screen coverage where available, and an isolated restore-target API/UI smoke that includes `recurring_time_blocks`. Do not add product scope during that package.
+
+**Post-beta backlog:** verified self-service owner recovery and per-user session revocation; full multi-provider invitations/permissions; customer accounts/history; token-authorized rescheduling; production privacy/retention/monitoring and abuse/rate-limit controls; production backup/restore; payments; Calendar/dashboard/tablet polish; app-store packaging.
+
 ## Owner account/profile/recovery beta cleanup (2026-10-04)
 
 - **Complete for beta on staging.** Netlify is deployed, the guarded staging suite passed **3/3**, and manual UAT passed with confirmation that “all of that looks right.” No Render deploy, Supabase migration, or production change was required.

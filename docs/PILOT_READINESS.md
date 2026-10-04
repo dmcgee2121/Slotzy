@@ -1,5 +1,14 @@
 # Pilot readiness
 
+## Beta readiness gate review (2026-10-04)
+
+- **Decision: Conditional go for the next tiny trusted staging round.** No unresolved core product blocker was found across owner setup, services, scheduling, public booking, branding, manage/cancel/recovery, owner visibility, or beta account/recovery UX.
+- **Pre-invitation blocker:** confirm outside the repository the named private support channel, authorized staging operator, and incident decision maker. Run the existing day-one synthetic booking → owner visibility → manage → cancel check before invitations.
+- **Tester scope:** one to two trusted operators and three to five trusted customer testers, staging only, no payments, minimum synthetic/test contact data, and immediate stop on authoritative save, private-link, cancellation, or owner-visibility failure.
+- **Accepted limitations:** hosted personal profiles remain read-only; owner recovery remains operator-assisted; token links do not support rescheduling; restore validation is database-only; iPhone-specific and adverse network/session/cache coverage is incomplete; Calendar overflow and tablet polish remain non-blocking.
+- **Next package:** Beta Reliability and Recovery Validation—session/logout, invalid/expired links, offline/reconnect/duplicate submission, PWA cache rollover, iPhone-size coverage, and isolated restore-target app smoke including recurring blocks.
+- **Post-beta:** verified self-service owner recovery/session revocation, multi-provider onboarding/permissions, customer accounts/history, client rescheduling, production privacy/retention/monitoring/rate limits, production recovery, payments, and app-store packaging.
+
 ## Owner account/profile/recovery cleanup gate (2026-10-04)
 
 - **Complete for beta on staging:** Netlify deployed, guarded staging passed **3/3**, and manual UAT passed. No Render deploy, Supabase migration, or production change was required.
