@@ -10,7 +10,7 @@ It does not authorize production access, a staging reset, deletion, destructive 
 
 - Hosted staging runs the Express API with `SLOTZY_STORAGE=postgres` against its dedicated Supabase Postgres project. The server-side adapter reads relational tables and maps them to the API's legacy document shape.
 - Local/demo remains intentionally separate: the backend's default adapter is JSON (`server/src/db.json`) and the browser uses `Slotzy_` local/session-storage keys. These local stores are not a staging backup and must not be imported into staging as a recovery shortcut.
-- The recovery set is the staging database schema plus the pilot data required by the API: `users`, `shops`, `shop_members`, `shop_settings`, `services`, `provider_services`, `availability`, `time_off`, `bookings`, `booking_events`, `booking_manage_tokens`, `email_outbox` if enabled, and `legacy_source_ids`. `slotzy_test_control` is retained as target-control evidence when present.
+- The recovery set is the staging database schema plus the pilot data required by the API: `users`, `shops`, `shop_members`, `shop_settings`, `services`, `provider_services`, `availability`, `recurring_time_blocks`, `time_off`, `bookings`, `booking_events`, `booking_manage_tokens`, `email_outbox` if enabled, and `legacy_source_ids`. `slotzy_test_control` is retained as target-control evidence when present.
 - At minimum, recovery validation must cover identities, shop/provider relationships, services, hours/time off, bookings, and manage-token **hash** records. A token bearer value is not recoverable from its hash and must never be exported into notes or logs.
 
 Not covered yet: mail-provider delivery history outside `email_outbox`, Render/Netlify configuration and deploy rollback, JWT/session invalidation, browser-local data, external support tooling, retention policy approval, and a production backup/recovery plan.
@@ -42,7 +42,7 @@ from information_schema.tables
 where table_schema = 'public'
   and table_name in (
     'users', 'shops', 'shop_members', 'shop_settings', 'services',
-    'provider_services', 'availability', 'time_off', 'bookings',
+    'provider_services', 'availability', 'recurring_time_blocks', 'time_off', 'bookings',
     'booking_events', 'booking_manage_tokens', 'email_outbox',
     'legacy_source_ids'
   )
@@ -56,6 +56,7 @@ union all select 'shop_settings', count(*) from public.shop_settings
 union all select 'services', count(*) from public.services
 union all select 'provider_services', count(*) from public.provider_services
 union all select 'availability', count(*) from public.availability
+union all select 'recurring_time_blocks', count(*) from public.recurring_time_blocks
 union all select 'time_off', count(*) from public.time_off
 union all select 'bookings', count(*) from public.bookings
 union all select 'booking_events', count(*) from public.booking_events
@@ -90,7 +91,7 @@ The following are forbidden in this rehearsal: `DROP`, `DELETE`, `TRUNCATE`, `UP
 2. Restore only the approved staging snapshot/export into that target through the provider-supported restore/import workflow. The target must have no production connection, no public frontend routing, and no staging API configured to point at it.
 3. If a temporary API validation is needed, configure an isolated rehearsal service with target-only secrets and an explicit non-production environment label. Never change the live staging service's database URL.
 4. Compare schema/table inventory, counts, and booking recency against the pre-backup record. Investigate mismatches before application testing; do not repair the source by hand.
-5. Verify the approved synthetic shop, its provider/service/hour relationships, booking presence, and the count-only manage-token proof. Do not attempt to recover or display bearer manage tokens.
+5. Verify the approved synthetic shop, its provider/service/hour relationships, recurring scheduling blocks, booking presence, and the count-only manage-token proof. Do not attempt to recover or display bearer manage tokens.
 6. If an isolated rehearsal API is available, request `GET /api/health`, then run the guarded staging tests or an equivalent synthetic-only smoke path against the rehearsal target only when its target guard confirms non-production. Confirm public booking context and authenticated owner appointment visibility using synthetic records. Do not direct normal staging E2E at the restore target without its explicit environment guard.
 
 ## Abort, rollback, and incident handling
@@ -129,6 +130,7 @@ Decision, owner, and follow-up:
 - [ ] App-level restore-target health check was not performed.
 - [ ] Guarded app-level smoke testing against the restore target was not performed.
 - [ ] Public booking and authenticated owner UI validation against the restore target were not performed.
+- [ ] `recurring_time_blocks` restore counts, relationships, and public availability behavior were not verified because the 2026-10-03 rehearsal predates that table's staging rollout.
 - [x] Documented the completed database result, counts, integrity checks, and remaining validation boundary.
 
 ## Rehearsal evidence log — readiness review (2026-10-03)
@@ -143,6 +145,7 @@ Decision, owner, and follow-up:
 - **Generated-column resolution:** Supabase rejected `bookings.appointment_range` because it is generated. The column was removed from the bookings CSV and re-imported; Postgres regenerated `appointment_range` successfully. Generated columns must be excluded from CSV imports because Postgres recalculates them.
 - **Outbox handling:** `public.email_outbox` was intentionally skipped because it is not required to prove core booking recovery and may contain contact/message data.
 - **Limitation:** app-level validation against `slotzy-postgres-test` was not performed; no restore-target API health check or synthetic smoke path is claimed.
+- **Recurring-block boundary:** the rehearsal occurred before `recurring_time_blocks` was deployed to staging. Its schema, rows, relationships, and booking exclusion behavior were therefore not part of the recorded restore and must be verified in a refreshed isolated-target rehearsal.
 - **Runbook created:** yes.
 - **Read-only readiness review completed:** yes — documentation, schema, and storage/runtime configuration were reviewed locally; no live database query was made.
 - **Actual export captured:** yes, through the authorized Supabase Table Editor CSV workflow.
@@ -166,6 +169,7 @@ Decision, owner, and follow-up:
 | `public.services` | 158 |
 | `public.provider_services` | 158 |
 | `public.availability` | 553 |
+| `public.recurring_time_blocks` | Not present in this pre-rollout rehearsal |
 | `public.time_off` | 3 |
 | `public.bookings` | 36 |
 | `public.booking_manage_tokens` | 10 |
@@ -194,10 +198,10 @@ All listed relationship checks passed, and all restored bookings had regenerated
 3. In the Supabase dashboard/provider backup interface, identify the approved staging snapshot/PITR point or create an approved restricted export. Record snapshot/export ID, timestamp, retention, artifact checksum (if exported), and restricted storage reference—never credentials or dump contents.
 4. Create/select an empty rehearsal project or provider-supported isolated branch with a distinct project label and distinct credentials. Record evidence that it has no production connection, public routing, or live staging API configuration.
 5. Use the provider-supported restore/import interface to restore the approved artifact **only** into that isolated target. Do not run the schema file, repair scripts, resets, cleanup, or any destructive SQL against staging.
-6. On the target, rerun the same inventory/count queries and compare with the staging baseline. Validate the approved synthetic shop, relationship/service/hours shape, booking recency/count, and count-only manage-token proof.
+6. On the target, rerun the same inventory/count queries and compare with the staging baseline. Validate the approved synthetic shop, relationship/service/hours/recurring-block shape, booking recency/count, and count-only manage-token proof. A refreshed rehearsal must include at least one synthetic recurring block and confirm that public availability excludes it while retaining times before and after it.
 7. If an isolated API is provisioned with target-only secrets, call `GET /api/health` and record only `ok`, `service`, `storage`, and `environment`. Run a synthetic-only guarded smoke path only after its target guard proves it cannot reach production or active staging.
 8. Complete the restricted notes template with pass/fail, discrepancies, operator/reviewer, and follow-up. This database-level rehearsal is now complete; do not infer app-level restore-target validation from it.
 
 ## Current status
 
-Runbook created on 2026-10-02; the database-level isolated restore rehearsal was completed and validated on 2026-10-03. This does not validate an application deployment against the restore target and does not change the remaining owner password/session-revocation limitation, private support/incident role-recording prerequisite, or non-blocking Calendar overflow/tablet-polish follow-ups.
+Runbook created on 2026-10-02; the database-level isolated restore rehearsal was completed and validated on 2026-10-03. That rehearsal predates the recurring-block rollout and therefore does not validate `recurring_time_blocks`. It also does not validate an application deployment against the restore target or change the remaining owner password/session-revocation limitation, private support/incident role-recording prerequisite, or non-blocking Calendar overflow/tablet-polish follow-ups.

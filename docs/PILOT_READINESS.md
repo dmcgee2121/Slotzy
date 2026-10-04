@@ -1,5 +1,17 @@
 # Pilot readiness
 
+## Reliability/recovery validation update (2026-10-04)
+
+- [x] Logout clears browser-held session credentials and returns protected owner pages to sign-in across the mobile automation matrix.
+- [x] Rapid duplicate booking and cancellation activation produces one authoritative request; canceled manage pages expose no repeat-cancel control.
+- [x] A failed manage-link cancellation restores a usable Cancel action and shows retryable error copy without a fake canceled state.
+- [x] Invalid/unavailable manage links remain generic and expose neither appointment details nor token values in the browser response.
+- [x] Backup documentation now includes `recurring_time_blocks` in the recovery inventory.
+- [ ] Run an installed-PWA upgrade/reconnect check on a real device and a real time-expired manage-link fixture. These are test-only beta improvements, not blockers for the tiny trusted round.
+- [ ] Run guarded API/UI smoke against an isolated restore target and repeat the restore rehearsal with `recurring_time_blocks`. The 2026-10-03 database rehearsal predates recurring rollout and cannot be cited as proof for that table.
+
+The beta decision remains **conditional go**. The sole pre-invitation blocker remains confirmation, outside Git, of the private support channel, authorized staging operator, and incident decision maker.
+
 ## Beta readiness gate review (2026-10-04)
 
 - **Decision: Conditional go for the next tiny trusted staging round.** No unresolved core product blocker was found across owner setup, services, scheduling, public booking, branding, manage/cancel/recovery, owner visibility, or beta account/recovery UX.

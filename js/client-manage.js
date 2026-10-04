@@ -49,6 +49,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   let rescheduleBookingId = "";
   let rescheduleLoadToken = 0;
   let pendingCancelBookingId = "";
+  let cancelRequestInFlight = false;
 
   function markCancelStage(stage, details = {}) {
     const root = document.documentElement;
@@ -402,8 +403,14 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
 
     if (action === "confirm-cancel-appointment") {
+      if (cancelRequestInFlight) return;
+      cancelRequestInFlight = true;
       setButtonPending(actionButton, true, "Cancelling...");
-      await handleCancelAppointment(bookingId);
+      try {
+        await handleCancelAppointment(bookingId);
+      } finally {
+        cancelRequestInFlight = false;
+      }
       return;
     }
 
@@ -450,6 +457,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         showToast?.("Appointment cancelled.", "success", 2000);
       } catch {
         pendingCancelBookingId = "";
+        await renderClientManagePage().catch(() => {});
         setStatus("Could not cancel this appointment. Please try again.", false);
       }
       return;

@@ -1,5 +1,16 @@
 # Staging QA checklist
 
+## Beta reliability/recovery local validation (2026-10-04)
+
+- [x] Automated owner logout clears current and legacy auth keys and returns protected Settings to sign-in.
+- [x] Automated rapid duplicate booking activation issues one booking request and cannot create a second receipt.
+- [x] Automated rapid duplicate cancel activation issues one cancellation request; a canceled manage page has no Cancel action.
+- [x] Cancellation failure remains non-successful and restores an enabled retry action.
+- [x] Invalid/unavailable manage-link UI remains generic and does not display a token.
+- [ ] After the required Netlify frontend deploy, rerun guarded staging **3/3** and manually check logout, invalid manage link, cancel failure/retry where safely reproducible, and normal booking/manage/cancel.
+- [ ] On a physical installed PWA, verify an old open app receives the new frontend after reconnect/relaunch without a stale booking or manage flow.
+- [ ] Against an isolated restore target only, verify API health, synthetic booking UI, and a restored recurring block. Never repoint active staging.
+
 ## Beta readiness day-one gate (2026-10-04)
 
 - [ ] Confirm the named private support channel, authorized staging operator, and incident decision maker are recorded outside Git. This is the only remaining pre-invitation blocker.

@@ -2,6 +2,15 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
+## Reliability/recovery follow-up (2026-10-04)
+
+- [x] Local mobile matrix: logout removes session credentials and protected Settings requires sign-in.
+- [x] Local mobile matrix: rapid duplicate booking and cancellation interactions each send one authoritative request.
+- [x] Local mobile matrix: canceled manage view cannot cancel again; a failed cancellation returns a usable retry action without false success.
+- [ ] Post-Netlify staging: rerun guarded **3/3**, then verify normal booking/manage/cancel and generic invalid-link behavior with synthetic data only.
+- [ ] Real installed PWA: open the prior deployment, reconnect/relaunch after deployment, and confirm current booking/manage UI loads without stale assets.
+- [ ] Isolated recovery environment: confirm a restored recurring block removes overlapping public slots while times before and after remain available. This was not part of the 2026-10-03 restore rehearsal.
+
 ## Beta gate — next trusted tester round (2026-10-04)
 
 **Scope:** one to two named trusted operators and three to five named trusted customers, staging only. Use minimum synthetic/test contact data; no payments or production activity.

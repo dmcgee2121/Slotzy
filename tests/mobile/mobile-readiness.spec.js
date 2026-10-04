@@ -550,7 +550,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     bookings: [],
   };
 
-  let bookingPostAttempted = false;
+  let bookingPostAttempts = 0;
   let bookingPostHadAuthorization = false;
   const manageToken = "x".repeat(48);
   let bookingShouldConflict = false;
@@ -573,7 +573,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
       return;
     }
     if (route.request().method() !== "POST") return route.continue();
-    bookingPostAttempted = true;
+    bookingPostAttempts += 1;
     bookingPostHadAuthorization = Boolean(route.request().headers().authorization);
     const submitted = route.request().postDataJSON();
     if (bookingShouldConflict) {
@@ -632,10 +632,13 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/bookings"
   ));
-  await page.locator("#bookBtn").click();
+  await page.locator("#bookBtn").evaluate((button) => {
+    button.click();
+    button.click();
+  });
   const saveResponse = await saveResponsePromise;
   expect(saveResponse.status()).toBe(201);
-  expect(bookingPostAttempted).toBe(true);
+  expect(bookingPostAttempts).toBe(1);
   expect(bookingPostHadAuthorization).toBe(false);
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
   const receiptManageLink = page.locator("#bookingReceiptManageLink");
@@ -730,13 +733,14 @@ test("token manage page renders customer details and persists cancellation", asy
   const shop = buildSeed({ configuredOwner: true }).local.Slotzy_shops[0];
   let currentStatus = "booked";
   let tokenHeaderPresent = false;
-  let cancelRequestObserved = false;
+  let cancelRequestCount = 0;
 
   await page.route("**/api/public/manage**", async (route) => {
     const request = route.request();
     tokenHeaderPresent = tokenHeaderPresent || Boolean(request.headers()["x-slotzy-manage-token"]);
     if (request.method() === "PATCH") {
-      cancelRequestObserved = true;
+      cancelRequestCount += 1;
+      await new Promise((resolve) => setTimeout(resolve, 100));
       currentStatus = "cancelled";
       await route.fulfill({
         status: 200,
@@ -763,10 +767,14 @@ test("token manage page renders customer details and persists cancellation", asy
   await expectNoPageOverflow(page, "token manage booking page");
 
   await managedCard.getByRole("button", { name: "Cancel", exact: true }).click();
-  await managedCard.getByRole("button", { name: "Confirm Cancel", exact: true }).click();
+  await managedCard.getByRole("button", { name: "Confirm Cancel", exact: true }).evaluate((button) => {
+    button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
   await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
   expect(tokenHeaderPresent).toBe(true);
-  expect(cancelRequestObserved).toBe(true);
+  expect(cancelRequestCount).toBe(1);
+  await expect(managedCard.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
 
   await page.reload();
   await expect(page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" }).locator(".appointment-actions .badge")).toHaveText("Cancelled");
@@ -814,6 +822,29 @@ test("token manage cancellation failure does not show local-only success", async
 
   await expect(page.locator("#manageStatus")).toContainText("Could not cancel this appointment");
   await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Booked");
+  await expect(managedCard.getByRole("button", { name: "Cancel", exact: true })).toBeEnabled();
+});
+
+test("owner logout clears session credentials and returns to an unauthenticated state", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/settings.html");
+  await page.evaluate(() => {
+    localStorage.setItem("Slotzy_auth_token", "synthetic-token-never-logged");
+    localStorage.setItem("Slotzy_token", "synthetic-legacy-token-never-logged");
+    sessionStorage.setItem("Slotzy_auth_token", "synthetic-session-token-never-logged");
+  });
+  await page.locator("#logoutBtn").click();
+  await expect(page).toHaveURL(/\/index\.html$/);
+  const state = await page.evaluate(() => ({
+    user: sessionStorage.getItem("Slotzy_user"),
+    sessionToken: sessionStorage.getItem("Slotzy_auth_token"),
+    legacySessionToken: sessionStorage.getItem("Slotzy_token"),
+    localToken: localStorage.getItem("Slotzy_auth_token"),
+    legacyLocalToken: localStorage.getItem("Slotzy_token"),
+  }));
+  expect(state).toEqual({ user: null, sessionToken: null, legacySessionToken: null, localToken: null, legacyLocalToken: null });
+  await page.goto("/pages/settings.html");
+  await expect(page.getByRole("heading", { name: "Please sign in to access settings." })).toBeVisible();
 });
 
 test("invalid manage link state fits mobile", async ({ page }) => {

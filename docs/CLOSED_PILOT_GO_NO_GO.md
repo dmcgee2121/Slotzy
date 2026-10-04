@@ -2,6 +2,12 @@
 
 Decision date: 2026-10-04
 
+## Reliability validation addendum
+
+Local mobile coverage now proves logout cleanup, one-request duplicate booking/cancel behavior, canceled-link safety, and cancellation-failure recovery. The failed-cancel UI received a small frontend hardening so it returns to an enabled Cancel action. Invalid links remain generic and token-safe. This does not broaden the gate: the decision remains **conditional go for the tiny trusted staging round**, after the named support/incident roles and day-one checks are confirmed.
+
+Installed-PWA cache rollover on a physical phone, a true time-expired link fixture, isolated restore-target app smoke, and a refreshed recurring-block restore rehearsal are beta improvements. They are not evidence for production readiness and must not be represented as completed.
+
 ## Recommendation
 
 **Conditional go — Ready for the next tiny trusted closed-pilot staging round with strict limits.**

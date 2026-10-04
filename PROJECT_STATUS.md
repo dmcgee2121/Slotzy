@@ -1,5 +1,25 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Beta reliability and recovery validation (2026-10-04)
+
+**Result: the conditional tiny-pilot go decision remains appropriate.** Local mobile automation now covers logout credential cleanup, duplicate booking prevention, duplicate cancellation prevention, canceled-booking safety, and retryable cancellation failure. The cancellation UI was hardened so a failed token cancellation restores an enabled Cancel action instead of remaining stuck in a pending state. No backend, storage contract, Supabase, staging, or production behavior changed.
+
+| Reliability area | Classification | Result / remaining boundary |
+| --- | --- | --- |
+| Owner logout | Already covered / acceptable for beta | Automated across the mobile browser matrix; stored session credentials clear and protected Settings returns to sign-in. |
+| Invalid JWT/session expiry | Needs test only | Client fails closed and clears rejected sessions; retain a hosted expiry/revocation check because per-user immediate JWT revocation is not implemented. |
+| Invalid/expired manage links | Already covered / acceptable for beta | Generic unavailable copy, no appointment disclosure, and no browser token response. A real time-expired hosted fixture remains a useful test-only follow-up. |
+| Canceled manage links | Already covered / acceptable for beta | Canceled state persists and exposes no further Cancel action; it may offer booking another appointment. |
+| Slow/failed booking and owner saves | Already covered / acceptable for beta | Pending controls and authoritative success/failure behavior prevent fake receipts or fake saves. |
+| Duplicate booking submission | Already covered / acceptable for beta | New automation proves rapid duplicate activation produces one create request. |
+| Duplicate/retry cancellation | Needs small code hardening — completed locally | An in-flight guard prevents duplicate cancel requests; failure rerenders a usable Cancel action without showing canceled success. |
+| PWA cache rollover | Needs test only | Versioned cache cleanup and network-first document/script/style handling exist; installed-app upgrade/reconnect remains real-device validation. |
+| iPhone-size containment | Already covered / acceptable for beta | Automated iPhone SE and iPhone 15 projects cover public/manage layouts; physical Safari/home-screen rollover remains a beta improvement. |
+| Restore-target API/UI smoke | Beta improvement | Still unperformed because no isolated target service was authorized for this task. Do not repoint staging. |
+| Recurring-block backup/restore | Beta improvement | Runbook inventory is corrected. The completed 2026-10-03 rehearsal predates recurring rollout, so a refreshed isolated rehearsal must verify the table and booking exclusion behavior. |
+
+**Remaining blocker:** unchanged—the private support channel, authorized staging operator, and incident decision maker must be recorded outside Git before invitations. **Post-beta:** self-service recovery/per-user revocation, production recovery/monitoring, broader offline guarantees, and automated restore-environment provisioning.
+
 ## Beta readiness gate review (2026-10-04)
 
 **Decision: Conditional go — ready for the next tiny trusted real-user staging round, within the documented limits.** Core owner setup, services, scheduling, public booking, branding, private manage/cancel/recovery, owner visibility, and operator support procedures have deployed staging evidence. This is not production readiness or approval for a broad/open beta.
