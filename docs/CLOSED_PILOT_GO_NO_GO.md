@@ -2,6 +2,31 @@
 
 Decision date: 2026-10-04
 
+## Pilot operations confirmation
+
+- Private support uses a direct-message/text channel maintained outside Git.
+- The founder/product owner is the authorized staging operator, named pilot operator, and incident decision maker for this first tiny round.
+- No private phone numbers, email addresses, tester names, or private contact details are recorded in the repository.
+- Scope is staging-only, with a tiny trusted group, no payments, and no production activity.
+
+## Day-one synthetic check
+
+1. Create or use a synthetic staging owner/shop.
+2. Confirm the owner can access the dashboard.
+3. Confirm services and availability are present.
+4. Book a synthetic customer appointment from the public booking page.
+5. Confirm the owner sees the appointment.
+6. Confirm the receipt shows the private manage link.
+7. Open the private manage link.
+8. Cancel the appointment.
+9. Refresh the owner appointment view.
+10. Confirm cancellation persisted.
+11. Stop pilot invitations if any step fails.
+
+Immediate stop conditions remain an authoritative-save discrepancy, unauthorized private-link access, failed persisted cancellation, missing owner appointment, or possible data disclosure.
+
+**Current check result: passed.** A separately authorized guarded staging run passed **3/3**: focused staging owner setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks. Operational roles and the day-one gate are complete; the tiny trusted staging pilot is cleared for invitations within the stated limits.
+
 ## Reliability validation addendum
 
 Local mobile coverage now proves logout cleanup, one-request duplicate booking/cancel behavior, canceled-link safety, and cancellation-failure recovery. The failed-cancel UI received a small frontend hardening so it returns to an enabled Cancel action. Invalid links remain generic and token-safe. This does not broaden the gate: the decision remains **conditional go for the tiny trusted staging round**, after the named support/incident roles and day-one checks are confirmed.
@@ -12,7 +37,7 @@ Installed-PWA cache rollover on a physical phone, a true time-expired link fixtu
 
 **Conditional go — Ready for the next tiny trusted closed-pilot staging round with strict limits.**
 
-Core product evidence is sufficient for a controlled next staging round with one to two trusted barbers/operators and three to five trusted customer testers. Invitations remain blocked until the named private support channel, authorized staging operator, and incident decision maker are confirmed outside Git and the day-one synthetic lifecycle check passes. This is not production readiness, approval for a broader/open beta, or authorization to process payments.
+Core product evidence is sufficient for a controlled next staging round with one to two trusted barbers/operators and three to five trusted customer testers. Operational roles and the private channel are confirmed outside Git, and the day-one synthetic lifecycle check passed. Invitations are cleared for this cohort only. This is not production readiness, approval for a broader/open beta, or authorization to process payments.
 
 ## 2026-10-04 gate review update
 
@@ -48,7 +73,7 @@ Core product evidence is sufficient for a controlled next staging round with one
 - iPhone-specific small-screen Safari and home-screen UAT was not performed. iPad provides Apple/Safari browser and home-screen coverage, but not iPhone-size coverage.
 - Logout/session expiry, invalid/expired manage-link recovery, slow/offline/reconnect behavior, duplicate-submit resistance, and installed-app cache rollover remain open coverage.
 - Mobile Calendar overflow and future dashboard mockup refinements are parked and non-blocking for this scope; the Round 1 iPad/tablet alignment and dashboard/settings polish shipped.
-- The private support channel, incident decision maker, and authorized staging operator must be named and recorded outside the repository before invitations.
+- The private support channel, incident decision maker, authorized staging operator, and named pilot operator are confirmed outside the repository for this first tiny round.
 - Broader-pilot gaps remain, including production privacy/retention/monitoring, rate limiting/abuse decisions, and fuller account-recovery/session-revocation capability.
 - The isolated restore rehearsal predates final recurring-block rollout evidence; application/API smoke and explicit recurring-block verification against the restore target remain unperformed.
 
@@ -62,12 +87,9 @@ Core product evidence is sufficient for a controlled next staging round with one
 
 ## Day-one checklist
 
-1. Run the approved guarded hosted staging E2E with synthetic data before sending invitations.
-2. Confirm the private support channel, named barber/operator, authorized staging operator, and incident decision maker.
-3. Create a synthetic test booking and verify that the owner can see it.
-4. Open that booking's manage link, cancel it, and confirm the cancelled state persists after refresh.
-5. Record issues in the restricted, redacted support record. Do not store or share secrets, raw manage links/tokens, or private tester data.
-6. Send invitations only when every prior step passes; otherwise do not invite and pause the pilot.
+1. Record that the guarded staging suite passed 3/3 and the operational roles are confirmed outside Git.
+2. Record issues in the restricted, redacted support record. Do not store or share secrets, raw manage links/tokens, or private tester data.
+3. Send invitations only to the stated tiny trusted staging cohort; pause new invitations immediately if a stop condition occurs.
 
 ## Invitation scripts
 

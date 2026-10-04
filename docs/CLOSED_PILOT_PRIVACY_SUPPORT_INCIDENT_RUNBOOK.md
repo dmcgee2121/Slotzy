@@ -6,6 +6,8 @@ This runbook supports a small, named, trusted Slotzy pilot in the dedicated **st
 
 Use only the approved pilot contact channel and the staging environment. Before inviting anyone, the pilot owner must name the support contact, incident decision maker, and authorized staging operator in a restricted location outside this repository. Do not place their personal contact details, credentials, or customer records in this file.
 
+For the first tiny staging round, the private direct-message/text support channel exists outside Git and the founder/product owner is the authorized staging operator, named pilot operator, and incident decision maker. No private phone numbers, email addresses, tester names, or contact details are recorded here. The separately authorized day-one guarded staging check passed 3/3. The pilot is cleared for invitations only within its staging-only, tiny/trusted, no-payments, no-production scope.
+
 The runbook closes the **documentation/process** privacy-support-incident readiness gap for the trusted pilot. It does not remove the separate real-device UAT, isolated restore-rehearsal, or password/session limitations described below.
 
 ## Pilot data and access

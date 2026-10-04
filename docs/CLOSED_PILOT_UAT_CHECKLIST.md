@@ -2,6 +2,14 @@
 
 Use a real staging account and synthetic test bookings only. Do not test production, reset staging, or share a customer manage link outside the tester group. Run the customer flow first, then use the same booking in the owner flow. Mark each line Pass, Fail, or Not available; add a short note for every failure.
 
+## Pilot operations confirmation (2026-10-04)
+
+- [x] Private direct-message/text support channel exists outside Git.
+- [x] Founder/product owner is the authorized staging operator, named pilot operator, and incident decision maker for the first tiny staging round.
+- [x] No private contact details or tester identities are stored in this repository.
+- [x] The round remains staging-only and tiny/trusted, with no payments and no production activity.
+- [x] Day-one lifecycle passed in a separately authorized guarded staging run: **3/3** (focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks).
+
 ## Reliability/recovery follow-up (2026-10-04)
 
 - [x] Local mobile matrix: logout removes session credentials and protected Settings requires sign-in.
@@ -15,8 +23,8 @@ Use a real staging account and synthetic test bookings only. Do not test product
 
 **Scope:** one to two named trusted operators and three to five named trusted customers, staging only. Use minimum synthetic/test contact data; no payments or production activity.
 
-- [ ] Before invitations, confirm the private support channel, authorized staging operator, and incident decision maker.
-- [ ] Run the day-one synthetic booking → owner visibility → private manage link → cancellation persistence check.
+- [x] Before invitations, confirm the private support channel, named pilot operator, authorized staging operator, and incident decision maker outside Git.
+- [x] Run the day-one synthetic booking → owner visibility → private manage link → cancellation persistence check through the guarded staging suite; **3/3 passed**.
 - [ ] Tell testers that owner profile editing is read-only, owner recovery is operator-assisted, manage-link rescheduling is unavailable, and this is staging—not a live service.
 - [ ] Ask testers to cover normal owner setup/services/hours, recurring and one-time blocks, chooser/direct booking, branding, receipt/manage/cancel/recovery, and owner appointment visibility.
 - [ ] Stop immediately on an authoritative save discrepancy, unauthorized/private-link access, failed persisted cancellation, missing owner booking, or apparent data disclosure.

@@ -1,5 +1,15 @@
 # Staging QA checklist
 
+## Pilot operations setup (2026-10-04)
+
+- [x] Private direct-message/text support channel exists outside Git.
+- [x] Founder/product owner is the authorized staging operator, named pilot operator, and incident decision maker.
+- [x] No private contact details or tester identities are stored in the repository.
+- [x] Pilot remains staging-only, tiny/trusted, with no payments and no production activity.
+- [x] Complete the day-one synthetic lifecycle gate through the separately authorized guarded staging suite: **3/3 passed**.
+
+Result: the initial docs-only attempt remained safely guarded; a separately authorized guarded staging run subsequently passed **3/3**. The invitation gate is closed for the documented tiny trusted staging-only cohort.
+
 ## Beta reliability/recovery local validation (2026-10-04)
 
 - [x] Automated owner logout clears current and legacy auth keys and returns protected Settings to sign-in.
@@ -13,11 +23,11 @@
 
 ## Beta readiness day-one gate (2026-10-04)
 
-- [ ] Confirm the named private support channel, authorized staging operator, and incident decision maker are recorded outside Git. This is the only remaining pre-invitation blocker.
-- [ ] Run the guarded staging suite with synthetic data and require **3/3** immediately before invitations.
-- [ ] Create one synthetic public booking, confirm owner visibility, open its private manage link, cancel it, and confirm cancellation persists after refresh.
+- [x] Confirm the private support channel, named pilot operator, authorized staging operator, and incident decision maker outside Git without recording private contact details.
+- [x] Run the guarded staging suite with synthetic data: **3/3 passed** (focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks).
+- [x] Day-one synthetic lifecycle evidence passed through the guarded suite: owner/setup and public booking lifecycle, owner visibility, private manage-link handling, cancellation persistence, and negative checks.
 - [ ] Confirm recurring scheduling and owner account/recovery deployed behavior remain present without changing staging configuration or data outside the synthetic test.
-- [ ] Invite only the limited named cohort if all checks pass; otherwise stop and investigate.
+- [x] Invite the limited named cohort: cleared for the tiny trusted staging-only round. Stop immediately for an authoritative-save discrepancy, unauthorized private-link access, failed persisted cancellation, missing owner appointment, or possible data disclosure.
 
 ### Next-package validation backlog (non-blocking for this tiny round)
 

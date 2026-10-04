@@ -1,5 +1,13 @@
 # Slotzy Project Status — staging and mobile readiness (2026-10-01)
 
+## Pilot operations and day-one gate (2026-10-04)
+
+Operational roles are confirmed for the first tiny trusted staging-only pilot. The founder/product owner is the authorized staging operator, named pilot operator, and incident decision maker. A private direct-message/text support channel exists outside Git. No phone numbers, email addresses, tester names, or private contact details are stored in this repository. The round remains staging-only, has no payments or production activity, and is limited to the tiny trusted tester group.
+
+The day-one guarded staging suite and synthetic lifecycle check must pass before invitations. Stop invitations immediately for an authoritative-save discrepancy, unauthorized private-link access, failed persisted cancellation, missing owner appointment, or possible data disclosure.
+
+**Day-one result: passed.** A separately authorized guarded staging run passed **3/3**: focused staging owner setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks. The tiny trusted staging pilot is cleared for invitations within its documented limits.
+
 ## Beta reliability and recovery validation (2026-10-04)
 
 **Result: the conditional tiny-pilot go decision remains appropriate.** Local mobile automation now covers logout credential cleanup, duplicate booking prevention, duplicate cancellation prevention, canceled-booking safety, and retryable cancellation failure. The cancellation UI was hardened so a failed token cancellation restores an enabled Cancel action instead of remaining stuck in a pending state. No backend, storage contract, Supabase, staging, or production behavior changed.
@@ -18,13 +26,13 @@
 | Restore-target API/UI smoke | Beta improvement | Still unperformed because no isolated target service was authorized for this task. Do not repoint staging. |
 | Recurring-block backup/restore | Beta improvement | Runbook inventory is corrected. The completed 2026-10-03 rehearsal predates recurring rollout, so a refreshed isolated rehearsal must verify the table and booking exclusion behavior. |
 
-**Remaining blocker:** unchanged—the private support channel, authorized staging operator, and incident decision maker must be recorded outside Git before invitations. **Post-beta:** self-service recovery/per-user revocation, production recovery/monitoring, broader offline guarantees, and automated restore-environment provisioning.
+**Operational and day-one gates:** resolved for the first tiny round. Invitations are cleared only for the documented tiny, trusted, staging-only cohort; immediate stop conditions remain active. **Post-beta:** self-service recovery/per-user revocation, production recovery/monitoring, broader offline guarantees, and automated restore-environment provisioning.
 
 ## Beta readiness gate review (2026-10-04)
 
 **Decision: Conditional go — ready for the next tiny trusted real-user staging round, within the documented limits.** Core owner setup, services, scheduling, public booking, branding, private manage/cancel/recovery, owner visibility, and operator support procedures have deployed staging evidence. This is not production readiness or approval for a broad/open beta.
 
-The only remaining pre-invitation blocker is operational: the pilot owner must confirm outside Git the named private support channel, authorized staging operator, and incident decision maker. If those roles are already recorded and the day-one synthetic booking/manage/cancel check passes, invitations may proceed.
+The operational roles and private support channel are confirmed outside Git, and the separately authorized day-one guarded synthetic lifecycle check passed 3/3. Invitations may proceed for the tiny trusted staging-only cohort.
 
 | Area | Gate classification | Evidence / limitation |
 | --- | --- | --- |
@@ -38,7 +46,7 @@ The only remaining pre-invitation blocker is operational: the pilot owner must c
 | Owner appointment visibility/management | Already complete / acceptable for beta | Owner visibility and core management work; Calendar overflow remains a non-blocking improvement. |
 | Owner account/profile/recovery | Already complete / acceptable for beta | Hosted personal profile is intentionally read-only; recovery is operator-assisted through private support. |
 | Backup/restore | Beta improvement | Database-level isolated restore passed. App/API smoke against the restore target and explicit recurring-block restore coverage remain unverified. |
-| Privacy/support/incident | Beta blocker until operational names are confirmed | Runbooks are adequate for a tiny pilot; the private channel, operator, and incident decision maker must exist before invitations. |
+| Privacy/support/incident | Already complete / acceptable for beta | Roles and private channel are confirmed outside Git for the tiny round; no private details are stored in the repository. |
 | Mobile/PWA usability | Already complete / acceptable for beta | Android and iPad browser/home-screen core flows passed; iPhone-specific and adverse network/cache cases remain improvements. |
 | Staging reliability | Already complete / acceptable for beta | Multiple guarded 3/3 passes, including after recent deployed packages. Run the day-one check before invitations. |
 
@@ -92,7 +100,7 @@ The only remaining pre-invitation blocker is operational: the pilot owner must c
 - **Ready for a trusted barber/customer pilot:** **Yes, with strict limits.** The final assessment is **Ready for tiny trusted closed pilot with strict limits**: one named barber/operator and one to three named customer testers, staging only. This is not production readiness or authorization to expand.
 - **Privacy/support/incident readiness:** the practical trusted-pilot process is now documented in `docs/CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md`, covering data handling, restricted support intake, correction/deletion requests, incident triage, pilot pause, and tester communications. This removes the privacy/support/incident **documentation** blocker, not the separate production privacy/retention/monitoring gap.
 - **Recovery status:** the database-level isolated backup/restore rehearsal is **completed and validated** (2026-10-03): an authorized manual CSV export/import restored `slotzy-staging` into the isolated `slotzy-postgres-test` Supabase target in dependency-safe batches. Render staging remained pointed at `slotzy-staging`; production and staging data were not touched, and no destructive SQL was run. Final target table counts and relational integrity checks are recorded in `docs/CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md`. `email_outbox` was intentionally skipped because it is not needed to prove core booking recovery and may contain contact/message data. This validates the database-level restore only; app-level validation against the restore target was not performed.
-- **Remaining limitations:** owner password recovery is manual/operator-mediated only and password changes do not immediately revoke issued JWTs. Before invitations, record the private support channel, incident decision maker, and authorized staging operator outside the repository. Installed Android PWA, Android Chrome, iPad Safari, and the iPad home-screen app all passed the critical booking/manage/cancel/owner-visibility path; iPhone-specific UAT and recovery/cache coverage remain open. The isolated restore rehearsal was database-level only; no app-level validation ran against its restore target. Calendar overflow and tablet visual-polish follow-ups remain non-blocking.
+- **Remaining limitations:** owner password recovery is manual/operator-mediated only and password changes do not immediately revoke issued JWTs. The private support channel, incident decision maker, and authorized staging operator are confirmed outside the repository for this tiny round. Installed Android PWA, Android Chrome, iPad Safari, and the iPad home-screen app all passed the critical booking/manage/cancel/owner-visibility path; iPhone-specific UAT and recovery/cache coverage remain open. The isolated restore rehearsal was database-level only; no app-level validation ran against its restore target. Calendar overflow and tablet visual-polish follow-ups remain non-blocking.
 - **Minor observation:** on the first Android Chrome opening of the “I'm a client” page, services briefly appeared before a barbershop was selected and then corrected itself. Inspection of `js/booking-engine.js` found service population gated on selected shop and barber state, so this is tracked as a non-blocking transient observation rather than a confirmed state bug.
 - **Should fix or close before pilot:** complete the remaining target-device/browser coverage, including iPhone Safari and installed iOS home-screen app if required for the pilot; iPad now covers the Apple/Safari browser and home-screen paths. Verify logout/session behavior, invalid/expired manage-link recovery, slow/offline behavior, and installed-app cache refresh. Follow up on the non-blocking iPad/tablet owner-dashboard centering and Settings/Profile branding-upload alignment observations.
 - **Can wait:** mobile Calendar overflow remains parked; richer multi-provider invite/account and hours workflow is future work. Do not represent the current Team page as multi-provider management.

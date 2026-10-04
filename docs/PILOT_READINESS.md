@@ -1,5 +1,15 @@
 # Pilot readiness
 
+## Pilot operations confirmation and day-one check (2026-10-04)
+
+- [x] Private direct-message/text support channel exists outside Git.
+- [x] Founder/product owner is the authorized staging operator, named pilot operator, and incident decision maker for the first tiny round.
+- [x] Repository contains no private phone numbers, email addresses, tester names, or private contact details.
+- [x] Scope remains staging-only, tiny/trusted, without payments or production activity.
+- [x] Separately authorized guarded staging day-one synthetic check passed **3/3**: focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks.
+
+An initial docs-only attempt was safely blocked before execution by the staging mutation guard. A separate authorized guarded run subsequently passed **3/3**. The tiny trusted staging pilot is cleared for invitations; immediately pause invitations and investigate any authoritative-save discrepancy, unauthorized private-link access, failed persisted cancellation, missing owner appointment, or possible data disclosure.
+
 ## Reliability/recovery validation update (2026-10-04)
 
 - [x] Logout clears browser-held session credentials and returns protected owner pages to sign-in across the mobile automation matrix.
@@ -10,12 +20,12 @@
 - [ ] Run an installed-PWA upgrade/reconnect check on a real device and a real time-expired manage-link fixture. These are test-only beta improvements, not blockers for the tiny trusted round.
 - [ ] Run guarded API/UI smoke against an isolated restore target and repeat the restore rehearsal with `recurring_time_blocks`. The 2026-10-03 database rehearsal predates recurring rollout and cannot be cited as proof for that table.
 
-The beta decision remains **conditional go**. The sole pre-invitation blocker remains confirmation, outside Git, of the private support channel, authorized staging operator, and incident decision maker.
+The beta decision is now **go for the tiny trusted staging pilot**, within its strict documented limits. Operational roles and the day-one guarded staging/synthetic lifecycle gates are complete.
 
 ## Beta readiness gate review (2026-10-04)
 
 - **Decision: Conditional go for the next tiny trusted staging round.** No unresolved core product blocker was found across owner setup, services, scheduling, public booking, branding, manage/cancel/recovery, owner visibility, or beta account/recovery UX.
-- **Pre-invitation blocker:** confirm outside the repository the named private support channel, authorized staging operator, and incident decision maker. Run the existing day-one synthetic booking → owner visibility → manage → cancel check before invitations.
+- **Invitation clearance:** operational roles and the private channel are confirmed outside the repository, and the guarded day-one synthetic lifecycle check passed 3/3. Invite only the documented tiny trusted staging cohort.
 - **Tester scope:** one to two trusted operators and three to five trusted customer testers, staging only, no payments, minimum synthetic/test contact data, and immediate stop on authoritative save, private-link, cancellation, or owner-visibility failure.
 - **Accepted limitations:** hosted personal profiles remain read-only; owner recovery remains operator-assisted; token links do not support rescheduling; restore validation is database-only; iPhone-specific and adverse network/session/cache coverage is incomplete; Calendar overflow and tablet polish remain non-blocking.
 - **Next package:** Beta Reliability and Recovery Validation—session/logout, invalid/expired links, offline/reconnect/duplicate submission, PWA cache rollover, iPhone-size coverage, and isolated restore-target app smoke including recurring blocks.
@@ -89,7 +99,7 @@ The beta decision remains **conditional go**. The sole pre-invitation blocker re
 - [x] The manually observed mobile customer booking-save-error candidate is cleared for the exercised installed-PWA and Android-Chrome hosted paths: booking saved successfully, with no save issue observed. Continue to watch this path during remaining device coverage.
 - [x] Minor Android Chrome observation recorded: on the first opening of the “I'm a client” page, services briefly appeared before a barbershop was selected, then corrected itself. `js/booking-engine.js` gates service population on selected shop and barber state; no persistent state bug was found in inspection, so this is non-blocking unless reproduced as a durable incorrect state.
 
-The privacy/support/incident **documentation** blocker is removed by the new runbook. Before any invitation, the pilot owner must still name the private support channel, incident decision maker, and authorized staging operator outside the repository; this is an operating prerequisite, not a claim of production privacy or retention readiness. The isolated restore rehearsal validates database recovery only, not an application connected to the restore target.
+The privacy/support/incident **documentation** blocker is removed by the runbook. For this first tiny round, the private support channel, incident decision maker, and authorized staging operator are confirmed outside the repository; this is not a claim of production privacy or retention readiness. The isolated restore rehearsal validates database recovery only, not an application connected to the restore target.
 
 ### Strict closed-pilot limits
 
