@@ -8,6 +8,8 @@ The day-one guarded staging suite and synthetic lifecycle check must pass before
 
 **Day-one result: passed.** A separately authorized guarded staging run passed **3/3**: focused staging owner setup API chain, synthetic owner-to-customer booking lifecycle, and staging negative checks. The tiny trusted staging pilot is cleared for invitations within its documented limits.
 
+**Launch materials:** tester-facing instructions, role checklists, limitations, stop conditions, and a redacted feedback/severity template are prepared in `docs/CLOSED_PILOT_TESTER_INSTRUCTIONS.md` and `docs/CLOSED_PILOT_FEEDBACK_TEMPLATE.md`. Do not place private support details in Git.
+
 ## Beta reliability and recovery validation (2026-10-04)
 
 **Result: the conditional tiny-pilot go decision remains appropriate.** Local mobile automation now covers logout credential cleanup, duplicate booking prevention, duplicate cancellation prevention, canceled-booking safety, and retryable cancellation failure. The cancellation UI was hardened so a failed token cancellation restores an enabled Cancel action instead of remaining stuck in a pending state. No backend, storage contract, Supabase, staging, or production behavior changed.

@@ -22,6 +22,8 @@ An initial docs-only attempt was safely blocked before execution by the staging 
 
 The beta decision is now **go for the tiny trusted staging pilot**, within its strict documented limits. Operational roles and the day-one guarded staging/synthetic lifecycle gates are complete.
 
+Launch handouts are ready: use [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md) and the restricted [feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md). Keep support contact details outside Git.
+
 ## Beta readiness gate review (2026-10-04)
 
 - **Decision: Conditional go for the next tiny trusted staging round.** No unresolved core product blocker was found across owner setup, services, scheduling, public booking, branding, manage/cancel/recovery, owner visibility, or beta account/recovery UX.

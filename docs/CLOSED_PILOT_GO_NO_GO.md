@@ -93,6 +93,8 @@ Core product evidence is sufficient for a controlled next staging round with one
 
 ## Invitation scripts
 
+Send the relevant script together with [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md). Use the [feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md) only in the private support process; never commit completed records.
+
 ### Trusted barber/operator
 
 > Hi [name] — I’m inviting you to a very small, early Slotzy staging pilot. This is testing, not production: please use only test bookings and do not enter sensitive customer information. You’ll be the single operator for this round. If booking, saving, manage links, cancellations, or owner views behave unexpectedly, stop and send details through [private support channel]. Account recovery is handled manually by the pilot operator. Please do not share passwords, private manage links, or screenshots containing customer details.
@@ -109,3 +111,5 @@ Core product evidence is sufficient for a controlled next staging round with one
 - [Owner recovery runbook](CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md)
 - [Backup and restore runbook](CLOSED_PILOT_BACKUP_RESTORE_RUNBOOK.md)
 - [Privacy, support, and incident runbook](CLOSED_PILOT_PRIVACY_SUPPORT_INCIDENT_RUNBOOK.md)
+- [Tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md)
+- [Feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md)

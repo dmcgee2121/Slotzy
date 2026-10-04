@@ -32,6 +32,8 @@ Use a real staging account and synthetic test bookings only. Do not test product
 
 **Non-blocking observations for this round:** Calendar overflow/tablet polish, iPhone-specific device coverage, adverse network/session/cache behavior, and restore-target app validation remain targeted follow-ups rather than reasons to withhold this tiny trusted staging round.
 
+Use [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md) for the operator/customer scope and [feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md) for redacted private-channel observations.
+
 ## Owner account/profile/recovery cleanup — passed (2026-10-04)
 
 - [x] Netlify deployed and guarded staging passed **3/3**; no Render deploy, Supabase migration, or production change was required.

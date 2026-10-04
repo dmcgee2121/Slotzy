@@ -10,6 +10,8 @@
 
 Result: the initial docs-only attempt remained safely guarded; a separately authorized guarded staging run subsequently passed **3/3**. The invitation gate is closed for the documented tiny trusted staging-only cohort.
 
+Before sending an invitation, provide the applicable [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md). Route observations using the redacted [feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md) through the private channel only.
+
 ## Beta reliability/recovery local validation (2026-10-04)
 
 - [x] Automated owner logout clears current and legacy auth keys and returns protected Settings to sign-in.
