@@ -607,8 +607,12 @@ function normalizeStatus(statusValue) {
 function normalizeShopRecord(shop, index) {
   const source = isObjectRecord(shop) ? shop : {};
   const policy = isObjectRecord(source.bookingPolicy) ? source.bookingPolicy : {};
-  const logoDataUrl = String(source.logoDataUrl ?? "").trim();
-  const coverDataUrl = String(source.coverDataUrl ?? "").trim();
+  const logoDataUrl = String(
+    source.logoDataUrl ?? source.logoImageDataUrl ?? source.logoImage ?? source.logo ?? source.logoUrl ?? ""
+  ).trim();
+  const coverDataUrl = String(
+    source.coverDataUrl ?? source.coverImageDataUrl ?? source.coverImage ?? source.cover ?? ""
+  ).trim();
   const name = String(shop?.name ?? shop?.businessName ?? "").trim() || `Shop ${index + 1}`;
   return {
     ...source,
@@ -738,11 +742,15 @@ function ensureLegacyShopCompatibility(shops) {
     : (legacySource?.address && typeof legacySource.address === "object" && !Array.isArray(legacySource.address)
       ? legacySource.address
       : {});
-  const logoDataUrl = Object.prototype.hasOwnProperty.call(primaryShop, "logoDataUrl")
-    ? (String(primaryShop?.logoDataUrl ?? "").trim() || null)
+  const hasPrimaryLogo = ["logoDataUrl", "logoImageDataUrl", "logoImage", "logo", "logoUrl"]
+    .some((key) => Object.prototype.hasOwnProperty.call(primaryShop, key));
+  const logoDataUrl = hasPrimaryLogo
+    ? (String(primaryShop?.logoDataUrl ?? primaryShop?.logoImageDataUrl ?? primaryShop?.logoImage ?? primaryShop?.logo ?? primaryShop?.logoUrl ?? "").trim() || null)
     : (String(legacySource?.logoDataUrl ?? "").trim() || null);
-  const coverDataUrl = Object.prototype.hasOwnProperty.call(primaryShop, "coverDataUrl")
-    ? (String(primaryShop?.coverDataUrl ?? "").trim() || null)
+  const hasPrimaryCover = ["coverDataUrl", "coverImageDataUrl", "coverImage", "cover"]
+    .some((key) => Object.prototype.hasOwnProperty.call(primaryShop, key));
+  const coverDataUrl = hasPrimaryCover
+    ? (String(primaryShop?.coverDataUrl ?? primaryShop?.coverImageDataUrl ?? primaryShop?.coverImage ?? primaryShop?.cover ?? "").trim() || null)
     : (String(legacySource?.coverDataUrl ?? "").trim() || null);
   const shopPhone = Object.prototype.hasOwnProperty.call(primaryShop, "shopPhone")
     ? String(primaryShop?.shopPhone ?? "").trim()
@@ -1016,6 +1024,17 @@ async function apiGetShops() {
   return shops;
 }
 
+function canonicalizeShopBrandingPayload(shop) {
+  const payload = { ...shop };
+  const logo = payload.logoDataUrl ?? payload.logoImageDataUrl ?? payload.logoImage ?? payload.logoUrl ?? payload.logo;
+  const cover = payload.coverDataUrl ?? payload.coverImageDataUrl ?? payload.coverImage ?? payload.cover;
+  if (logo !== undefined) payload.logo = String(logo ?? "").trim();
+  if (cover !== undefined) payload.cover = String(cover ?? "").trim();
+  ["logoDataUrl", "logoImageDataUrl", "logoImage", "logoUrl", "coverDataUrl", "coverImageDataUrl", "coverImage"]
+    .forEach((key) => delete payload[key]);
+  return payload;
+}
+
 async function apiSaveShops(shopsInput) {
   const nextShops = Array.isArray(shopsInput) ? shopsInput : [];
   const current = await apiGetShops();
@@ -1025,7 +1044,7 @@ async function apiSaveShops(shopsInput) {
 
   for (const shop of nextShops) {
     const id = toRecordId(shop?.id);
-    const payload = { ...shop };
+    const payload = canonicalizeShopBrandingPayload(shop);
     delete payload.id;
 
     if (id && currentIds.has(id)) {
@@ -1070,7 +1089,7 @@ async function apiGetShop() {
 }
 
 async function apiSaveShop(shopObj) {
-  const payload = isObjectRecord(shopObj) ? { ...shopObj } : {};
+  const payload = canonicalizeShopBrandingPayload(isObjectRecord(shopObj) ? shopObj : {});
   const candidateName = String(payload.name ?? payload.businessName ?? "").trim();
   if (candidateName) {
     payload.name = candidateName;

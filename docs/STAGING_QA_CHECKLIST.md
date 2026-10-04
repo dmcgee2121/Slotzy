@@ -321,6 +321,16 @@ If staging reports a `23505` during `write snapshot` after registration reaches 
 
 ## Pilot Round 2 pre-invite checklist (2026-10-03)
 
+Branding/profile regression gate:
+
+- [ ] Deploy the PostgreSQL adapter change to Render, then the frontend change to Netlify; do not reset staging data.
+- [ ] Save a small custom logo and cover, reload Settings, and confirm both previews persist.
+- [ ] Confirm the anonymous chooser uses the saved logo and the dashboard-generated direct link uses the saved logo and cover.
+- [ ] Confirm an unbranded shop still uses Slotzy fallbacks.
+- [ ] Confirm public booking context has non-empty `logo`/`cover` fields without logging their data URL contents.
+- [ ] Confirm hosted Profile Settings is disabled with “Profile editing is not available during the pilot.”
+- [ ] Rerun booking, manage, cancellation/reschedule, and availability coverage.
+
 - [ ] Run the guarded staging suite and confirm **3/3** pass before invitations.
 - [ ] Confirm the private support channel and incident contact.
 - [ ] Confirm the named tester list: no more than 1–2 barbers/operators and 3–5 trusted customer testers.

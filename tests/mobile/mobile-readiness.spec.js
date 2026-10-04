@@ -1264,8 +1264,10 @@ test("public booking recognizes API logo and cover branding fields", async ({ pa
       body: JSON.stringify({
         shops: [{
           ...seed.local.Slotzy_shops[0],
+          name: "API Branded Shop",
+          businessName: "API Branded Shop",
           logo: "data:image/png;base64,iVBORw0KGgo=",
-          cover: "data:image/webp;base64,UklGRg==",
+          coverImageDataUrl: "data:image/webp;base64,UklGRg==",
         }],
         providers: seed.local.Slotzy_users,
         services: seed.local.Slotzy_services,
@@ -1275,9 +1277,26 @@ test("public booking recognizes API logo and cover branding fields", async ({ pa
     });
   });
 
+  await page.goto("/pages/book.html");
+  const apiShopCard = page.locator(".public-shop-directory-card").filter({ hasText: "API Branded Shop" });
+  await expect(apiShopCard.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+
   await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
   await expect(page.locator("#publicShopLogo")).toHaveAttribute("src", /^data:image\/png/);
   await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
+});
+
+test("hosted profile settings clearly disable unsupported editing", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.addInitScript(() => localStorage.setItem("Slotzy_api_mode", "1"));
+
+  await page.goto("/pages/settings.html");
+
+  await expect(page.locator("#saveProfileBtn")).toBeDisabled();
+  await expect(page.locator("#fullNameInput")).toBeDisabled();
+  await expect(page.locator("#emailInput")).toBeDisabled();
+  await expect(page.locator("#phoneInput")).toBeDisabled();
+  await expect(page.locator("#profileStatus")).toHaveText("Profile editing is not available during the pilot.");
 });
 
 test("team provider page is honest for the pilot and preserves public provider booking", async ({ page }) => {

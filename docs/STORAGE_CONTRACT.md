@@ -47,6 +47,12 @@ Anonymous booking creation generates a cryptographically random bearer token and
 
 Current Express routes still mutate and save a complete legacy document. In Postgres mode, `writeStore` invokes the required `slotzy_storage_write_snapshot` database RPC so any full-document reconciliation is atomic. That RPC must be reviewed and applied to a disposable test database before Postgres mode can be enabled. This intentional boundary avoids a race-prone sequence of browser/server check-then-write operations.
 
+## Shop branding field contract
+
+Browser clients may supply historical branding aliases (`logoDataUrl`, `logoUrl`, `logoImage`, `logoImageDataUrl`, `coverDataUrl`, `coverImage`, or `coverImageDataUrl`). API writes and the Postgres adapter canonicalize these to `logo` and `cover`, which the RPC stores in `shops.logo_url` and `shops.cover_url`. Relational reads use the canonical names; browser readers accept both forms for compatibility. API requests must not send duplicate aliases because image data URLs are large.
+
+The anonymous booking-context response remains an allowlist and exposes branding only as `logo` and `cover`; it does not return owner-only shop fields. Empty values select default Slotzy branding. Data URL contents must not appear in diagnostics or test failure messages.
+
 ## Future booking transaction contract
 
 The current document adapter cannot provide relational transactions. The Postgres adapter must expose a dedicated transaction-level booking operation before public hosted booking is enabled. In one database transaction it must:

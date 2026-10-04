@@ -1179,6 +1179,8 @@ export function initBookingEngine(options = {}) {
     if (!canUseLegacyShopData(shopId)) return "";
     return String(
       legacyShop?.logoDataUrl ??
+      legacyShop?.logoImageDataUrl ??
+      legacyShop?.logoImage ??
       legacyShop?.logoUrl ??
       legacyShop?.logo ??
       ""
@@ -1189,7 +1191,13 @@ export function initBookingEngine(options = {}) {
     const legacyShop = getLegacyShopSource();
     if (!legacyShop || typeof legacyShop !== "object") return "";
     if (!canUseLegacyShopData(shopId)) return "";
-    return String(legacyShop?.coverDataUrl ?? "").trim();
+    return String(
+      legacyShop?.coverDataUrl ??
+      legacyShop?.coverImageDataUrl ??
+      legacyShop?.coverImage ??
+      legacyShop?.cover ??
+      ""
+    ).trim();
   }
 
   function getCustomShopLogoDataUrl(shop) {
@@ -1197,7 +1205,15 @@ export function initBookingEngine(options = {}) {
     const persistedShop = shopId ? getShopByIdSource(shopId) : null;
     return String(
       persistedShop?.logoDataUrl ??
+      persistedShop?.logoImageDataUrl ??
+      persistedShop?.logoImage ??
+      persistedShop?.logo ??
+      persistedShop?.logoUrl ??
       shop?.logoDataUrl ??
+      shop?.logoImageDataUrl ??
+      shop?.logoImage ??
+      shop?.logo ??
+      shop?.logoUrl ??
       getLegacyShopLogoDataUrl(shopId) ??
       ""
     ).trim();
@@ -1208,8 +1224,12 @@ export function initBookingEngine(options = {}) {
     const persistedShop = shopId ? getShopByIdSource(shopId) : null;
     return String(
       persistedShop?.coverDataUrl ??
+      persistedShop?.coverImageDataUrl ??
+      persistedShop?.coverImage ??
       persistedShop?.cover ??
       shop?.coverDataUrl ??
+      shop?.coverImageDataUrl ??
+      shop?.coverImage ??
       shop?.cover ??
       getLegacyShopCoverDataUrl(shopId) ??
       ""

@@ -129,6 +129,14 @@ Known parked/non-gate work: mobile Calendar overflow; richer multi-provider invi
 
 ## Pilot Round 1 closeout and Round 2 checklist (2026-10-03)
 
+Round 2 branding/profile follow-up:
+
+- [ ] After Render and Netlify staging deploys, save a test logo and cover and verify both survive reload.
+- [ ] As an anonymous client, verify the custom logo in the chooser and custom cover/logo on the direct booking page.
+- [ ] Verify unbranded shops retain default Slotzy branding.
+- [ ] Verify hosted Profile Settings clearly reports that editing is unavailable and never shows the generic retry error.
+- [ ] Keep invitations paused if branding or any booking/manage/availability path regresses.
+
 Round 1 is complete and stabilized. Its core client booking, owner/barber appointment visibility, availability blocking, and barber/client cancel-reschedule paths passed. The lunch/break delete defect, 1 MiB branding limit, and owner dashboard/tablet/settings polish findings were resolved. Mobile automation passed 104/104 and hosted staging passed 3/3; no further functional-flow blocker was reported after the delete fix.
 
 - [ ] Before invitations, rerun the guarded staging suite and confirm 3/3 pass.

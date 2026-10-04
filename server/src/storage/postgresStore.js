@@ -80,6 +80,29 @@ function legacyPolicy(row = {}) {
   };
 }
 
+function firstBrandingValue(shop, keys) {
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(shop, key)) continue;
+    return String(shop[key] ?? "").trim();
+  }
+  return "";
+}
+
+// The browser historically called these fields logoDataUrl/coverDataUrl while
+// the Postgres snapshot RPC consumes logo/cover. Canonicalize at the adapter
+// boundary so both existing records and older clients persist branding.
+export function normalizePostgresSnapshot(store) {
+  const snapshot = normalizeStoreShape(store);
+  return {
+    ...snapshot,
+    shops: snapshot.shops.map((shop) => ({
+      ...shop,
+      logo: firstBrandingValue(shop, ["logoDataUrl", "logoImageDataUrl", "logoImage", "logoUrl", "logo"]),
+      cover: firstBrandingValue(shop, ["coverDataUrl", "coverImageDataUrl", "coverImage", "cover"]),
+    })),
+  };
+}
+
 // Server-only adapter. It maps relational rows back to the document shape that
 // current Express routes expect; routes do not receive database column names.
 export function createPostgresStore(env = process.env) {
@@ -173,7 +196,7 @@ export function createPostgresStore(env = process.env) {
   // database RPC; it is never a browser call or a JSON fallback.
   async function writeStore(store) {
     beginOperation();
-    const { error } = await client.rpc("slotzy_storage_write_snapshot", { snapshot: normalizeStoreShape(store) });
+    const { error } = await client.rpc("slotzy_storage_write_snapshot", { snapshot: normalizePostgresSnapshot(store) });
     fail(error, "write snapshot", networkFailures);
   }
 

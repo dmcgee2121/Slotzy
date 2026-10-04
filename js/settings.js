@@ -118,7 +118,7 @@ import { wireLogoutButton } from "./logout.js";
     loadProfile();
     bindCompletenessEvents();
     updateProfileCompleteness();
-    saveProfileBtn?.addEventListener("click", handleSaveProfile);
+    configureProfileEditing();
     configureShopSettings();
     configureDemoModeControls();
     configureBackupRestoreControls();
@@ -158,6 +158,22 @@ import { wireLogoutButton } from "./logout.js";
     if (fullNameInput) fullNameInput.value = String(profile.fullName ?? "");
     if (emailInput) emailInput.value = String(profile.email ?? "");
     if (phoneInput) phoneInput.value = String(profile.phone ?? "");
+  }
+
+  function configureProfileEditing() {
+    const hostedMode = dataStore.getApiRuntimeState().apiEnabled;
+    if (hostedMode) {
+      [fullNameInput, emailInput, phoneInput].forEach((input) => {
+        if (input) input.disabled = true;
+      });
+      if (saveProfileBtn) {
+        saveProfileBtn.disabled = true;
+        saveProfileBtn.setAttribute("aria-disabled", "true");
+      }
+      setProfileStatus("Profile editing is not available during the pilot.", false);
+      return;
+    }
+    saveProfileBtn?.addEventListener("click", handleSaveProfile);
   }
 
   async function handleSaveProfile() {
@@ -618,8 +634,15 @@ import { wireLogoutButton } from "./logout.js";
   function getStoredShopLogoDataUrl(shop, legacyShop) {
     return String(
       shop?.logoDataUrl ??
+      shop?.logoImageDataUrl ??
+      shop?.logoImage ??
+      shop?.logo ??
+      shop?.logoUrl ??
       legacyShop?.logoDataUrl ??
+      legacyShop?.logoImageDataUrl ??
+      legacyShop?.logoImage ??
       legacyShop?.logoUrl ??
+      legacyShop?.logo ??
       ""
     ).trim();
   }
@@ -627,7 +650,13 @@ import { wireLogoutButton } from "./logout.js";
   function getStoredShopCoverDataUrl(shop, legacyShop) {
     return String(
       shop?.coverDataUrl ??
+      shop?.coverImageDataUrl ??
+      shop?.coverImage ??
+      shop?.cover ??
       legacyShop?.coverDataUrl ??
+      legacyShop?.coverImageDataUrl ??
+      legacyShop?.coverImage ??
+      legacyShop?.cover ??
       ""
     ).trim();
   }

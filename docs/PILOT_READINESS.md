@@ -276,6 +276,8 @@ The owner dashboard and Settings/Profile branding area received a frontend-only 
 
 ## Pilot Round 1 complete; Round 2 recommendation (2026-10-03)
 
+> Round 2 gate (2026-10-03): branding upload success did not survive the Postgres write boundary because browser `logoDataUrl`/`coverDataUrl` fields were not translated to the snapshot RPC's `logo`/`cover` fields. The adapter translation and public alias handling are now covered without a schema change. Hosted profile editing remains unsupported and is explicitly disabled instead of attempting a local-only write. Keep invitations paused until Render and Netlify are redeployed and staging branding checks pass.
+
 Pilot Round 1 is complete and stabilized. The client booking, owner/barber appointment visibility, barber availability blocking, and barber/client cancel-reschedule paths passed. Round 1 minor owner-side findings were fixed: lunch/break deletion, the 1 MiB branding limit (now 5 MiB for JPG/PNG/WEBP), dashboard/navigation redundancy, and tablet/settings alignment. Mobile coverage passed 104/104 and guarded hosted staging passed 3/3; no further functional-flow blocker was reported after the delete fix.
 
 Round 2 is a staging-only, tightly controlled extension: 1–2 trusted barbers/operators and 3–5 trusted customer testers, no payments, minimum test-only customer data, and a private support channel. Pause invitations and investigate if booking, manage-link, cancellation, reschedule, or save behavior fails. It is not production readiness: manual owner recovery/session revocation, app-level restore-target validation, iPhone-specific small-screen UAT, and broader launch hardening remain open; Calendar overflow remains non-blocking and parked.

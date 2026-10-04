@@ -848,6 +848,8 @@ This is acceptable only for local development. It blocks real pilot and staging 
 
 ## Pilot Round 1 complete; Round 2 scope (2026-10-03)
 
+> Round 2 hosted follow-up (2026-10-03): live staging exposed a branding persistence mismatch that local/mobile coverage did not. Settings sent `logoDataUrl`/`coverDataUrl`, while the Postgres snapshot RPC reads `logo`/`cover` into `shops.logo_url`/`shops.cover_url`. The adapter now canonicalizes these aliases before the RPC and maps stored values back compatibly; the public API remains allowlisted. Hosted profile editing has no authoritative endpoint, so API mode now disables it with “Profile editing is not available during the pilot.” Render and Netlify staging deploys are required; no Supabase migration or data reset is required.
+
 - **Pilot Round 1 is complete and stabilized.** Core flow passed: a client can book; the barber sees the appointment; barber availability correctly blocks customer booking; and both barber and client can cancel or reschedule.
 - Round 1 found minor owner-side issues only: lunch/break delete confirmation did not remove the block, dashboard/navigation felt redundant, branding uploads were constrained to 1 MiB, and tablet dashboard/settings alignment needed polish. The delete behavior is fixed, JPG/PNG/WEBP branding uploads allow 5 MiB, and the dashboard/tablet/settings polish shipped.
 - Evidence after the fixes: local mobile coverage passed **104/104** and guarded hosted staging passed **3/3**. No further functional-flow blocker was reported after the lunch/break correction.
