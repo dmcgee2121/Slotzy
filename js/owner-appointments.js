@@ -1603,6 +1603,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   function renderCalendar(bookings) {
     const calendarEl = document.getElementById("calendar");
     if (!calendarEl || !window.FullCalendar) return;
+    const compactCalendar = window.matchMedia?.("(max-width: 680px)")?.matches === true;
 
     bookedCountByDay = buildBookedCountByDay(bookings);
     bindCalendarHostEventsOnce(calendarEl);
@@ -1635,7 +1636,10 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     calendarInstance = new window.FullCalendar.Calendar(calendarEl, {
       initialView: "dayGridMonth",
       initialDate,
-      height: "auto",
+      // An auto-height month grid can collapse to the toolbar on a narrow
+      // layout before FullCalendar has measured its containing card.
+      height: compactCalendar ? 390 : "auto",
+      dayMaxEventRows: compactCalendar ? 2 : true,
       headerToolbar: {
         left: "prev,next",
         center: "title",

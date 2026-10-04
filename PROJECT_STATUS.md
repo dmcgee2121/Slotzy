@@ -10,6 +10,12 @@ The day-one guarded staging suite and synthetic lifecycle check must pass before
 
 **Launch materials:** tester-facing instructions, role checklists, limitations, stop conditions, and a redacted feedback/severity template are prepared in `docs/CLOSED_PILOT_TESTER_INSTRUCTIONS.md` and `docs/CLOSED_PILOT_FEEDBACK_TEMPLATE.md`. Do not place private support details in Git.
 
+## Pilot feedback triage 1 — owner mobile/calendar and branding polish (2026-10-04)
+
+Pilot customer feedback confirms booking, available times, recovery, and cancellation remained straightforward. Owner feedback identified a collapsed-looking mobile calendar, a cramped desktop calendar column/header area, unclear delete progress, and logo framing. This focused frontend patch reserves a readable mobile month grid, gives the calendar the primary desktop column, separates account badges from navigation styling, adds explicit deleting/clearing feedback with retryable failure recovery, and uses a centered contained public-logo frame. The tiny trusted staging pilot remains active within its staging-only, no-payments, no-production limits; all existing stop conditions remain active.
+
+**Service descriptions:** not implemented. A legacy local/demo `desc` value exists, but managed services do not edit it, the Postgres `services` schema/adapter does not preserve it, and public booking does not render it. This is a beta improvement requiring a deliberate additive data-model/API/public-contract package and migration review.
+
 ## Beta reliability and recovery validation (2026-10-04)
 
 **Result: the conditional tiny-pilot go decision remains appropriate.** Local mobile automation now covers logout credential cleanup, duplicate booking prevention, duplicate cancellation prevention, canceled-booking safety, and retryable cancellation failure. The cancellation UI was hardened so a failed token cancellation restores an enabled Cancel action instead of remaining stuck in a pending state. No backend, storage contract, Supabase, staging, or production behavior changed.

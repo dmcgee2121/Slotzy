@@ -34,6 +34,15 @@ Use a real staging account and synthetic test bookings only. Do not test product
 
 Use [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md) for the operator/customer scope and [feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md) for redacted private-channel observations.
 
+## Pilot feedback triage 1 retest (2026-10-04)
+
+- [ ] Phone owner appointments: confirm a visible, readable month grid appears below Today/previous/next controls with no horizontal overflow.
+- [ ] Desktop owner appointments: confirm the calendar is no longer cramped in a narrow side column.
+- [ ] Mobile owner header: confirm account identity is visually distinct from navigation buttons and all navigation remains tappable.
+- [ ] Availability: delete a recurring lunch/break and a one-time/day block; confirm progress wording, persisted removal, and retryable failure behavior.
+- [ ] Public branding: confirm the shop logo is centered/contained in its rounded frame; cover and default Slotzy logo remain correct.
+- [ ] Keep service descriptions out of this retest: they need a separate end-to-end data-model/API/public-booking package.
+
 ## Owner account/profile/recovery cleanup — passed (2026-10-04)
 
 - [x] Netlify deployed and guarded staging passed **3/3**; no Render deploy, Supabase migration, or production change was required.

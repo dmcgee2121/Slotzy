@@ -409,11 +409,16 @@ async function handleRecurringListClick(event) {
   if (!availability.recurringBlocks.some((block) => block.id === id)) return;
   availability.recurringBlocks = availability.recurringBlocks.filter((block) => block.id !== id);
   target.disabled = true;
+  target.dataset.idleText = target.textContent || "Delete";
+  target.textContent = "Deleting…";
+  clearRecurringError();
   try {
     await saveAvailability(availability);
     renderAvailability();
   } catch (error) {
     target.disabled = false;
+    target.textContent = target.dataset.idleText || "Delete";
+    delete target.dataset.idleText;
     console.error("[Slotzy:availability] Could not delete recurring block.", String(error?.message ?? "delete_failed"));
     showRecurringError("Could not delete that recurring block. It is still unavailable. Please try again.");
   }
@@ -500,6 +505,7 @@ async function handleBlockOffDay() {
 }
 
 async function handleClearDayBlocks() {
+  const clearButton = document.getElementById("availability-clear-day-blocks");
   const availability = loadAvailability();
   const selectedDate = getQuickDateValue();
   if (!selectedDate) {
@@ -515,10 +521,20 @@ async function handleClearDayBlocks() {
   }
 
   availability.timeOff = nextTimeOff;
+  if (clearButton instanceof HTMLButtonElement) {
+    clearButton.disabled = true;
+    clearButton.dataset.idleText = clearButton.textContent || "Clear day blocks";
+    clearButton.textContent = "Clearing…";
+  }
   try {
     await saveAvailability(availability);
   } catch (error) {
     console.error("[Slotzy:availability] Could not clear day blocks.", error);
+    if (clearButton instanceof HTMLButtonElement) {
+      clearButton.disabled = false;
+      clearButton.textContent = clearButton.dataset.idleText || "Clear day blocks";
+      delete clearButton.dataset.idleText;
+    }
     showTimeOffError("Could not save changes. Try again.");
     return;
   }

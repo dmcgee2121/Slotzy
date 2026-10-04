@@ -12,6 +12,14 @@ Result: the initial docs-only attempt remained safely guarded; a separately auth
 
 Before sending an invitation, provide the applicable [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md). Route observations using the redacted [feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md) through the private channel only.
 
+## Pilot feedback triage 1 follow-up (2026-10-04)
+
+- [ ] After the required Netlify deploy, verify on a phone that the owner appointments page shows a visible month grid below Today/previous/next controls, without horizontal overflow.
+- [ ] Verify desktop calendar has a comfortable main-column layout and owner header/account badge is visually distinct from navigation controls.
+- [ ] Verify a recurring block and a one-time/day block show clear deleting/clearing feedback; on a safely induced hosted failure, the item remains and its action is retryable.
+- [ ] Verify an uploaded logo is centered and contained in the public rounded frame; cover rendering and the Slotzy fallback remain unchanged.
+- [ ] Do not add service descriptions during this patch. The current hosted/Postgres/public service contract does not support them end-to-end.
+
 ## Beta reliability/recovery local validation (2026-10-04)
 
 - [x] Automated owner logout clears current and legacy auth keys and returns protected Settings to sign-in.

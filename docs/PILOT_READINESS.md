@@ -24,6 +24,15 @@ The beta decision is now **go for the tiny trusted staging pilot**, within its s
 
 Launch handouts are ready: use [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md) and the restricted [feedback template](CLOSED_PILOT_FEEDBACK_TEMPLATE.md). Keep support contact details outside Git.
 
+## Pilot feedback triage 1 (2026-10-04)
+
+- [x] Customer feedback: booking, availability, recovery, and cancellation remained understandable and successful.
+- [x] Owner mobile calendar now reserves a readable month-grid surface; desktop gives the calendar its primary column rather than constraining it to a narrow side panel.
+- [x] Owner header account badge styling is visually distinct from navigation controls on mobile.
+- [x] Availability day/block deletion now shows `Clearing…`/`Deleting…`; hosted failures retain the item and restore a retryable action.
+- [x] Public logo uses a centered, contained rounded frame without changing cover behavior or the Slotzy fallback.
+- [ ] Service descriptions are not safe to add in this patch: the hosted/Postgres/public contract is incomplete. Plan separately as a beta-improvement data-model/API package.
+
 ## Beta readiness gate review (2026-10-04)
 
 - **Decision: Conditional go for the next tiny trusted staging round.** No unresolved core product blocker was found across owner setup, services, scheduling, public booking, branding, manage/cancel/recovery, owner visibility, or beta account/recovery UX.

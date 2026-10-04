@@ -177,7 +177,7 @@ async function expectReadableStatus(page, selector) {
 async function installCalendarToolbarStub(page) {
   await page.route("**/fullcalendar@6.1.8/index.global.min.js", (route) => route.fulfill({
     contentType: "application/javascript",
-    body: `window.FullCalendar={Calendar:class{constructor(el,options){this.el=el;this.options=options;this.date=new Date(options.initialDate||Date.now())}getDate(){return this.date}destroy(){this.el.innerHTML=''}render(){const update=()=>{const title=this.date.toLocaleString(undefined,{month:'long',year:'numeric'});this.el.innerHTML='<div class="fc"><div class="fc-header-toolbar"><div class="fc-toolbar-chunk"><button type="button" class="fc-prev-button">Previous</button><button type="button" class="fc-next-button">Next</button></div><div class="fc-toolbar-chunk"><h2 class="fc-toolbar-title">'+title+'</h2></div><div class="fc-toolbar-chunk"><button type="button" class="fc-today-button">Today</button></div></div><table><tbody><tr><td class="fc-daygrid-day" data-ymd="2026-10-02"><div class="fc-daygrid-day-top"></div></td></tr></tbody></table></div>';this.el.querySelector('.fc-prev-button').onclick=()=>{this.date.setMonth(this.date.getMonth()-1);update()};this.el.querySelector('.fc-next-button').onclick=()=>{this.date.setMonth(this.date.getMonth()+1);update()};this.el.querySelector('.fc-today-button').onclick=()=>{this.date=new Date();update()};this.options.datesSet&&this.options.datesSet({view:{currentStart:new Date(this.date.getFullYear(),this.date.getMonth(),1)}})};update()}}};`,
+    body: `window.FullCalendar={Calendar:class{constructor(el,options){this.el=el;this.options=options;this.date=new Date(options.initialDate||Date.now())}getDate(){return this.date}destroy(){this.el.innerHTML=''}render(){const update=()=>{const title=this.date.toLocaleString(undefined,{month:'long',year:'numeric'});const cells=Array.from({length:7},(_,i)=>'<td class="fc-daygrid-day" data-ymd="2026-10-0'+(i+1)+'"><div class="fc-daygrid-day-frame"><div class="fc-daygrid-day-top">'+(i+1)+'</div></div></td>').join('');this.el.innerHTML='<div class="fc"><div class="fc-header-toolbar"><div class="fc-toolbar-chunk"><button type="button" class="fc-prev-button">Previous</button><button type="button" class="fc-next-button">Next</button></div><div class="fc-toolbar-chunk"><h2 class="fc-toolbar-title">'+title+'</h2></div><div class="fc-toolbar-chunk"><button type="button" class="fc-today-button">Today</button></div></div><table class="fc-scrollgrid"><tbody><tr>'+cells+'</tr></tbody></table></div>';this.el.querySelector('.fc-prev-button').onclick=()=>{this.date.setMonth(this.date.getMonth()-1);update()};this.el.querySelector('.fc-next-button').onclick=()=>{this.date.setMonth(this.date.getMonth()+1);update()};this.el.querySelector('.fc-today-button').onclick=()=>{this.date=new Date();update()};this.options.datesSet&&this.options.datesSet({view:{currentStart:new Date(this.date.getFullYear(),this.date.getMonth(),1)}})};update()}}};`,
   }));
   await page.route("**/fullcalendar@6.1.8/index.global.min.css", (route) => route.fulfill({ contentType: "text/css", body: "" }));
 }
@@ -1212,6 +1212,14 @@ test("owner dashboard navigation and calendar toolbar stay polished on mobile", 
   await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
   const calendar = page.locator("#calendar");
   await expect(calendar.locator(".fc-header-toolbar")).toBeVisible();
+  await expect(calendar.locator(".fc-daygrid-day")).toHaveCount(7);
+  const calendarGrid = await calendar.locator(".fc-scrollgrid").evaluate((grid) => ({
+    height: grid.getBoundingClientRect().height,
+    clientWidth: grid.clientWidth,
+    scrollWidth: grid.scrollWidth,
+  }));
+  expect(calendarGrid.height, "mobile calendar must render a readable grid below its controls").toBeGreaterThan(100);
+  expect(calendarGrid.scrollWidth, "mobile calendar grid must not overflow horizontally").toBeLessThanOrEqual(calendarGrid.clientWidth + 1);
   for (const selector of [".fc-prev-button", ".fc-next-button", ".fc-today-button"]) {
     await expectControlFits(page, calendar.locator(selector));
   }
@@ -1368,6 +1376,22 @@ test("saved shop branding appears in the public chooser and selected booking pag
   await expectRenderedDataImage(shopCard.locator("img"), "data:image/png;base64,");
   await shopCard.click();
   await expectRenderedDataImage(page.locator("#publicShopLogo"), "data:image/png;base64,");
+  const publicLogoLayout = await page.locator("#publicShopLogo").evaluate((logo) => {
+    const styles = getComputedStyle(logo);
+    const bounds = logo.getBoundingClientRect();
+    return {
+      width: bounds.width,
+      height: bounds.height,
+      objectFit: styles.objectFit,
+      objectPosition: styles.objectPosition,
+      borderRadius: Number.parseFloat(styles.borderTopLeftRadius),
+    };
+  });
+  expect(publicLogoLayout.width).toBeGreaterThan(40);
+  expect(Math.abs(publicLogoLayout.width - publicLogoLayout.height), "public logo frame should be aligned, not stretched").toBeLessThanOrEqual(1);
+  expect(publicLogoLayout.objectFit).toBe("contain");
+  expect(["center", "50% 50%"].includes(publicLogoLayout.objectPosition)).toBe(true);
+  expect(publicLogoLayout.borderRadius).toBeGreaterThan(0);
   await expect(page.locator("#publicShopHero")).toHaveClass(/has-shop-cover/);
   await expectRenderedDataImage(page.locator("#publicShopCover"), "data:image/png;base64,");
   await expectNoPageOverflow(page, "selected booking page with saved branding");
@@ -1819,4 +1843,33 @@ test("hosted time-off delete failure keeps the block and offers a retryable erro
     const availability = JSON.parse(localStorage.getItem("Slotzy_availability") || "{}");
     return availability[username]?.timeOff?.some((entry) => entry.id === "timeoff-api-failure");
   }, OWNER_USERNAME)).toBe(true);
+});
+
+test("hosted recurring-block delete shows pending feedback and restores a retryable action after failure", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  seed.local.Slotzy_availability[OWNER_USERNAME].recurringBlocks = [{
+    id: "recurring-api-failure",
+    weekday: "mon",
+    start: "12:00",
+    end: "13:00",
+    label: "Lunch",
+    enabled: true,
+  }];
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/availability**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+  await page.goto("/pages/business-owner.html");
+  const deleteButton = page.locator('button[data-action="delete-recurring"]');
+  await deleteButton.click();
+  await expect(deleteButton).toHaveText("Deleting…");
+  await expect(page.locator("#availability-recurring-error")).toContainText("Could not delete that recurring block");
+  await expect(deleteButton).toBeEnabled();
+  await expect(deleteButton).toHaveText("Delete");
+  await expect(page.locator("#availability-recurring-list")).toContainText("Lunch");
 });

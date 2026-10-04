@@ -85,6 +85,17 @@
   max-width: 100%;
   margin-left: 0;
   overflow-wrap: anywhere;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: none;
 }
 
 .owner-header-actions .link:hover {
@@ -694,7 +705,7 @@
 }
 
 .owner-page .appointments-layout {
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
@@ -1281,12 +1292,15 @@
 }
 
 .public-shop-logo {
-  width: auto;
-  height: auto;
-  max-width: min(180px, 100%);
-  max-height: 56px;
-  border-radius: 20px;
+  box-sizing: border-box;
+  display: block;
+  width: 76px;
+  height: 76px;
+  max-width: 100%;
+  max-height: 76px;
+  border-radius: 18px;
   object-fit: contain;
+  object-position: center;
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -2709,6 +2723,21 @@
     max-width: 100%;
   }
 
+  .owner-page #calendar .fc-scrollgrid {
+    width: 100% !important;
+    min-height: 300px;
+    table-layout: fixed;
+  }
+
+  .owner-page #calendar .fc-daygrid-body,
+  .owner-page #calendar .fc-daygrid-body-natural {
+    width: 100% !important;
+  }
+
+  .owner-page #calendar .fc-daygrid-day-frame {
+    min-height: 38px;
+  }
+
   .owner-page #calendar .fc-header-toolbar {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2855,6 +2884,14 @@
     min-height: 36px;
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .owner-page .owner-dashboard-header-nav #userBadge {
+    grid-column: 1 / -1;
+    justify-self: start;
+    width: auto;
+    min-height: 28px;
+    padding: 2px 0;
   }
 
   .owner-page .owner-layout {
