@@ -367,38 +367,44 @@ import {
     if (!Number.isFinite(price) || price <= 0) return setStatus(ui.serviceStatus, "Price must be greater than 0.", false);
     if (!Number.isInteger(durationMinutes) || durationMinutes < 10 || durationMinutes > 240) return setStatus(ui.serviceStatus, "Duration must be between 10 and 240 minutes.", false);
 
-    const services = await dataStore.getServicesAsync();
-    const nextServices = Array.isArray(services) ? [...services] : [];
-    const duplicate = nextServices.some((service) => (
-      String(service?.shopId ?? "").trim() === state.shopId
-      && String(service?.barberUsername ?? service?.ownerUsername ?? "").trim() === barberUsername
-      && String(service?.name ?? service?.title ?? "").trim().toLowerCase() === name.toLowerCase()
-    ));
-    if (duplicate) return setStatus(ui.serviceStatus, "That barber already has a service with this name.", false);
+    try {
+      const services = await dataStore.getServicesAsync({ fallbackOnError: false });
+      const duplicate = (Array.isArray(services) ? services : []).some((service) => (
+        String(service?.shopId ?? "").trim() === state.shopId
+        && String(service?.barberUsername ?? service?.ownerUsername ?? "").trim() === barberUsername
+        && String(service?.name ?? service?.title ?? "").trim().toLowerCase() === name.toLowerCase()
+      ));
+      if (duplicate) return setStatus(ui.serviceStatus, "That barber already has a service with this name.", false);
 
-    nextServices.push({
-      id: createId("svc"),
-      name,
-      title: name,
-      price: Number(price.toFixed(2)),
-      durationMinutes,
-      duration: durationMinutes,
-      active: true,
-      createdAtISO: new Date().toISOString(),
-      shopId: state.shopId,
-      barberUsername,
-      ownerUsername: barberUsername,
-    });
-    await dataStore.saveServicesAsync(nextServices, { fallbackOnError: false });
+      // Create only the new service. Re-saving the entire collection made a
+      // second setup add PATCH the first service before it could POST the new
+      // one, so an unrelated write failure could block the new service.
+      await dataStore.createServiceAsync({
+        id: createId("svc"),
+        name,
+        title: name,
+        price: Number(price.toFixed(2)),
+        durationMinutes,
+        duration: durationMinutes,
+        active: true,
+        createdAtISO: new Date().toISOString(),
+        shopId: state.shopId,
+        barberUsername,
+        ownerUsername: barberUsername,
+      }, { fallbackOnError: false });
 
-    if (ui.serviceNameInput) ui.serviceNameInput.value = "";
-    if (ui.servicePriceInput) ui.servicePriceInput.value = "";
-    if (ui.serviceDurationInput) ui.serviceDurationInput.value = "";
+      if (ui.serviceNameInput) ui.serviceNameInput.value = "";
+      if (ui.servicePriceInput) ui.servicePriceInput.value = "";
+      if (ui.serviceDurationInput) ui.serviceDurationInput.value = "";
 
-    await refreshSetupStatus();
-    applySetupStatus();
-    setStatus(ui.serviceStatus, "Service added.", true);
-    window.showToast?.("Service added.", "success");
+      await refreshSetupStatus();
+      applySetupStatus();
+      setStatus(ui.serviceStatus, "Service added.", true);
+      window.showToast?.("Service added.", "success");
+    } catch (error) {
+      console.error("[Slotzy:owner-setup] Could not add service.", error);
+      setStatus(ui.serviceStatus, "Could not save this service. Please try again.", false);
+    }
   }
 
   async function handleServiceListClick(event) {

@@ -230,9 +230,9 @@ async function ownerSetupStepTransitionDiagnostics(page, browserErrors) {
   return { ...state, browserErrors: browserErrors.map((error) => safeDiagnosticText(error)) };
 }
 
-async function ownerSetupServiceSaveDiagnostics(page, expectedServiceName) {
+async function ownerSetupServiceSaveDiagnostics(page, expectedService) {
   if (page.isClosed()) return { pageClosed: true };
-  return page.evaluate((serviceName) => {
+  return page.evaluate((service) => {
     const read = (id) => document.getElementById(id);
     const visible = (element) => Boolean(element?.getClientRects().length);
     const valuePresent = (id) => Boolean(String(read(id)?.value ?? "").trim());
@@ -248,6 +248,9 @@ async function ownerSetupServiceSaveDiagnostics(page, expectedServiceName) {
         namePresent: valuePresent("setupServiceName"),
         pricePresent: valuePresent("setupServicePrice"),
         durationPresent: valuePresent("setupServiceDuration"),
+        nameMatchesExpected: String(read("setupServiceName")?.value ?? "").trim() === String(service?.name ?? ""),
+        priceMatchesExpected: String(read("setupServicePrice")?.value ?? "").trim() === String(service?.price ?? ""),
+        durationMatchesExpected: String(read("setupServiceDuration")?.value ?? "").trim() === String(service?.duration ?? ""),
       },
       addButton: {
         present: Boolean(button),
@@ -255,7 +258,8 @@ async function ownerSetupServiceSaveDiagnostics(page, expectedServiceName) {
         enabled: Boolean(button && !button.disabled),
         text: String(button?.textContent || "").trim().slice(0, 80),
       },
-      expectedServiceRendered: serviceRows.some((row) => String(row.textContent || "").includes(serviceName)),
+      serviceListCount: serviceRows.length,
+      expectedServiceRendered: serviceRows.some((row) => String(row.textContent || "").includes(String(service?.name ?? ""))),
       serviceSaveStatus: {
         visible: visible(status),
         success: status?.classList.contains("status-success") === true,
@@ -263,7 +267,7 @@ async function ownerSetupServiceSaveDiagnostics(page, expectedServiceName) {
         text: String(status?.textContent || "").trim().slice(0, 240),
       },
     };
-  }, expectedServiceName).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
+  }, expectedService).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
 }
 
 async function manageCancelRuntimeDiagnostics(page) {
@@ -1132,7 +1136,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
         && new URL(response.url()).origin === expectedApiOrigin
         && new URL(response.url()).pathname === serviceEndpointPath
       ), { timeout: 20000 }).then((response) => ({ response }), (error) => ({ error }));
-      const serviceSaveBeforeClick = await ownerSetupServiceSaveDiagnostics(page, service.name);
+      const serviceSaveBeforeClick = await ownerSetupServiceSaveDiagnostics(page, service);
       const addServiceButton = page.locator("#setupAddServiceBtn");
       await expect(addServiceButton).toBeVisible();
       await expect(addServiceButton).toBeEnabled();
@@ -1146,7 +1150,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
         throw new Error(`Owner setup service save did not update the UI: ${JSON.stringify({
           expectedServiceRendered: false,
           submitBeforeClick: serviceSaveBeforeClick,
-          submitAfterWait: await ownerSetupServiceSaveDiagnostics(page, service.name),
+          submitAfterWait: await ownerSetupServiceSaveDiagnostics(page, service),
           lifecycleEvents,
           assertionError: safeDiagnosticText(error?.message),
         })}`);
@@ -1158,7 +1162,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
         throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify({
           ...persisted,
           submitBeforeClick: serviceSaveBeforeClick,
-          submitAfterPersistenceCheck: await ownerSetupServiceSaveDiagnostics(page, service.name),
+          submitAfterPersistenceCheck: await ownerSetupServiceSaveDiagnostics(page, service),
           lifecycleEvents,
           currentPath: new URL(page.url()).pathname,
         })}`);
@@ -1174,7 +1178,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
           endpointPath: serviceEndpointPath,
           method: "POST",
           submitBeforeClick: serviceSaveBeforeClick,
-          submitAfterPersistenceCheck: await ownerSetupServiceSaveDiagnostics(page, service.name),
+          submitAfterPersistenceCheck: await ownerSetupServiceSaveDiagnostics(page, service),
           lifecycleEvents,
           requestWaitError: safeDiagnosticText(serviceSaveRequestResult.error?.message),
           responseWaitError: safeDiagnosticText(serviceSaveResult.error?.message),
