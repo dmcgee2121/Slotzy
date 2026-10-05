@@ -120,6 +120,46 @@ function collectApiLifecycleDiagnostics(page, expectedOrigin, expectedPath) {
   };
 }
 
+function collectOwnerSetupLifecycleDiagnostics(page, expectedOrigin) {
+  const events = [];
+  const paths = new Set(["/api/auth/me", "/api/shops", "/api/services", "/api/availability"]);
+  const describe = (request) => {
+    try {
+      const url = new URL(request.url());
+      if (url.origin !== expectedOrigin || !paths.has(url.pathname)) return null;
+      return { method: request.method(), path: url.pathname };
+    } catch {
+      return null;
+    }
+  };
+  const add = (event) => {
+    if (event && events.length < 20) events.push(event);
+  };
+  const onRequest = (request) => {
+    const entry = describe(request);
+    add(entry && { type: "request", ...entry });
+  };
+  const onResponse = (response) => {
+    const entry = describe(response.request());
+    add(entry && { type: "response", ...entry, status: response.status() });
+  };
+  const onRequestFailed = (request) => {
+    const entry = describe(request);
+    add(entry && { type: "requestfailed", ...entry, failure: safeDiagnosticText(request.failure()?.errorText) });
+  };
+  page.on("request", onRequest);
+  page.on("response", onResponse);
+  page.on("requestfailed", onRequestFailed);
+  return {
+    snapshot: () => events.map((event) => ({ ...event })),
+    stop: () => {
+      page.off("request", onRequest);
+      page.off("response", onResponse);
+      page.off("requestfailed", onRequestFailed);
+    },
+  };
+}
+
 async function publicBookingSubmitDiagnostics(page) {
   if (page.isClosed()) return { pageClosed: true };
   return page.evaluate(() => {
@@ -144,6 +184,50 @@ async function publicBookingSubmitDiagnostics(page) {
       serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
     };
   }).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
+}
+
+async function ownerSetupStepTransitionDiagnostics(page, browserErrors) {
+  if (page.isClosed()) return { pageClosed: true, browserErrors: browserErrors.map(safeDiagnosticText) };
+  const state = await page.evaluate(() => {
+    const visible = (element) => Boolean(element?.getClientRects().length);
+    const panelState = Array.from(document.querySelectorAll("[data-step-panel]")).map((panel) => ({
+      step: String(panel.getAttribute("data-step-panel") || ""),
+      visible: visible(panel),
+      heading: String(panel.querySelector("h2")?.textContent || "").trim(),
+    }));
+    const stepTwo = document.getElementById("setupStep2Next");
+    const stepOneButton = document.getElementById("setupStep1Next");
+    const shopStatus = document.getElementById("setupShopStatus");
+    const setupStatus = document.getElementById("setupStatus");
+    return {
+      currentPath: window.location.pathname,
+      stepSummary: String(document.getElementById("setupStepSummary")?.textContent || "").trim(),
+      activeStepLabel: String(document.querySelector(".setup-step[aria-current='step']")?.textContent || "").trim(),
+      visiblePanels: panelState.filter((panel) => panel.visible),
+      stepTwo: {
+        exists: Boolean(stepTwo),
+        visible: visible(stepTwo),
+        enabled: Boolean(stepTwo && !stepTwo.disabled),
+      },
+      stepOneSave: {
+        visible: visible(stepOneButton),
+        enabled: Boolean(stepOneButton && !stepOneButton.disabled),
+        pending: stepOneButton?.getAttribute("aria-busy") === "true",
+      },
+      shopStatus: {
+        visible: visible(shopStatus),
+        success: shopStatus?.classList.contains("status-success") === true,
+        error: shopStatus?.classList.contains("status-error") === true,
+        text: String(shopStatus?.textContent || "").trim().slice(0, 240),
+      },
+      generalStatus: {
+        visible: visible(setupStatus),
+        error: setupStatus?.classList.contains("status-error") === true,
+        text: String(setupStatus?.textContent || "").trim().slice(0, 240),
+      },
+    };
+  }).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
+  return { ...state, browserErrors: browserErrors.map((error) => safeDiagnosticText(error)) };
 }
 
 async function manageCancelRuntimeDiagnostics(page) {
@@ -917,6 +1001,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       ownerProfileFilled: Boolean(String(await page.locator("#setupOwnerDisplayName").inputValue().catch(() => "")).trim()),
     };
     const step1Diagnostics = await ownerSetupStep1Diagnostics(page, browserErrors);
+    const setupLifecycle = collectOwnerSetupLifecycleDiagnostics(page, expectedApiOrigin);
     const shopSaveResponse = page.waitForResponse((response) => (
       response.request().method() === "POST"
       && new URL(response.url()).origin === expectedApiOrigin
@@ -932,9 +1017,25 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     const shopCreation = await shopSaveResponseState(shopSave, identity.shopName, shopInputState);
     const ownerShopState = await ownerShopApiState(request, authToken, identity.shopName);
     if (shopCreation.status !== 201 || !shopCreation.shopPresent || !shopCreation.shopIdPresent || !shopCreation.syntheticShopNameMatches || ownerShopState.authStatus !== 200 || ownerShopState.shopsStatus !== 200 || !ownerShopState.authUserExists || !ownerShopState.userHasShopId || ownerShopState.ownerShopCount < 1 || !ownerShopState.anySyntheticShopExists) {
+      setupLifecycle.stop();
       throw new Error(`Owner setup Step 1 did not create and link the synthetic shop: ${JSON.stringify({ ...shopCreation, ...ownerShopState, currentPath: new URL(page.url()).pathname })}`);
     }
-    await expect(page.locator("#setupStep2Next")).toBeVisible();
+    try {
+      await expect(page.getByRole("heading", { name: "Choose your booking team", exact: true })).toBeVisible({ timeout: 30000 });
+      await expect(page.locator("[data-step-panel='2']")).toBeVisible();
+      await expect(page.locator("#setupStep2Next")).toBeVisible();
+      await expect(page.locator("#setupStep2Next")).toBeEnabled();
+    } catch (error) {
+      const lifecycleEvents = setupLifecycle.snapshot();
+      setupLifecycle.stop();
+      throw new Error(`Owner setup Step 1 did not transition to Team: ${JSON.stringify({
+        stepTransition: await ownerSetupStepTransitionDiagnostics(page, browserErrors),
+        ownerShopState,
+        lifecycleEvents,
+        assertionError: safeDiagnosticText(error?.message),
+      })}`);
+    }
+    setupLifecycle.stop();
 
     await page.fill("#setupOwnerDisplayName", identity.username);
     await page.locator("#setupStep2Next").click();
