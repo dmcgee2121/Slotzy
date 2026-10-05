@@ -343,17 +343,19 @@ async function servicesApiState(request, authToken, expectedName) {
 async function ownerShopApiState(request, authToken, expectedShopName) {
   const token = String(authToken ?? "").trim();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const [meResponse, shopsResponse] = await Promise.all([
-    request.get(new URL("/api/auth/me", apiUrl).toString(), { headers }),
-    request.get(new URL("/api/shops", apiUrl).toString(), { headers }),
-  ]);
+  // Keep these reads ordered. Both are protected and each creates its own
+  // storage snapshot on the hosted backend; a concurrent post-write read can
+  // otherwise observe different snapshots and make a valid browser session
+  // look inconsistent.
+  const meResponse = await request.get(new URL("/api/auth/me", apiUrl).toString(), { headers });
+  const shopsResponse = await request.get(new URL("/api/shops", apiUrl).toString(), { headers });
   let mePayload = null;
   let shopsPayload = null;
   try { mePayload = await meResponse.json(); } catch { /* safe shape below */ }
   try { shopsPayload = await shopsResponse.json(); } catch { /* safe shape below */ }
   const shops = Array.isArray(shopsPayload?.shops) ? shopsPayload.shops : [];
   return {
-    hasToken: Boolean(token), authStatus: meResponse.status(), shopsStatus: shopsResponse.status(),
+    hasToken: Boolean(token), authorizationHeaderIncluded: Boolean(token), authStatus: meResponse.status(), shopsStatus: shopsResponse.status(),
     authUserExists: Boolean(mePayload?.user),
     userHasShopId: Boolean(String(mePayload?.user?.shopId ?? "").trim()),
     ownerShopCount: shops.length,
@@ -982,7 +984,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   // Read the token once while the authenticated owner page is stable. All
   // service contract checks then run in Playwright's request context, so a UI
   // redirect/reload cannot destroy their JavaScript execution context.
-  const authToken = await page.evaluate(() => String(localStorage.getItem("Slotzy_auth_token") ?? "").trim());
+  let authToken = await page.evaluate(() => String(localStorage.getItem("Slotzy_auth_token") ?? "").trim());
   expect(Boolean(authToken)).toBe(true);
 
   // A newly registered owner remains in the wizard until every required setup
@@ -1015,10 +1017,9 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       throw new Error(`Owner setup Step 1 did not observe POST /api/shops: ${JSON.stringify({ ...step1Diagnostics, waitError: safeDiagnosticText(error?.message) })}`);
     }
     const shopCreation = await shopSaveResponseState(shopSave, identity.shopName, shopInputState);
-    const ownerShopState = await ownerShopApiState(request, authToken, identity.shopName);
-    if (shopCreation.status !== 201 || !shopCreation.shopPresent || !shopCreation.shopIdPresent || !shopCreation.syntheticShopNameMatches || ownerShopState.authStatus !== 200 || ownerShopState.shopsStatus !== 200 || !ownerShopState.authUserExists || !ownerShopState.userHasShopId || ownerShopState.ownerShopCount < 1 || !ownerShopState.anySyntheticShopExists) {
+    if (shopCreation.status !== 201 || !shopCreation.shopPresent || !shopCreation.shopIdPresent || !shopCreation.syntheticShopNameMatches) {
       setupLifecycle.stop();
-      throw new Error(`Owner setup Step 1 did not create and link the synthetic shop: ${JSON.stringify({ ...shopCreation, ...ownerShopState, currentPath: new URL(page.url()).pathname })}`);
+      throw new Error(`Owner setup Step 1 did not create the synthetic shop: ${JSON.stringify({ ...shopCreation, currentPath: new URL(page.url()).pathname })}`);
     }
     try {
       await expect(page.getByRole("heading", { name: "Choose your booking team", exact: true })).toBeVisible({ timeout: 30000 });
@@ -1030,12 +1031,40 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       setupLifecycle.stop();
       throw new Error(`Owner setup Step 1 did not transition to Team: ${JSON.stringify({
         stepTransition: await ownerSetupStepTransitionDiagnostics(page, browserErrors),
-        ownerShopState,
+        browserAuth: await browserAuthState(page),
+        shopCreation,
         lifecycleEvents,
         assertionError: safeDiagnosticText(error?.message),
       })}`);
     }
     setupLifecycle.stop();
+
+    // Step 2 is displayed only after owner setup's authenticated refresh has
+    // completed. Re-read token presence here rather than reusing a value from
+    // registration, then make ordered protected reads for the linkage proof.
+    const currentAuthToken = await page.evaluate(() => String(localStorage.getItem("Slotzy_auth_token") ?? "").trim());
+    const currentBrowserAuth = await browserAuthState(page);
+    const ownerShopState = await ownerShopApiState(request, currentAuthToken, identity.shopName);
+    if (
+      !currentBrowserAuth.hasToken
+      || !currentBrowserAuth.hasUser
+      || currentBrowserAuth.username !== identity.username
+      || currentBrowserAuth.role !== "owner"
+      || ownerShopState.authStatus !== 200
+      || ownerShopState.shopsStatus !== 200
+      || !ownerShopState.authUserExists
+      || !ownerShopState.userHasShopId
+      || ownerShopState.ownerShopCount < 1
+      || !ownerShopState.anySyntheticShopExists
+    ) {
+      throw new Error(`Owner setup Step 1 did not retain authenticated shop linkage: ${JSON.stringify({
+        shopCreation,
+        browserAuth: currentBrowserAuth,
+        ownerShopState,
+        stepTransition: await ownerSetupStepTransitionDiagnostics(page, browserErrors),
+      })}`);
+    }
+    authToken = currentAuthToken;
 
     await page.fill("#setupOwnerDisplayName", identity.username);
     await page.locator("#setupStep2Next").click();
