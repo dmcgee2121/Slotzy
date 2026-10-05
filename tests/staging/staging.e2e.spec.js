@@ -1141,6 +1141,19 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       await expect(addServiceButton).toBeVisible();
       await expect(addServiceButton).toBeEnabled();
       await addServiceButton.click();
+      const [serviceSaveRequestResult, serviceSaveResult] = await Promise.all([
+        serviceSaveRequest,
+        serviceSaveResponse,
+      ]);
+      const serviceCreation = serviceSaveResult.response
+        ? await serviceCreateResponseState(serviceSaveResult.response, service.name, inputState)
+        : {
+            status: null,
+            responseKeys: [],
+            hasCreatedService: false,
+            createdServiceIdPresent: false,
+            createdSyntheticServiceMatches: false,
+          };
       try {
         await expect(page.locator("#setupServiceList")).toContainText(service.name, { timeout: 30000 });
         await expect(page.locator("#setupServiceStatus.status-error")).toHaveCount(0);
@@ -1151,6 +1164,9 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
           expectedServiceRendered: false,
           submitBeforeClick: serviceSaveBeforeClick,
           submitAfterWait: await ownerSetupServiceSaveDiagnostics(page, service),
+          requestStarted: !serviceSaveRequestResult.error,
+          responseObserved: !serviceSaveResult.error,
+          serviceCreation,
           lifecycleEvents,
           assertionError: safeDiagnosticText(error?.message),
         })}`);
@@ -1167,8 +1183,6 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
           currentPath: new URL(page.url()).pathname,
         })}`);
       }
-      const serviceSaveRequestResult = await serviceSaveRequest;
-      const serviceSaveResult = await serviceSaveResponse;
       const lifecycleEvents = serviceNetwork.snapshot();
       serviceNetwork.stop();
       if (serviceSaveRequestResult.error || serviceSaveResult.error) {
@@ -1184,7 +1198,6 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
           responseWaitError: safeDiagnosticText(serviceSaveResult.error?.message),
         })}`);
       }
-      const serviceCreation = await serviceCreateResponseState(serviceSaveResult.response, service.name, inputState);
       if (serviceCreation.status !== 201 || !serviceCreation.hasCreatedService || !serviceCreation.createdSyntheticServiceMatches) {
         throw new Error(`Owner setup service POST non-success: ${JSON.stringify({ ...serviceCreation, lifecycleEvents })}`);
       }

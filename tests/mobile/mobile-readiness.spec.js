@@ -1040,6 +1040,158 @@ test("owner setup is guided and usable through completion on mobile", async ({ p
   await expect(page.locator("#setupGoDashboard")).toHaveText("Finish and Open Dashboard");
 });
 
+test("hosted owner setup renders a created service before an empty refresh catches up", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  seed.local.Slotzy_services = [];
+  seed.local.Slotzy_availability = {};
+  let serviceGetCount = 0;
+  let servicePostCount = 0;
+  let releasePostCreateRefresh;
+  const postCreateRefreshGate = new Promise((resolve) => {
+    releasePostCreateRefresh = resolve;
+  });
+
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+    sessionStorage.setItem("Slotzy_setupStep", "3");
+  });
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith("/auth/me")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: seed.local.Slotzy_users[0] }) });
+      return;
+    }
+    if (path.endsWith("/shops")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ shops: seed.local.Slotzy_shops }) });
+      return;
+    }
+    if (path.endsWith("/services") && request.method() === "GET") {
+      serviceGetCount += 1;
+      if (serviceGetCount >= 3) await postCreateRefreshGate;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ services: [] }) });
+      return;
+    }
+    if (path.endsWith("/services") && request.method() === "POST") {
+      servicePostCount += 1;
+      const submitted = request.postDataJSON();
+      const created = { ...submitted, id: "authoritative-setup-service-id" };
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ service: created }) });
+      return;
+    }
+    if (path.endsWith("/availability")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ availability: {} }) });
+      return;
+    }
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/owner-setup.html");
+  await expect(page.getByRole("heading", { name: "Add your services" })).toBeVisible();
+  await page.locator("#setupServiceName").fill("Authoritative Setup Service");
+  await page.locator("#setupServicePrice").fill("35");
+  await page.locator("#setupServiceDuration").fill("30");
+  await page.locator("#setupAddServiceBtn").click();
+
+  await expect(page.locator("#setupServiceList")).toContainText("Authoritative Setup Service");
+  await expect(page.locator("#setupServiceStatus")).toContainText("Service added.");
+  await expect(page.getByRole("heading", { name: "No services yet", exact: true })).toHaveCount(0);
+  await expect.poll(() => serviceGetCount).toBeGreaterThanOrEqual(3);
+
+  const emptyRefreshResponse = page.waitForResponse((response) => (
+    response.request().method() === "GET"
+    && new URL(response.url()).pathname.endsWith("/api/services")
+  ));
+  releasePostCreateRefresh();
+  await emptyRefreshResponse;
+
+  await expect(page.locator("#setupServiceList")).toContainText("Authoritative Setup Service");
+  await expect(page.getByRole("heading", { name: "No services yet", exact: true })).toHaveCount(0);
+  expect(servicePostCount).toBe(1);
+});
+
+test("hosted owner setup service failure clears stale success without creating a local-only row", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  seed.local.Slotzy_services = [];
+  seed.local.Slotzy_availability = {};
+  const serverServices = [];
+  let servicePostCount = 0;
+  let releaseFailedCreate;
+  const failedCreateGate = new Promise((resolve) => {
+    releaseFailedCreate = resolve;
+  });
+
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+    sessionStorage.setItem("Slotzy_setupStep", "3");
+  });
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith("/auth/me")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: seed.local.Slotzy_users[0] }) });
+      return;
+    }
+    if (path.endsWith("/shops")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ shops: seed.local.Slotzy_shops }) });
+      return;
+    }
+    if (path.endsWith("/services") && request.method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ services: serverServices }) });
+      return;
+    }
+    if (path.endsWith("/services") && request.method() === "POST") {
+      servicePostCount += 1;
+      if (servicePostCount === 1) {
+        const submitted = request.postDataJSON();
+        const created = { ...submitted, id: "first-authoritative-setup-service-id" };
+        serverServices.push(created);
+        await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ service: created }) });
+        return;
+      }
+      await failedCreateGate;
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+      return;
+    }
+    if (path.endsWith("/availability")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ availability: {} }) });
+      return;
+    }
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/owner-setup.html");
+  await page.locator("#setupServiceName").fill("First Hosted Setup Service");
+  await page.locator("#setupServicePrice").fill("35");
+  await page.locator("#setupServiceDuration").fill("30");
+  await page.locator("#setupAddServiceBtn").click();
+  await expect(page.locator("#setupServiceList")).toContainText("First Hosted Setup Service");
+  await expect(page.locator("#setupServiceStatus")).toContainText("Service added.");
+
+  await page.locator("#setupServiceName").fill("Must Not Persist In Setup");
+  await page.locator("#setupServicePrice").fill("45");
+  await page.locator("#setupServiceDuration").fill("45");
+  await page.locator("#setupAddServiceBtn").click();
+  await expect.poll(() => servicePostCount).toBe(2);
+  await expect(page.locator("#setupServiceStatus")).toHaveText("");
+  await expect(page.locator("#setupServiceStatus")).not.toHaveClass(/status-success/);
+
+  releaseFailedCreate();
+  await expect(page.locator("#setupServiceStatus")).toContainText("Could not save this service");
+  await expect(page.locator("#setupServiceStatus")).toHaveClass(/status-error/);
+  await expect(page.locator("#setupServiceName")).toHaveValue("Must Not Persist In Setup");
+  await expect(page.locator("#setupServiceList")).toContainText("First Hosted Setup Service");
+  await expect(page.locator("#setupServiceList")).not.toContainText("Must Not Persist In Setup");
+  await expect.poll(() => page.evaluate(() => (
+    JSON.parse(localStorage.getItem("Slotzy_services") || "[]")
+      .some((service) => service.name === "Must Not Persist In Setup")
+  ))).toBe(false);
+});
+
 test("hosted owner setup write failure does not create a local-only team member", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   seed.local.Slotzy_services = [];

@@ -36,6 +36,10 @@ import {
     shopLogoDataUrl: "",
     selectedAvailabilityBarberUsername: "",
     setupStatus: null,
+    // Services in this collection came from successful create responses. Keep
+    // them across a briefly stale/empty collection read during this setup page
+    // session; hosted failures never add anything here.
+    confirmedCreatedServices: [],
   };
 
   const ui = {
@@ -183,6 +187,7 @@ import {
 
   async function refreshSetupStatus() {
     state.setupStatus = await getOwnerSetupStatus(state.username);
+    mergeConfirmedCreatedServicesIntoSetupStatus();
     state.shopId = String(state.setupStatus?.shopId ?? "").trim();
     state.shopName = String(state.setupStatus?.shopName ?? "").trim();
     state.shopSlug = String(state.setupStatus?.shop?.slug ?? "").trim() || toSlug(state.shopName || state.username);
@@ -367,9 +372,11 @@ import {
     if (!Number.isFinite(price) || price <= 0) return setStatus(ui.serviceStatus, "Price must be greater than 0.", false);
     if (!Number.isInteger(durationMinutes) || durationMinutes < 10 || durationMinutes > 240) return setStatus(ui.serviceStatus, "Duration must be between 10 and 240 minutes.", false);
 
+    let createdService;
     try {
       const services = await dataStore.getServicesAsync({ fallbackOnError: false });
-      const duplicate = (Array.isArray(services) ? services : []).some((service) => (
+      const visibleServices = mergeServicesById(services, getScopedServices(), state.confirmedCreatedServices);
+      const duplicate = visibleServices.some((service) => (
         String(service?.shopId ?? "").trim() === state.shopId
         && String(service?.barberUsername ?? service?.ownerUsername ?? "").trim() === barberUsername
         && String(service?.name ?? service?.title ?? "").trim().toLowerCase() === name.toLowerCase()
@@ -379,7 +386,7 @@ import {
       // Create only the new service. Re-saving the entire collection made a
       // second setup add PATCH the first service before it could POST the new
       // one, so an unrelated write failure could block the new service.
-      await dataStore.createServiceAsync({
+      createdService = await dataStore.createServiceAsync({
         id: createId("svc"),
         name,
         title: name,
@@ -392,18 +399,32 @@ import {
         barberUsername,
         ownerUsername: barberUsername,
       }, { fallbackOnError: false });
-
-      if (ui.serviceNameInput) ui.serviceNameInput.value = "";
-      if (ui.servicePriceInput) ui.servicePriceInput.value = "";
-      if (ui.serviceDurationInput) ui.serviceDurationInput.value = "";
-
-      await refreshSetupStatus();
-      applySetupStatus();
-      setStatus(ui.serviceStatus, "Service added.", true);
-      window.showToast?.("Service added.", "success");
     } catch (error) {
       console.error("[Slotzy:owner-setup] Could not add service.", error);
       setStatus(ui.serviceStatus, "Could not save this service. Please try again.", false);
+      return;
+    }
+
+    rememberConfirmedCreatedService(createdService);
+    mergeConfirmedCreatedServicesIntoSetupStatus();
+    renderServiceList();
+
+    if (ui.serviceNameInput) ui.serviceNameInput.value = "";
+    if (ui.servicePriceInput) ui.servicePriceInput.value = "";
+    if (ui.serviceDurationInput) ui.serviceDurationInput.value = "";
+    setStatus(ui.serviceStatus, "Service added.", true);
+    window.showToast?.("Service added.", "success");
+
+    try {
+      await refreshSetupStatus();
+      applySetupStatus();
+    } catch (error) {
+      // The create response is authoritative. A follow-up collection refresh
+      // can fail after the service has already persisted, so retain and render
+      // only the service confirmed by that successful response.
+      console.error("[Slotzy:owner-setup] Could not refresh services after create.", error);
+      mergeConfirmedCreatedServicesIntoSetupStatus();
+      renderServiceList();
     }
   }
 
@@ -416,6 +437,7 @@ import {
     const services = await dataStore.getServicesAsync();
     const nextServices = (Array.isArray(services) ? services : []).filter((service) => String(service?.id ?? "").trim() !== serviceId);
     await dataStore.saveServicesAsync(nextServices, { fallbackOnError: false });
+    state.confirmedCreatedServices = state.confirmedCreatedServices.filter((service) => String(service?.id ?? "").trim() !== serviceId);
     await refreshSetupStatus();
     applySetupStatus();
     setStatus(ui.serviceStatus, "Service removed.", true);
@@ -781,6 +803,44 @@ import {
 
   function getAdditionalBarbers() {
     return (state.setupStatus?.additionalBarbers || []).filter((staffUser) => String(staffUser?.role ?? "").trim().toLowerCase() === "barber");
+  }
+
+  function mergeServicesById(...collections) {
+    const merged = [];
+    const indexById = new Map();
+    collections.forEach((collection) => {
+      (Array.isArray(collection) ? collection : []).forEach((service) => {
+        if (!service || typeof service !== "object") return;
+        const id = String(service.id ?? "").trim();
+        if (!id || !indexById.has(id)) {
+          if (id) indexById.set(id, merged.length);
+          merged.push(service);
+          return;
+        }
+        merged[indexById.get(id)] = service;
+      });
+    });
+    return merged;
+  }
+
+  function rememberConfirmedCreatedService(service) {
+    const id = String(service?.id ?? "").trim();
+    if (!id) return;
+    state.confirmedCreatedServices = mergeServicesById(state.confirmedCreatedServices, [service]);
+  }
+
+  function mergeConfirmedCreatedServicesIntoSetupStatus() {
+    if (!state.setupStatus || state.confirmedCreatedServices.length === 0) return;
+    const services = mergeServicesById(state.confirmedCreatedServices, state.setupStatus.services);
+    state.setupStatus = {
+      ...state.setupStatus,
+      services,
+      hasServices: services.length > 0,
+    };
+
+    // Restore the compatibility cache after an empty collection response only
+    // with records that were returned by successful creates.
+    dataStore.saveServices(mergeServicesById(state.confirmedCreatedServices, dataStore.getServices()));
   }
 
   function getScopedServices() {
