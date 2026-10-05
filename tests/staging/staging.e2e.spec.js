@@ -423,8 +423,19 @@ async function ownerShopApiState(request, authToken, expectedShopName) {
   try { mePayload = await meResponse.json(); } catch { /* safe shape below */ }
   try { shopsPayload = await shopsResponse.json(); } catch { /* safe shape below */ }
   const shops = Array.isArray(shopsPayload?.shops) ? shopsPayload.shops : [];
+  const authError = String(mePayload?.error ?? "").trim().toLowerCase();
+  const authFailureKind = authError === "missing bearer token"
+    ? "missing_bearer"
+    : authError === "invalid token payload"
+      ? "invalid_payload"
+      : authError === "user not found for token"
+        ? "user_not_found"
+        : authError === "invalid or expired token"
+          ? "invalid_or_expired"
+          : (meResponse.status() === 401 ? "unknown_unauthorized" : "none");
   return {
     hasToken: Boolean(token), authorizationHeaderIncluded: Boolean(token), authStatus: meResponse.status(), shopsStatus: shopsResponse.status(),
+    authFailureKind,
     authUserExists: Boolean(mePayload?.user),
     userHasShopId: Boolean(String(mePayload?.user?.shopId ?? "").trim()),
     ownerShopCount: shops.length,
@@ -1023,6 +1034,11 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const setupInitializationNetwork = collectOwnerSetupLifecycleDiagnostics(page, expectedApiOrigin);
   // The health guard above completes before this test can write any data.
   await page.goto(`${frontendUrl}/pages/index.html`);
+  // The login control is in the static header and can be clicked while the
+  // asynchronous boot/session restore is still running. Wait for the actual
+  // signed-out home view so registration cannot race an older restore task.
+  await expect(page.locator("#app .home-hero")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-auth-mode", "server");
   await page.locator("#btn-login").click();
   await page.locator("#show-register").click();
   await page.fill("#auth-username", identity.username);
@@ -1068,6 +1084,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const initialAuthoritativeState = {
     tokenPresent: Boolean(authToken),
     authStatus: initialOwnerShopState.authStatus,
+    authFailureKind: initialOwnerShopState.authFailureKind,
     shopsStatus: initialOwnerShopState.shopsStatus,
     ownerPresent: initialOwnerShopState.authUserExists,
     ownerHasShop: initialOwnerShopState.userHasShopId,

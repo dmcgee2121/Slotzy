@@ -65,8 +65,8 @@ function resolveSetupShop({ owner, shops, username }) {
     const directShop = shops.find((shop) => String(shop?.id ?? "").trim() === ownerShopId) || null;
     if (directShop) return directShop;
   }
-  const fallback = dataStore.getShopForUser(String(username ?? "").trim());
-  return fallback || null;
+  const ownerUsername = String(username ?? "").trim().toLowerCase();
+  return shops.find((shop) => String(shop?.ownerUsername ?? "").trim().toLowerCase() === ownerUsername) || null;
 }
 
 function getShopStaff(users, shopId, ownerUsername) {
@@ -211,10 +211,10 @@ export function clearSetupProgress() {
 
 export async function getOwnerSetupStatus(username) {
   const [users, shops, services, availabilityMap] = await Promise.all([
-    dataStore.getUsersAsync(),
-    dataStore.getShopsAsync(),
-    dataStore.getServicesAsync(),
-    dataStore.getAvailabilityMapAsync(),
+    dataStore.getUsersAsync({ fallbackOnError: false }),
+    dataStore.getShopsAsync({ fallbackOnError: false }),
+    dataStore.getServicesAsync({ fallbackOnError: false }),
+    dataStore.getAvailabilityMapAsync({ fallbackOnError: false }),
   ]);
 
   const normalizedUsers = Array.isArray(users) ? users : [];

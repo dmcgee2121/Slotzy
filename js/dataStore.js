@@ -208,9 +208,12 @@ function upsertUserInList(users, user) {
     displayName: String(user?.displayName ?? current?.displayName ?? username).trim() || username,
   };
 
-  const shopId = String(user?.shopId ?? current?.shopId ?? "").trim();
+  const hasAuthoritativeShopId = Object.prototype.hasOwnProperty.call(user ?? {}, "shopId");
+  const shopId = String(hasAuthoritativeShopId ? (user?.shopId ?? "") : (current?.shopId ?? "")).trim();
   if (role === "customer") {
     merged.shopId = null;
+  } else if (hasAuthoritativeShopId) {
+    merged.shopId = shopId || null;
   } else if (shopId) {
     merged.shopId = shopId;
   }
@@ -1402,10 +1405,10 @@ export function saveUsers(users) {
   writeLocal(KEYS.USERS, users);
 }
 
-export function getUsersAsync() {
+export function getUsersAsync(options = {}) {
   return runAsync(
     () => getUsers(),
-    { apiFn: () => apiGetUsers(), label: "users read" }
+    { apiFn: () => apiGetUsers(), label: "users read", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 
@@ -1525,10 +1528,10 @@ export function saveShopAsync(shopObj) {
   );
 }
 
-export function getShopsAsync() {
+export function getShopsAsync(options = {}) {
   return runAsync(
     () => getShops(),
-    { apiFn: () => apiGetShops(), label: "shops read" }
+    { apiFn: () => apiGetShops(), label: "shops read", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 
@@ -1670,10 +1673,10 @@ export function saveAvailabilityMap(map) {
   writeLocal(KEYS.AVAILABILITY, map);
 }
 
-export function getAvailabilityMapAsync() {
+export function getAvailabilityMapAsync(options = {}) {
   return runAsync(
     () => getAvailabilityMap(),
-    { apiFn: () => apiGetAvailabilityMap(), label: "availability read" }
+    { apiFn: () => apiGetAvailabilityMap(), label: "availability read", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 

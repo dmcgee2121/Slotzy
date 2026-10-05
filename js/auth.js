@@ -30,10 +30,17 @@ function normalizeAuthUser(user) {
   if (!user || typeof user !== "object") return null;
   const username = String(user.username ?? "").trim();
   if (!username) return null;
-  return {
+  const normalized = {
     username,
     role: normalizeRole(user.role),
   };
+  if (Object.prototype.hasOwnProperty.call(user, "displayName")) {
+    normalized.displayName = String(user.displayName ?? "").trim() || username;
+  }
+  if (Object.prototype.hasOwnProperty.call(user, "shopId")) {
+    normalized.shopId = String(user.shopId ?? "").trim() || null;
+  }
+  return normalized;
 }
 
 function syncAuthUserToLocalUsers(authUser) {
@@ -46,19 +53,20 @@ function syncAuthUserToLocalUsers(authUser) {
   );
   const current = matchIndex >= 0 ? users[matchIndex] : {};
 
-  const shops = dataStore.getShops();
-  const fallbackShopId = String(shops[0]?.id ?? "").trim();
   const role = normalizeRole(normalizedUser.role);
   const next = {
     ...current,
     username: normalizedUser.username,
     role,
-    displayName: String(current?.displayName ?? normalizedUser.username).trim() || normalizedUser.username,
+    displayName: String(normalizedUser.displayName ?? current?.displayName ?? normalizedUser.username).trim() || normalizedUser.username,
   };
 
   if (role === "owner" || role === "barber") {
-    const shopId = String(current?.shopId ?? fallbackShopId).trim();
-    next.shopId = shopId || null;
+    // A hosted auth response with an explicit null shop is authoritative. Do
+    // not attach a newly registered owner to the local compatibility shop.
+    next.shopId = Object.prototype.hasOwnProperty.call(normalizedUser, "shopId")
+      ? normalizedUser.shopId
+      : (String(current?.shopId ?? "").trim() || null);
   } else {
     next.shopId = null;
   }
