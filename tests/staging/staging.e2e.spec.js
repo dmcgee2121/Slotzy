@@ -29,6 +29,9 @@ const apiIdentity = {
   slug: `${apiRunId}-api-shop`,
   serviceNames: [`E2E API Cut ${apiRunId}`, `E2E API Finish ${apiRunId}`],
 };
+const OWNER_SETUP_STATIC_INTRO = "Add the essentials clients need to choose a service and time.";
+const OWNER_SETUP_STEP_ONE_INTRO = "Name your shop and choose an optional logo for the page clients will see.";
+const OWNER_SETUP_STEP_THREE_INTRO = "Add at least two services with the price and time each one needs.";
 
 function failGuard(message) { throw new Error(`Staging E2E safety guard: ${message}`); }
 async function readJson(response) {
@@ -201,9 +204,14 @@ async function ownerSetupStepTransitionDiagnostics(page, browserErrors) {
     const setupStatus = document.getElementById("setupStatus");
     return {
       currentPath: window.location.pathname,
+      documentReadyState: document.readyState,
       stepSummary: String(document.getElementById("setupStepSummary")?.textContent || "").trim(),
+      setupIntroText: String(document.getElementById("setupIntroText")?.textContent || "").trim(),
+      activeStepCount: document.querySelectorAll(".setup-step[aria-current='step']").length,
       activeStepLabel: String(document.querySelector(".setup-step[aria-current='step']")?.textContent || "").trim(),
       visiblePanels: panelState.filter((panel) => panel.visible),
+      serviceProviderSelected: Boolean(String(document.getElementById("setupServiceBarber")?.value || "").trim()),
+      serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
       stepTwo: {
         exists: Boolean(stepTwo),
         visible: visible(stepTwo),
@@ -228,6 +236,27 @@ async function ownerSetupStepTransitionDiagnostics(page, browserErrors) {
     };
   }).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
   return { ...state, browserErrors: browserErrors.map((error) => safeDiagnosticText(error)) };
+}
+
+async function waitForOwnerSetupInitialization(page, timeout = 60000) {
+  await page.waitForFunction((staticIntro) => {
+    const visible = (element) => Boolean(element?.getClientRects().length);
+    const intro = String(document.getElementById("setupIntroText")?.textContent || "").trim();
+    const activeSteps = document.querySelectorAll(".setup-step[aria-current='step']");
+    const visiblePanels = Array.from(document.querySelectorAll("[data-step-panel]")).filter(visible);
+    const generalStatus = document.getElementById("setupStatus");
+    const initializationFailed = Boolean(
+      generalStatus?.classList.contains("status-error")
+      && String(generalStatus.textContent || "").trim()
+    );
+    const initialized = Boolean(
+      intro
+      && intro !== staticIntro
+      && activeSteps.length === 1
+      && visiblePanels.length === 1
+    );
+    return initialized || initializationFailed;
+  }, OWNER_SETUP_STATIC_INTRO, { timeout });
 }
 
 async function ownerSetupServiceSaveDiagnostics(page, expectedService) {
@@ -987,6 +1016,11 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   bookingDate.setDate(bookingDate.getDate() + 2);
   const bookingDateYmd = toLocalYmd(bookingDate);
   const bookingDay = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][bookingDate.getDay()];
+  const expectedApiOrigin = requireStagingUrl(apiUrl, "SLOTZY_STAGING_API_URL").origin;
+  // Start before registration can navigate. The prior listener began only
+  // after Step 1 was already rendered, so an initialization stall exposed no
+  // protected-read lifecycle evidence.
+  const setupInitializationNetwork = collectOwnerSetupLifecycleDiagnostics(page, expectedApiOrigin);
   // The health guard above completes before this test can write any data.
   await page.goto(`${frontendUrl}/pages/index.html`);
   await page.locator("#btn-login").click();
@@ -994,7 +1028,6 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await page.fill("#auth-username", identity.username);
   await page.fill("#auth-password", identity.password);
   await page.selectOption("#auth-role", "owner");
-  const expectedApiOrigin = requireStagingUrl(apiUrl, "SLOTZY_STAGING_API_URL").origin;
   const registrationResponse = page.waitForResponse((response) => (
     response.request().method() === "POST"
     && new URL(response.url()).origin === expectedApiOrigin
@@ -1027,14 +1060,89 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   let authToken = await page.evaluate(() => String(localStorage.getItem("Slotzy_auth_token") ?? "").trim());
   expect(Boolean(authToken)).toBe(true);
 
+  // Registration returned 201 for a per-run random identity. Prove its server
+  // state is also fresh before accepting any wizard step; local/session resume
+  // state is never sufficient for this lifecycle.
+  const initialOwnerShopState = await ownerShopApiState(request, authToken, identity.shopName);
+  const initialServicesState = await servicesApiState(request, authToken, identity.serviceName);
+  const initialAuthoritativeState = {
+    tokenPresent: Boolean(authToken),
+    authStatus: initialOwnerShopState.authStatus,
+    shopsStatus: initialOwnerShopState.shopsStatus,
+    ownerPresent: initialOwnerShopState.authUserExists,
+    ownerHasShop: initialOwnerShopState.userHasShopId,
+    ownerShopCount: initialOwnerShopState.ownerShopCount,
+    expectedShopPresent: initialOwnerShopState.anySyntheticShopExists,
+    servicesStatus: initialServicesState.status,
+    serviceCount: initialServicesState.serviceCount,
+    expectedServicePresent: initialServicesState.hasExpectedService,
+  };
+  const freshOwnerState = initialAuthoritativeState.authStatus === 200
+    && initialAuthoritativeState.shopsStatus === 200
+    && initialAuthoritativeState.ownerPresent
+    && !initialAuthoritativeState.ownerHasShop
+    && initialAuthoritativeState.ownerShopCount === 0
+    && !initialAuthoritativeState.expectedShopPresent
+    && initialAuthoritativeState.servicesStatus === 200
+    && initialAuthoritativeState.serviceCount === 0
+    && !initialAuthoritativeState.expectedServicePresent;
+  if (!freshOwnerState) {
+    const lifecycleEvents = setupInitializationNetwork.snapshot();
+    setupInitializationNetwork.stop();
+    throw new Error(`New synthetic owner did not have empty authoritative setup state: ${JSON.stringify({
+      initialAuthoritativeState,
+      setupUi: await ownerSetupStepTransitionDiagnostics(page, browserErrors),
+      lifecycleEvents,
+    })}`);
+  }
+
+  // owner-setup.html initially contains a generic static shell. Wait for the
+  // module to finish its protected reads and select exactly one real step;
+  // otherwise that shell can be mistaken for resumable Services state.
+  try {
+    await waitForOwnerSetupInitialization(page);
+    const setupUi = await ownerSetupStepTransitionDiagnostics(page, browserErrors);
+    const initializedAtStepOne = setupUi.setupIntroText === OWNER_SETUP_STEP_ONE_INTRO
+      && setupUi.stepSummary === "Step 1 of 5"
+      && setupUi.activeStepCount === 1
+      && /Shop/.test(setupUi.activeStepLabel)
+      && setupUi.visiblePanels?.length === 1
+      && setupUi.visiblePanels[0]?.step === "1"
+      && setupUi.stepOneSave?.visible
+      && setupUi.stepOneSave?.enabled
+      && !setupUi.stepOneSave?.pending
+      && !setupUi.generalStatus?.error;
+    if (!initializedAtStepOne) throw new Error("wizard initialized at an unexpected step or error state");
+  } catch (error) {
+    const setupUi = await ownerSetupStepTransitionDiagnostics(page, browserErrors);
+    const lifecycleEvents = setupInitializationNetwork.snapshot();
+    setupInitializationNetwork.stop();
+    throw new Error(`Fresh synthetic owner setup did not initialize at Step 1: ${JSON.stringify({
+      currentPath: setupUi.currentPath,
+      activeStepLabel: setupUi.activeStepLabel,
+      setupIntroText: setupUi.setupIntroText,
+      staticIntroVisible: setupUi.setupIntroText === OWNER_SETUP_STATIC_INTRO,
+      activeStepCount: setupUi.activeStepCount,
+      visiblePanels: setupUi.visiblePanels,
+      tokenPresent: initialAuthoritativeState.tokenPresent,
+      ownerPresent: initialAuthoritativeState.ownerPresent,
+      ownerHasShop: initialAuthoritativeState.ownerHasShop,
+      ownerShopCount: initialAuthoritativeState.ownerShopCount,
+      serviceCount: initialAuthoritativeState.serviceCount,
+      documentReadyState: setupUi.documentReadyState,
+      serviceWorkerControlled: setupUi.serviceWorkerControlled,
+      generalStatus: setupUi.generalStatus,
+      lifecycleEvents,
+      browserErrors: setupUi.browserErrors,
+      assertionError: safeDiagnosticText(error?.message),
+    })}`);
+  }
+  setupInitializationNetwork.stop();
+
   // A newly registered owner remains in the wizard until every required setup
   // step is complete. The ready-step Dashboard control is intentionally hidden
   // before then, so follow the real UI rather than accepting the hidden link.
   await expect(page.locator("#setupShopName")).toBeVisible();
-  // The field is present in the static HTML. Wait for initSetupWizard() to
-  // render Step 1 before filling it, otherwise applySetupStatus() can restore
-  // the initial empty value after this test's fill and validation blocks save.
-  await expect(page.locator("#setupIntroText")).toHaveText("Name your shop and choose an optional logo for the page clients will see.");
   {
     await page.fill("#setupShopName", identity.shopName);
     const shopInputState = {
@@ -1108,7 +1216,34 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
 
     await page.fill("#setupOwnerDisplayName", identity.username);
     await page.locator("#setupStep2Next").click();
-    await expect(page.locator("#setupServiceName")).toBeVisible();
+    try {
+      await expect(page.getByRole("heading", { name: "Add your services", exact: true })).toBeVisible({ timeout: 30000 });
+      await expect(page.locator("#setupIntroText")).toHaveText(OWNER_SETUP_STEP_THREE_INTRO);
+      await expect(page.locator("[data-step-panel='3']")).toBeVisible();
+      await expect(page.locator("[data-step-panel='1']")).toBeHidden();
+      await expect(page.locator("[data-step-panel='2']")).toBeHidden();
+      await expect(page.locator("#setupServiceBarber")).not.toHaveValue("");
+      await expect(page.locator("#setupAddServiceBtn")).toBeVisible();
+      await expect(page.locator("#setupAddServiceBtn")).toBeEnabled();
+    } catch (error) {
+      throw new Error(`Owner setup Team step did not initialize Services: ${JSON.stringify({
+        setupUi: await ownerSetupStepTransitionDiagnostics(page, browserErrors),
+        browserAuth: {
+          tokenPresent: Boolean(currentAuthToken),
+          ownerPresent: currentBrowserAuth.hasUser,
+          roleIsOwner: currentBrowserAuth.role === "owner",
+        },
+        ownerShopState: {
+          authStatus: ownerShopState.authStatus,
+          shopsStatus: ownerShopState.shopsStatus,
+          ownerPresent: ownerShopState.authUserExists,
+          ownerHasShop: ownerShopState.userHasShopId,
+          ownerShopCount: ownerShopState.ownerShopCount,
+          expectedShopPresent: ownerShopState.anySyntheticShopExists,
+        },
+        assertionError: safeDiagnosticText(error?.message),
+      })}`);
+    }
 
     const setupServices = [
       { name: identity.serviceName, price: "30", duration: "30" },
