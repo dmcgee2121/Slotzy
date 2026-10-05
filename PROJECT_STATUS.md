@@ -18,6 +18,10 @@ Pilot customer feedback confirms booking, available times, recovery, and cancell
 
 **Deployed UAT result: passed.** After an initial cancellation-observation flake, the guarded staging rerun passed **3/3** (focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks). Manual UAT found the owner mobile calendar/header improvements acceptable. Public logo alignment improved; the remaining not-perfectly-flush logo detail is a beta improvement, not a blocker. The tiny trusted staging pilot remains active.
 
+## Pilot feedback triage 2 — service reliability and owner loading polish (2026-10-04)
+
+Customer iPhone Safari/installed-app testing passed booking, calendar export, confirmation copying, manage-link opening, and cancellation without confusion. Owner testing confirmed login, appointment visibility/timing, recurring Sunday/Monday and break exclusions, confirmation, and cancellation. Service confusion was traced to the collection-reconciliation write path: a successful create could be followed by a failing services refresh and reported as failure even though it persisted. The add flow now uses the authoritative create response directly, blocks duplicate pending submits, resets on success, and keeps the form retryable on failure. Services now explicitly show loading and retryable hosted-load failure states rather than an empty/stale menu. Dashboard scroll/redundant controls and service descriptions remain later beta-improvement work, not blockers. The tiny staging pilot remains active.
+
 ## Beta reliability and recovery validation (2026-10-04)
 
 **Result: the conditional tiny-pilot go decision remains appropriate.** Local mobile automation now covers logout credential cleanup, duplicate booking prevention, duplicate cancellation prevention, canceled-booking safety, and retryable cancellation failure. The cancellation UI was hardened so a failed token cancellation restores an enabled Cancel action instead of remaining stuck in a pending state. No backend, storage contract, Supabase, staging, or production behavior changed.

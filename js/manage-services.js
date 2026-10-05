@@ -17,11 +17,10 @@ import * as dataStore from "./dataStore.js";
   let editingServiceId = "";
   let editDraft = null;
   let editErrors = [];
+  let addServiceInFlight = false;
+  let servicesLoadState = "loading";
 
-  init().catch((error) => {
-    console.error("[Slotzy:services] Could not load services.", error);
-    renderOwnerServices();
-  });
+  init().catch((error) => console.error("[Slotzy:services] Could not initialize services.", error));
 
   async function init() {
     if (!isStaffUser || !currentUsername) {
@@ -34,11 +33,7 @@ import * as dataStore from "./dataStore.js";
     serviceList?.addEventListener("click", handleServiceListClick);
     serviceList?.addEventListener("input", handleServiceListInput);
 
-    // In server mode the persisted service list is authoritative. Hydrate the
-    // local compatibility cache before rendering instead of relying on data
-    // left behind by a previous page in this browser.
-    await dataStore.getServicesAsync();
-    renderOwnerServices();
+    await loadServicesForPage();
   }
 
   function resolveCurrentShopId() {
@@ -87,6 +82,7 @@ import * as dataStore from "./dataStore.js";
   }
 
   async function handleAddService() {
+    if (addServiceInFlight) return;
     const payload = {
       name: String(serviceNameInput?.value ?? "").trim(),
       price: Number(servicePriceInput?.value ?? ""),
@@ -103,9 +99,10 @@ import * as dataStore from "./dataStore.js";
     if (errors.length > 0) return;
 
     setFormStatus("Saving service…", "saving");
+    addServiceInFlight = true;
+    setAddButtonPending(true);
     try {
-      const services = getAllServices();
-      services.push({
+      await dataStore.createServiceAsync({
         id: makeId(),
         name: payload.name,
         title: payload.name,
@@ -117,9 +114,7 @@ import * as dataStore from "./dataStore.js";
         shopId: currentShopId,
         barberUsername: currentUsername,
         ownerUsername: currentUsername,
-      });
-
-      await saveAllServices(services);
+      }, { fallbackOnError: false });
       clearForm();
       renderOwnerServices();
       setFormStatus(`Saved. ${payload.name} is now available for booking.`, "success");
@@ -127,6 +122,9 @@ import * as dataStore from "./dataStore.js";
     } catch (error) {
       console.error("[Slotzy:services] Could not save service.", error);
       setFormStatus("We couldn’t save this service. Check the details and try again.", "error");
+    } finally {
+      addServiceInFlight = false;
+      setAddButtonPending(false);
     }
   }
 
@@ -234,6 +232,7 @@ import * as dataStore from "./dataStore.js";
     }
     if (action === "save-edit") await saveEditing(serviceId);
     if (action === "empty-add") serviceNameInput?.focus();
+    if (action === "retry-load") await loadServicesForPage();
   }
 
   function handleServiceListInput(e) {
@@ -247,6 +246,29 @@ import * as dataStore from "./dataStore.js";
 
   function renderOwnerServices() {
     if (!serviceList) return;
+
+    if (servicesLoadState === "loading") {
+      serviceList.innerHTML = `
+        <section class="empty-state" role="status" aria-live="polite">
+          <span class="empty-state-icon" aria-hidden="true">…</span>
+          <h3 class="empty-state-title">Loading services…</h3>
+          <p class="empty-state-subtitle">Fetching your current client-facing menu.</p>
+        </section>
+      `;
+      return;
+    }
+
+    if (servicesLoadState === "error") {
+      serviceList.innerHTML = `
+        <section class="empty-state" role="alert" aria-live="assertive">
+          <span class="empty-state-icon" aria-hidden="true">!</span>
+          <h3 class="empty-state-title">Could not load services</h3>
+          <p class="empty-state-subtitle">Your menu was not changed. Check your connection and try again.</p>
+          <div class="empty-state-actions"><button class="btn btn-ghost empty-state-cta" data-action="retry-load" type="button">Retry loading services</button></div>
+        </section>
+      `;
+      return;
+    }
 
     const services = loadServices().sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
@@ -349,11 +371,39 @@ import * as dataStore from "./dataStore.js";
     el.classList.remove("hidden");
   }
 
+  async function loadServicesForPage() {
+    servicesLoadState = "loading";
+    renderOwnerServices();
+    try {
+      // In server mode the persisted list is authoritative. Do not render an
+      // empty state while this request is still pending.
+      await dataStore.getServicesAsync({ fallbackOnError: false });
+      servicesLoadState = "ready";
+    } catch (error) {
+      console.error("[Slotzy:services] Could not load services.", error);
+      servicesLoadState = "error";
+    }
+    renderOwnerServices();
+  }
+
   function setFormStatus(message, type) {
     const el = document.getElementById("serviceFormStatus");
     if (!el) return;
     el.textContent = message;
     el.className = `service-form-status service-form-status-${type}`;
+  }
+
+  function setAddButtonPending(pending) {
+    if (!addServiceBtn) return;
+    if (pending) {
+      addServiceBtn.dataset.idleText = addServiceBtn.textContent || "Add Service";
+      addServiceBtn.disabled = true;
+      addServiceBtn.textContent = "Adding service…";
+      return;
+    }
+    addServiceBtn.disabled = false;
+    addServiceBtn.textContent = addServiceBtn.dataset.idleText || "Add Service";
+    delete addServiceBtn.dataset.idleText;
   }
 
   function clearForm() {

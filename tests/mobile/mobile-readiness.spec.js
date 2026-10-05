@@ -1665,6 +1665,9 @@ test("owner services add, validation, edit, and public booking selection stay mo
 
   await expect(page.getByRole("heading", { name: serviceName, exact: true })).toBeVisible();
   await expect(page.locator("#serviceFormStatus")).toContainText("Saved.");
+  await expect(page.locator("#serviceName")).toHaveValue("");
+  await expect(page.locator("#servicePrice")).toHaveValue("");
+  await expect(page.locator("#serviceDuration")).toHaveValue("");
   await expectNoPageOverflow(page, "saved owner service list");
   const savedCard = page.locator(".owner-service-card").filter({ hasText: serviceName });
   await expectControlFits(page, savedCard.locator("button[data-action='edit']"));
@@ -1708,8 +1711,100 @@ test("hosted service write failure does not create local-only success", async ({
   await page.locator("#addServiceBtn").click();
 
   await expect(page.locator("#serviceFormStatus")).toContainText("save this service");
+  await expect(page.locator("#addServiceBtn")).toBeEnabled();
+  await expect(page.locator("#serviceName")).toHaveValue("Must Not Persist");
   await expect(page.getByRole("heading", { name: "Must Not Persist", exact: true })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_services") || "[]").length)).toBe(initialCount);
+});
+
+test("hosted service create acknowledges one authoritative result without refresh", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const serverServices = [...seed.local.Slotzy_services];
+  let createCount = 0;
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/services**", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ services: serverServices }) });
+      return;
+    }
+    if (route.request().method() === "POST") {
+      createCount += 1;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const submitted = route.request().postDataJSON();
+      const created = { ...submitted, id: "authoritative-service-id" };
+      serverServices.push(created);
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ service: created }) });
+      return;
+    }
+    await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "unexpected" }) });
+  });
+
+  await page.goto("/pages/manage-services.html");
+  await page.locator("#serviceName").fill("Authoritative Mobile Service");
+  await page.locator("#servicePrice").fill("35");
+  await page.locator("#serviceDuration").fill("30");
+  await page.locator("#addServiceBtn").evaluate((button) => {
+    button.click();
+    button.click();
+  });
+  await expect(page.locator("#addServiceBtn")).toHaveText("Adding service…");
+  await expect(page.getByRole("heading", { name: "Authoritative Mobile Service", exact: true })).toBeVisible();
+  expect(createCount).toBe(1);
+  await expect(page.locator("#serviceFormStatus")).toContainText("Saved.");
+  await expect(page.locator("#serviceName")).toHaveValue("");
+});
+
+test("services list shows loading and retryable fetch failure instead of a misleading empty state", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  let requestCount = 0;
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/services**", async (route) => {
+    requestCount += 1;
+    if (requestCount <= 2) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ services: seed.local.Slotzy_services }) });
+  });
+
+  await page.goto("/pages/manage-services.html", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Loading services…", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No services yet", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Could not load services", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Retry loading services", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "E2E Mobile Cut", exact: true })).toBeVisible();
+});
+
+test("owner account badge sits below mobile navigation as account context", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/manage-services.html");
+  const headerState = await page.locator(".owner-header-actions").evaluate((nav) => {
+    const badge = nav.querySelector("#userBadge");
+    const link = nav.querySelector(".link");
+    const badgeStyles = getComputedStyle(badge);
+    return {
+      badgeTop: badge.getBoundingClientRect().top,
+      linkTop: link.getBoundingClientRect().top,
+      order: badgeStyles.order,
+      background: badgeStyles.backgroundColor,
+      borderTopWidth: badgeStyles.borderTopWidth,
+    };
+  });
+  if ((await page.evaluate(() => window.innerWidth)) <= 680) {
+    expect(headerState.order).toBe("10");
+  }
+  expect(headerState.badgeTop).toBeGreaterThanOrEqual(headerState.linkTop);
+  expect(headerState.borderTopWidth).toBe("0px");
+  await expectNoPageOverflow(page, "owner services header account context");
 });
 
 test("hosted availability write failure does not create local-only success", async ({ page }) => {

@@ -19,6 +19,14 @@ Before sending an invitation, provide the applicable [tester instructions](CLOSE
 - [x] Manual UAT confirmed public logo alignment improved; remaining flush/alignment polish is non-blocking for this beta.
 - [x] Keep service descriptions out of this patch. The hosted/Postgres/public service contract does not support them end-to-end; plan a separate beta-improvement package.
 
+## Pilot feedback triage 2 follow-up (2026-10-04)
+
+- [ ] After Netlify deploy, add one service on hosted staging and confirm a single authoritative success: form resets, service appears without refresh, and public booking lists it.
+- [ ] On a throttled/poor connection, verify a second rapid Add Service activation cannot create a duplicate request.
+- [ ] Safely verify a hosted service-create failure keeps entered values, restores Add Service, and shows retryable error without local-only success.
+- [ ] Verify Services shows loading while the authoritative list is pending and a Retry action if it cannot load.
+- [ ] Verify the owner account badge appears below navigation on a phone; dashboard scroll/redundant controls remain non-blocking redesign feedback.
+
 ## Beta reliability/recovery local validation (2026-10-04)
 
 - [x] Automated owner logout clears current and legacy auth keys and returns protected Settings to sign-in.

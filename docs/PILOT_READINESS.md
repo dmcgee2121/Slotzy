@@ -35,6 +35,16 @@ Launch handouts are ready: use [tester instructions](CLOSED_PILOT_TESTER_INSTRUC
 
 **Deployed verification: passed.** Following an initial cancellation-observation flake, staging rerun passed **3/3**: focused owner setup API chain, synthetic owner-to-customer lifecycle, and staging negative checks. Manual UAT accepted the owner mobile calendar/header improvements. The public logo is improved but not perfectly flush; treat this as a non-blocking beta improvement. Service descriptions remain a separate beta-improvement package. The tiny trusted staging pilot remains active.
 
+## Pilot feedback triage 2 (2026-10-04)
+
+- [x] Customer iPhone Safari/installed-app flow passed booking, calendar export, confirmation copying, manage-link opening, and cancellation.
+- [x] Owner feedback confirmed login, appointment visibility/timing, recurring blocks, cancellation, and booking confirmations work.
+- [x] Service add now uses the returned authoritative create result rather than treating a post-create collection refresh as part of the create outcome.
+- [x] Service add blocks duplicate pending submissions; authoritative failure leaves the form usable and no local-only service is created.
+- [x] Services list renders loading and retryable hosted-fetch failure states and does not present a misleading empty list while loading.
+- [x] Mobile owner account context is positioned below navigation on phone widths and remains visually distinct.
+- [ ] Dashboard scroll/redundant controls remain beta-improvement/post-beta dashboard redesign work. Service descriptions remain a separate beta-improvement package.
+
 ## Beta readiness gate review (2026-10-04)
 
 - **Decision: Conditional go for the next tiny trusted staging round.** No unresolved core product blocker was found across owner setup, services, scheduling, public booking, branding, manage/cancel/recovery, owner visibility, or beta account/recovery UX.

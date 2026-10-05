@@ -42,6 +42,15 @@ Use [tester instructions](CLOSED_PILOT_TESTER_INSTRUCTIONS.md) for the operator/
 - [x] Keep service descriptions out of this retest: they need a separate end-to-end data-model/API/public-booking package.
 - [x] Tiny trusted staging pilot remains active, staging-only, without payments or production activity.
 
+## Pilot feedback triage 2 retest (2026-10-04)
+
+- [x] Customer report: iPhone Safari/installed-app booking, calendar export, confirmation copying, manage page, and cancellation were smooth.
+- [x] Owner report: login, appointment visibility/timing, recurring blocks, and cancellation worked as expected.
+- [ ] Hosted Services: add one service and confirm it resets/shows once without refresh; retry a failed add and ensure no false duplicate/"already exists" outcome.
+- [ ] Hosted Services loading: observe clear loading state, then retryable error when the authoritative list cannot be fetched.
+- [ ] Phone owner header: confirm the welcome/account context sits below navigation and does not resemble a nav control.
+- [ ] Record dashboard scroll/redundant-button feedback as non-blocking future dashboard redesign work. Do not add service descriptions in this package.
+
 ## Owner account/profile/recovery cleanup — passed (2026-10-04)
 
 - [x] Netlify deployed and guarded staging passed **3/3**; no Render deploy, Supabase migration, or production change was required.

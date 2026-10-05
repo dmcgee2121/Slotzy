@@ -1265,6 +1265,28 @@ async function apiSaveBookings(bookingsInput, options = {}) {
   return apiGetBookings();
 }
 
+async function apiCreateService(serviceInput) {
+  const created = await apiRequest("/services", {
+    method: "POST",
+    body: serviceInput,
+  });
+  const service = created?.service;
+  const id = toRecordId(service?.id);
+  if (!service || !id) {
+    throw new Error("service_create_response_invalid");
+  }
+
+  // A create response is authoritative. Do not require a second collection
+  // fetch before acknowledging it: that extra request can fail after the POST
+  // persisted, leaving the owner with a false failure message.
+  const cached = getServices();
+  saveServices([
+    ...cached.filter((item) => toRecordId(item?.id) !== id),
+    service,
+  ]);
+  return service;
+}
+
 async function apiUpdateBooking(bookingId, bookingPatch, options = {}) {
   const id = toRecordId(bookingId);
   if (!id) throw new Error("Booking id is required for an API update");
@@ -1528,10 +1550,14 @@ export function saveServices(arr) {
   writeLocal(KEYS.SERVICES, arr);
 }
 
-export function getServicesAsync() {
+export function getServicesAsync(options = {}) {
   return runAsync(
     () => getServices(),
-    { apiFn: () => apiGetServices(), label: "services read" }
+    {
+      apiFn: () => apiGetServices(),
+      label: "services read",
+      fallbackOnError: options.fallbackOnError !== false,
+    }
   );
 }
 
@@ -1539,6 +1565,18 @@ export function saveServicesAsync(arr, options = {}) {
   return runAsync(
     () => saveServices(arr),
     { apiFn: () => apiSaveServices(arr), label: "services write", operation: "write", fallbackOnError: false }
+  );
+}
+
+export function createServiceAsync(service, options = {}) {
+  return runAsync(
+    () => {
+      const localService = { ...service };
+      const existing = getServices();
+      saveServices([...existing, localService]);
+      return localService;
+    },
+    { apiFn: () => apiCreateService(service), label: "service create", operation: "write", fallbackOnError: false }
   );
 }
 
