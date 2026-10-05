@@ -82,48 +82,68 @@ function safeBookingRequestPath(value) {
   }
 }
 
-function collectBookingNetworkDiagnostics(page) {
+function collectApiLifecycleDiagnostics(page, expectedOrigin, expectedPath) {
   const events = [];
-  const describe = (request) => {
+  const matches = (request) => {
     try {
-      const rawPath = new URL(request.url()).pathname;
-      if (!rawPath.includes("/bookings")) return null;
-      return {
-        method: request.method(),
-        path: safeBookingRequestPath(request.url()),
-        includesBookingsPath: rawPath.includes("/api/bookings"),
-        includesUuidShape: /\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(?:\/|$)/i.test(rawPath),
-      };
+      const url = new URL(request.url());
+      return url.origin === expectedOrigin && url.pathname === expectedPath;
     } catch {
-      return null;
+      return false;
     }
   };
-  const add = (entry) => {
-    if (entry && events.length < 30) events.push(entry);
+  const add = (event) => {
+    if (events.length < 12) events.push(event);
   };
   const onRequest = (request) => {
-    const entry = describe(request);
-    add(entry ? { type: "request", ...entry } : null);
+    if (matches(request)) add({ type: "request", method: request.method(), path: expectedPath });
   };
   const onResponse = (response) => {
-    const entry = describe(response.request());
-    add(entry ? { type: "response", ...entry, status: response.status() } : null);
+    if (matches(response.request())) add({ type: "response", method: response.request().method(), path: expectedPath, status: response.status() });
   };
   const onRequestFailed = (request) => {
-    const entry = describe(request);
-    add(entry ? { type: "requestfailed", ...entry, failure: safeDiagnosticText(request.failure()?.errorText) } : null);
+    if (matches(request)) add({ type: "requestfailed", method: request.method(), path: expectedPath, failure: safeDiagnosticText(request.failure()?.errorText) });
   };
+  const onClose = () => add({ type: "pageclosed" });
   page.on("request", onRequest);
   page.on("response", onResponse);
   page.on("requestfailed", onRequestFailed);
+  page.on("close", onClose);
   return {
-    snapshot: () => events.map((entry) => ({ ...entry })),
+    snapshot: () => events.map((event) => ({ ...event })),
     stop: () => {
       page.off("request", onRequest);
       page.off("response", onResponse);
       page.off("requestfailed", onRequestFailed);
+      page.off("close", onClose);
     },
   };
+}
+
+async function publicBookingSubmitDiagnostics(page) {
+  if (page.isClosed()) return { pageClosed: true };
+  return page.evaluate(() => {
+    const read = (id) => document.getElementById(id);
+    const select = (id) => String(read(id)?.value ?? "").trim();
+    const button = read("bookBtn");
+    return {
+      pagePath: window.location.pathname,
+      publicBookingBuild: String(document.documentElement?.dataset?.publicBookingBuild ?? ""),
+      buttonPresent: Boolean(button),
+      buttonVisible: Boolean(button?.getClientRects().length),
+      buttonEnabled: Boolean(button && !button.disabled),
+      buttonBusy: button?.getAttribute("aria-busy") === "true",
+      selectedShopPresent: Boolean(select("shopSelect")),
+      selectedProviderPresent: Boolean(select("barberSelect")),
+      selectedServicePresent: Boolean(select("serviceSelect")),
+      selectedDatePresent: Boolean(select("bookingDate")),
+      selectedSlotPresent: Boolean(select("time-slot-select")),
+      clientNamePresent: Boolean(select("clientName")),
+      clientContactPresent: Boolean(select("clientContact")),
+      receiptDisplayed: Boolean(read("bookingReceiptTitle")?.getClientRects().length),
+      serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
+    };
+  }).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
 }
 
 async function manageCancelRuntimeDiagnostics(page) {
@@ -1062,25 +1082,55 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await publicPage.selectOption("#time-slot-select", await slot.getAttribute("value"));
   await publicPage.fill("#clientName", identity.clientName);
   await publicPage.fill("#clientContact", identity.clientEmail);
+  const bookingEndpointPath = "/api/bookings";
+  const bookingNetwork = collectApiLifecycleDiagnostics(publicPage, expectedApiOrigin, bookingEndpointPath);
+  const bookingPostRequest = publicPage.waitForRequest((request) => (
+    request.method() === "POST"
+    && new URL(request.url()).origin === expectedApiOrigin
+    && new URL(request.url()).pathname === bookingEndpointPath
+  ), { timeout: 5000 }).then((request) => ({ request }), (error) => ({ error }));
   const bookingSaveResponse = publicPage.waitForResponse((response) => (
     response.request().method() === "POST"
     && new URL(response.url()).origin === expectedApiOrigin
-    && new URL(response.url()).pathname === "/api/bookings"
+    && new URL(response.url()).pathname === bookingEndpointPath
   ), { timeout: 15000 }).then((response) => ({ response }), (error) => ({ error }));
-  await publicPage.getByRole("button", { name: /book|confirm/i }).click();
+  const bookingSubmitBeforeClick = await publicBookingSubmitDiagnostics(publicPage);
+  const bookingButton = publicPage.locator("#bookBtn");
+  await expect(bookingButton).toBeVisible();
+  await expect(bookingButton).toBeEnabled();
+  await bookingButton.click();
+  const bookingPostRequestResult = await bookingPostRequest;
+  if (bookingPostRequestResult.error) {
+    const bookingEvents = bookingNetwork.snapshot();
+    bookingNetwork.stop();
+    throw new Error(`Public booking POST was not initiated: ${JSON.stringify({
+      bookingPostInitiated: false,
+      endpointPath: bookingEndpointPath,
+      method: "POST",
+      submitBeforeClick: bookingSubmitBeforeClick,
+      submitAfterWait: await publicBookingSubmitDiagnostics(publicPage),
+      lifecycleEvents: bookingEvents,
+      waitError: safeDiagnosticText(bookingPostRequestResult.error?.message),
+    })}`);
+  }
   const bookingSaveResult = await bookingSaveResponse;
   if (bookingSaveResult.error) {
+    const bookingEvents = bookingNetwork.snapshot();
+    bookingNetwork.stop();
     throw new Error(`Public booking POST was not observed: ${JSON.stringify({
-      bookingPostObserved: false,
-      endpointPath: "/api/bookings",
+      bookingPostInitiated: true,
+      bookingPostResponseObserved: false,
+      endpointPath: bookingEndpointPath,
       method: "POST",
       status: 0,
       responseKeys: [],
-      receiptDisplayed: await publicPage.locator("#bookingReceiptTitle").isVisible().catch(() => false),
-      manageLinkPresent: Boolean(await publicPage.locator("#bookingReceiptManageLink").getAttribute("href").catch(() => "")),
+      submitBeforeClick: bookingSubmitBeforeClick,
+      submitAfterWait: await publicBookingSubmitDiagnostics(publicPage),
+      lifecycleEvents: bookingEvents,
       waitError: safeDiagnosticText(bookingSaveResult.error?.message),
     })}`);
   }
+  bookingNetwork.stop();
   const bookingSave = bookingSaveResult.response;
   expect(bookingSave.request().headers().authorization).toBeUndefined();
   let bookingPayload = null;
@@ -1218,14 +1268,39 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   const cardBadgeBeforeConfirm = await managedCard.locator(".appointment-actions .badge").allTextContents()
     .then((values) => values.map((value) => String(value).trim())).catch(() => []);
   await managedCancelButton.click();
-  const cancelNetwork = collectBookingNetworkDiagnostics(managePage);
+  const cancelEndpointPath = "/api/public/manage/cancel";
+  const cancelNetwork = collectApiLifecycleDiagnostics(managePage, expectedApiOrigin, cancelEndpointPath);
+  const cancelUpdateRequest = managePage.waitForRequest((request) => (
+    request.method() === "PATCH"
+    && new URL(request.url()).origin === expectedApiOrigin
+    && new URL(request.url()).pathname === cancelEndpointPath
+  ), { timeout: 5000 }).then((request) => ({ request }), (error) => ({ error }));
   const cancelUpdateResponse = managePage.waitForResponse((response) => (
     response.request().method() === "PATCH"
     && new URL(response.url()).origin === expectedApiOrigin
-    && new URL(response.url()).pathname === "/api/public/manage/cancel"
+    && new URL(response.url()).pathname === cancelEndpointPath
   ), { timeout: 15000 }).then((response) => ({ response }), (error) => ({ error }));
-  const confirmCancelButton = managePage.getByRole("button", { name: /^Confirm Cancel$/i });
+  const confirmCancelButton = managedCard.getByRole("button", { name: /^Confirm Cancel$/i });
+  await expect(confirmCancelButton).toBeVisible();
   await confirmCancelButton.click();
+  const cancelUpdateRequestResult = await cancelUpdateRequest;
+  if (cancelUpdateRequestResult.error) {
+    const networkEvents = cancelNetwork.snapshot();
+    cancelNetwork.stop();
+    throw new Error(`Cancel PATCH was not initiated: ${JSON.stringify({
+      cancelButtonClicked: true,
+      confirmCancelButtonClicked: true,
+      cardBadgeBeforeConfirm,
+      ...managedBookingIdShape,
+      endpointPath: cancelEndpointPath,
+      method: "PATCH",
+      runtime: await manageCancelRuntimeDiagnostics(managePage),
+      lifecycleEvents: networkEvents,
+      manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
+      browserErrors: manageBrowserErrors.map((message) => safeDiagnosticText(message)),
+      waitError: safeDiagnosticText(cancelUpdateRequestResult.error?.message),
+    })}`);
+  }
   const cancelUpdateResult = await cancelUpdateResponse;
   if (cancelUpdateResult.error) {
     const networkEvents = cancelNetwork.snapshot();
@@ -1241,7 +1316,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       responseKeys: [],
       bookingStatusAfterResponse: "",
       runtime: await manageCancelRuntimeDiagnostics(managePage),
-      bookingNetworkEvents: networkEvents,
+      lifecycleEvents: networkEvents,
       manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
       browserErrors: manageBrowserErrors.map((message) => safeDiagnosticText(message)),
       waitError: safeDiagnosticText(cancelUpdateResult.error?.message),
