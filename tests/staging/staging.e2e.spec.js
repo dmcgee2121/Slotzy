@@ -230,6 +230,42 @@ async function ownerSetupStepTransitionDiagnostics(page, browserErrors) {
   return { ...state, browserErrors: browserErrors.map((error) => safeDiagnosticText(error)) };
 }
 
+async function ownerSetupServiceSaveDiagnostics(page, expectedServiceName) {
+  if (page.isClosed()) return { pageClosed: true };
+  return page.evaluate((serviceName) => {
+    const read = (id) => document.getElementById(id);
+    const visible = (element) => Boolean(element?.getClientRects().length);
+    const valuePresent = (id) => Boolean(String(read(id)?.value ?? "").trim());
+    const button = read("setupAddServiceBtn");
+    const status = read("setupServiceStatus");
+    const serviceRows = Array.from(document.querySelectorAll("#setupServiceList .availability-timeoff-item"));
+    return {
+      currentPath: window.location.pathname,
+      servicesPanelVisible: visible(document.querySelector("[data-step-panel='3']")),
+      activeStepLabel: String(document.querySelector(".setup-step[aria-current='step']")?.textContent || "").trim(),
+      fields: {
+        barberSelected: valuePresent("setupServiceBarber"),
+        namePresent: valuePresent("setupServiceName"),
+        pricePresent: valuePresent("setupServicePrice"),
+        durationPresent: valuePresent("setupServiceDuration"),
+      },
+      addButton: {
+        present: Boolean(button),
+        visible: visible(button),
+        enabled: Boolean(button && !button.disabled),
+        text: String(button?.textContent || "").trim().slice(0, 80),
+      },
+      expectedServiceRendered: serviceRows.some((row) => String(row.textContent || "").includes(serviceName)),
+      serviceSaveStatus: {
+        visible: visible(status),
+        success: status?.classList.contains("status-success") === true,
+        error: status?.classList.contains("status-error") === true,
+        text: String(status?.textContent || "").trim().slice(0, 240),
+      },
+    };
+  }, expectedServiceName).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
+}
+
 async function manageCancelRuntimeDiagnostics(page) {
   if (page.isClosed()) return { pageClosed: true };
   return page.evaluate(() => {
@@ -1084,21 +1120,69 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
         price: await page.locator("#setupServicePrice").inputValue() === service.price,
         duration: await page.locator("#setupServiceDuration").inputValue() === service.duration,
       };
+      const serviceEndpointPath = "/api/services";
+      const serviceNetwork = collectApiLifecycleDiagnostics(page, expectedApiOrigin, serviceEndpointPath);
+      const serviceSaveRequest = page.waitForRequest((request) => (
+        request.method() === "POST"
+        && new URL(request.url()).origin === expectedApiOrigin
+        && new URL(request.url()).pathname === serviceEndpointPath
+      ), { timeout: 10000 }).then((request) => ({ request }), (error) => ({ error }));
       const serviceSaveResponse = page.waitForResponse((response) => (
         response.request().method() === "POST"
         && new URL(response.url()).origin === expectedApiOrigin
-        && new URL(response.url()).pathname === "/api/services"
-      ));
-      await page.locator("#setupAddServiceBtn").click();
-      const serviceSave = await serviceSaveResponse;
-      const serviceCreation = await serviceCreateResponseState(serviceSave, service.name, inputState);
-      if (serviceCreation.status !== 201 || !serviceCreation.hasCreatedService || !serviceCreation.createdSyntheticServiceMatches) {
-        throw new Error(`Owner setup service save failed: ${JSON.stringify(serviceCreation)}`);
+        && new URL(response.url()).pathname === serviceEndpointPath
+      ), { timeout: 20000 }).then((response) => ({ response }), (error) => ({ error }));
+      const serviceSaveBeforeClick = await ownerSetupServiceSaveDiagnostics(page, service.name);
+      const addServiceButton = page.locator("#setupAddServiceBtn");
+      await expect(addServiceButton).toBeVisible();
+      await expect(addServiceButton).toBeEnabled();
+      await addServiceButton.click();
+      try {
+        await expect(page.locator("#setupServiceList")).toContainText(service.name, { timeout: 30000 });
+        await expect(page.locator("#setupServiceStatus.status-error")).toHaveCount(0);
+      } catch (error) {
+        const lifecycleEvents = serviceNetwork.snapshot();
+        serviceNetwork.stop();
+        throw new Error(`Owner setup service save did not update the UI: ${JSON.stringify({
+          expectedServiceRendered: false,
+          submitBeforeClick: serviceSaveBeforeClick,
+          submitAfterWait: await ownerSetupServiceSaveDiagnostics(page, service.name),
+          lifecycleEvents,
+          assertionError: safeDiagnosticText(error?.message),
+        })}`);
       }
-      await expect(page.locator("#setupServiceList")).toContainText(service.name);
       const persisted = await servicesApiState(request, authToken, service.name);
       if (persisted.status !== 200 || !persisted.hasExpectedService) {
-        throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify({ ...serviceCreation, ...persisted, currentPath: new URL(page.url()).pathname })}`);
+        const lifecycleEvents = serviceNetwork.snapshot();
+        serviceNetwork.stop();
+        throw new Error(`Owner setup service was not present in the authenticated service read: ${JSON.stringify({
+          ...persisted,
+          submitBeforeClick: serviceSaveBeforeClick,
+          submitAfterPersistenceCheck: await ownerSetupServiceSaveDiagnostics(page, service.name),
+          lifecycleEvents,
+          currentPath: new URL(page.url()).pathname,
+        })}`);
+      }
+      const serviceSaveRequestResult = await serviceSaveRequest;
+      const serviceSaveResult = await serviceSaveResponse;
+      const lifecycleEvents = serviceNetwork.snapshot();
+      serviceNetwork.stop();
+      if (serviceSaveRequestResult.error || serviceSaveResult.error) {
+        throw new Error(`Owner setup service POST lifecycle was not observed after persisted UI success: ${JSON.stringify({
+          requestStarted: !serviceSaveRequestResult.error,
+          responseObserved: !serviceSaveResult.error,
+          endpointPath: serviceEndpointPath,
+          method: "POST",
+          submitBeforeClick: serviceSaveBeforeClick,
+          submitAfterPersistenceCheck: await ownerSetupServiceSaveDiagnostics(page, service.name),
+          lifecycleEvents,
+          requestWaitError: safeDiagnosticText(serviceSaveRequestResult.error?.message),
+          responseWaitError: safeDiagnosticText(serviceSaveResult.error?.message),
+        })}`);
+      }
+      const serviceCreation = await serviceCreateResponseState(serviceSaveResult.response, service.name, inputState);
+      if (serviceCreation.status !== 201 || !serviceCreation.hasCreatedService || !serviceCreation.createdSyntheticServiceMatches) {
+        throw new Error(`Owner setup service POST non-success: ${JSON.stringify({ ...serviceCreation, lifecycleEvents })}`);
       }
     }
     const setupServiceNames = setupServices.map((service) => service.name);
