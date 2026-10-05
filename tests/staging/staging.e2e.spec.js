@@ -549,6 +549,32 @@ async function visibleSyntheticServiceTexts(page) {
     .catch(() => []);
 }
 
+async function servicesPageDiagnostics(page, expectedServiceName) {
+  if (page.isClosed()) return { pageClosed: true };
+  return page.evaluate((serviceName) => {
+    const list = document.getElementById("serviceList");
+    const visible = (element) => Boolean(element?.getClientRects().length);
+    const visibleText = (selector) => Array.from(document.querySelectorAll(selector))
+      .filter(visible)
+      .map((element) => String(element.textContent || "").trim());
+    const serviceCards = Array.from(document.querySelectorAll("#serviceList .owner-service-card"));
+    return {
+      currentPath: window.location.pathname,
+      serviceEditorVisible: visible(Array.from(document.querySelectorAll("h1")).find((heading) => String(heading.textContent || "").trim() === "Service Editor")),
+      serviceListPresent: Boolean(list),
+      serviceCardCount: serviceCards.length,
+      expectedServiceCardPresent: serviceCards.some((card) => String(card.textContent || "").includes(serviceName)),
+      loadingStateVisible: visibleText("#serviceList .empty-state-title").includes("Loading services…"),
+      loadErrorVisible: visibleText("#serviceList .empty-state-title").includes("Could not load services"),
+      retryLoadVisible: Array.from(document.querySelectorAll("button[data-action='retry-load']")).some(visible),
+      formSaveErrorVisible: visible(document.getElementById("serviceFormStatus"))
+        && /couldn.t save/i.test(String(document.getElementById("serviceFormStatus")?.textContent || "")),
+      visibleStateLabels: visibleText("#serviceList .empty-state-title, #serviceFormStatus")
+        .filter((text) => /loading services|could not load services|couldn.t save/i.test(text)),
+    };
+  }, expectedServiceName).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
+}
+
 async function serviceCreateResponseState(response, expectedName, inputState) {
   let payload = null;
   let responseJsonParsed = false;
@@ -979,22 +1005,45 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     await requireSetupServices(request, authToken, setupServiceNames, "after-dashboard-navigation", page);
   }
 
+  const servicesEndpointPath = "/api/services";
+  // Listen before navigation. manage-services starts its authoritative read
+  // during module initialization, so registering after goto can miss it.
+  // The rendered page state is the success criterion; the lifecycle trace is
+  // retained only to diagnose a failed render without turning a cached/already
+  // completed read into a 180-second test timeout.
+  const servicesNetwork = collectApiLifecycleDiagnostics(page, expectedApiOrigin, servicesEndpointPath);
   await page.goto(`${frontendUrl}/pages/manage-services.html`);
-  const serviceReloadResponse = page.waitForResponse((response) => (
-    response.request().method() === "GET"
-    && new URL(response.url()).origin === expectedApiOrigin
-    && new URL(response.url()).pathname === "/api/services"
-  ));
-  await page.reload();
-  const serviceReload = await serviceReloadResponse;
   const persistedAfterReload = await servicesApiState(request, authToken, identity.serviceName);
-  if (serviceReload.status() !== 200 || persistedAfterReload.status !== 200 || !persistedAfterReload.hasExpectedService) {
-    throw new Error(`Persisted service was unavailable after manage-services reload: ${JSON.stringify({ loadStatus: serviceReload.status(), ...persistedAfterReload, currentPath: new URL(page.url()).pathname, visibleSyntheticServices: await visibleSyntheticServiceTexts(page) })}`);
-  }
   try {
-    await expect(page.getByRole("heading", { name: identity.serviceName, exact: true })).toBeVisible();
-  } catch {
-    throw new Error(`Persisted service was returned by the API but not rendered after reload: ${JSON.stringify({ ...persistedAfterReload, currentPath: new URL(page.url()).pathname, visibleSyntheticServices: await visibleSyntheticServiceTexts(page) })}`);
+    await expect(page).toHaveURL(/\/pages\/manage-services\.html$/);
+    await expect(page.getByRole("heading", { name: "Service Editor", exact: true })).toBeVisible();
+    await expect(page.locator("#serviceList .owner-service-card").filter({
+      has: page.getByRole("heading", { name: identity.serviceName, exact: true }),
+    })).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "Loading services…", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Could not load services", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Retry loading services", exact: true })).toHaveCount(0);
+    await expect(page.locator("#serviceFormStatus.service-form-status-error")).toHaveCount(0);
+  } catch (error) {
+    const lifecycleEvents = servicesNetwork.snapshot();
+    servicesNetwork.stop();
+    throw new Error(`Manage services page did not resolve to the persisted service: ${JSON.stringify({
+      ...await servicesPageDiagnostics(page, identity.serviceName),
+      persistedAfterReload,
+      lifecycleEvents,
+      visibleSyntheticServices: await visibleSyntheticServiceTexts(page),
+      assertionError: safeDiagnosticText(error?.message),
+    })}`);
+  }
+  const servicesLifecycleEvents = servicesNetwork.snapshot();
+  servicesNetwork.stop();
+  if (persistedAfterReload.status !== 200 || !persistedAfterReload.hasExpectedService) {
+    throw new Error(`Persisted service was unavailable after manage-services page load: ${JSON.stringify({
+      ...persistedAfterReload,
+      servicesPage: await servicesPageDiagnostics(page, identity.serviceName),
+      lifecycleEvents: servicesLifecycleEvents,
+      visibleSyntheticServices: await visibleSyntheticServiceTexts(page),
+    })}`);
   }
 
   await page.goto(`${frontendUrl}/pages/business-owner.html`);
