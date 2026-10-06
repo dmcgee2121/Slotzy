@@ -1645,7 +1645,29 @@ app.get("/api/services", requireAuth, (req, res) => {
   return res.json({ services });
 });
 
+function logStagingServicePersistenceFailure(error, context) {
+  const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  if (environment !== "staging" && environment !== "development") return;
+  const diagnostic = error?.storageDiagnostic && typeof error.storageDiagnostic === "object"
+    ? error.storageDiagnostic
+    : {};
+  console.error("[Slotzy:services] POST /api/services persistence failed", {
+    storage: STORAGE_ADAPTER,
+    code: String(error?.code ?? "") || "unclassified",
+    operation: String(diagnostic.operation ?? "") || "unknown",
+    networkFailurePresent: Object.keys(diagnostic).some((key) => /^network/i.test(key) || /network/i.test(String(diagnostic[key] ?? ""))),
+    authenticatedUserPresent: Boolean(context?.authenticatedUserPresent),
+    ownerShopPresent: Boolean(context?.ownerShopPresent),
+    requestedShopPresent: Boolean(context?.requestedShopPresent),
+    providerPresent: Boolean(context?.providerPresent),
+    providerShopPresent: Boolean(context?.providerShopPresent),
+    providerMembershipMatched: Boolean(context?.providerMembershipMatched),
+    serviceCountBeforeWrite: Math.max(0, Number(context?.serviceCountBeforeWrite) || 0),
+  });
+}
+
 app.post("/api/services", requireAuth, async (req, res) => {
+  let persistenceContext = null;
   try {
     const db = req.db;
     const user = req.user;
@@ -1724,11 +1746,21 @@ app.post("/api/services", requireAuth, async (req, res) => {
       updatedAtISO: now,
     };
 
+    persistenceContext = {
+      authenticatedUserPresent: Boolean(user),
+      ownerShopPresent: Boolean(getUserShopId(db, user)),
+      requestedShopPresent: Boolean(requestedShopId),
+      providerPresent: Boolean(targetBarber),
+      providerShopPresent: Boolean(barberShopId),
+      providerMembershipMatched: userBelongsToShop(db, targetBarber.username, shopId),
+      serviceCountBeforeWrite: db.services.length,
+    };
     db.services.push(service);
     await writeStore(db);
     return res.status(201).json({ service });
-  } catch {
-    return res.status(500).json({ error: "internal server error" });
+  } catch (error) {
+    logStagingServicePersistenceFailure(error, persistenceContext);
+    return res.status(500).json({ error: "internal server error", code: "service_persistence_failed" });
   }
 });
 

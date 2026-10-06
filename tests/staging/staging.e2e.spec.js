@@ -749,6 +749,7 @@ async function serviceCreateResponseState(response, expectedName, inputState) {
     responseJsonParsed = Boolean(payload && typeof payload === "object");
   } catch { /* service creation does not navigate; report shape safely below */ }
   const createdName = String(payload?.service?.name ?? payload?.service?.title ?? "").trim();
+  const responseCode = String(payload?.code ?? "").trim();
   return {
     inputsFilled: Boolean(inputState?.name && inputState?.price && inputState?.duration),
     saveActionClicked: true,
@@ -756,6 +757,9 @@ async function serviceCreateResponseState(response, expectedName, inputState) {
     status: response.status(),
     responseJsonParsed,
     responseKeys: responseJsonParsed ? Object.keys(payload).sort() : [],
+    errorClassification: responseCode === "service_persistence_failed"
+      ? "authoritative_persistence_failure"
+      : (response.status() >= 500 ? "unclassified_server_failure" : "none"),
     serviceKeys: payload?.service && typeof payload.service === "object" ? Object.keys(payload.service).sort() : [],
     hasCreatedService: Boolean(payload?.service && typeof payload.service === "object"),
     createdServiceIdPresent: Boolean(String(payload?.service?.id ?? "").trim()),
