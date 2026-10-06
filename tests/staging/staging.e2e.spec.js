@@ -521,7 +521,10 @@ async function dashboardBookingLinkDiagnostics(page, request, authToken) {
       dashboardLoaded: Boolean(hero?.getClientRects().length),
       userBadgeText: /e2e-/i.test(badgeText) ? badgeText : "[not-synthetic-or-unavailable]",
       pilotBannerVisible: Boolean(banner?.getClientRects().length),
+      bookingLinkInputCount: document.querySelectorAll("#pilotBookingLink").length,
+      bookingLinkInputExists: Boolean(input),
       bookingLinkInputVisible: Boolean(input?.getClientRects().length),
+      bookingLinkInputEnabled: Boolean(input && !input.disabled),
       bookingLinkValuePresent: Boolean(String(input?.value || "").trim()),
       bookingLinkPath: (() => {
         try { return new URL(String(input?.value || ""), window.location.href).pathname; } catch { return ""; }
@@ -543,7 +546,46 @@ async function dashboardBookingLinkDiagnostics(page, request, authToken) {
     bookingRelatedAnchorHrefs: anchors,
     bookingRelatedControls: controls,
     apiShopSlugPresent: Boolean(apiState?.ownerShopCount && apiState?.anyShopHasSlug),
+    apiAuthStatus: apiState?.authStatus ?? 0,
+    apiShopsStatus: apiState?.shopsStatus ?? 0,
+    apiOwnerShopCount: apiState?.ownerShopCount ?? 0,
   };
+}
+
+async function captureDashboardBookingLink(page) {
+  await page.waitForFunction(() => {
+    const input = document.getElementById("pilotBookingLink");
+    const banner = document.getElementById("pilotModeBanner");
+    const copyButton = document.getElementById("pilotCopyBookingBtn");
+    const openButton = document.getElementById("pilotOpenBookingBtn");
+    const visible = (element) => Boolean(element?.getClientRects().length);
+    let url = null;
+    try { url = new URL(String(input?.value ?? ""), window.location.href); } catch { return false; }
+    return window.location.pathname.endsWith("/pages/business-owner.html")
+      && visible(banner)
+      && visible(input)
+      && visible(copyButton)
+      && visible(openButton)
+      && !copyButton.disabled
+      && !openButton.disabled
+      && url.pathname === "/pages/book.html"
+      && Boolean(url.searchParams.get("shop"));
+  });
+
+  return page.evaluate(() => {
+    const input = document.getElementById("pilotBookingLink");
+    const url = new URL(String(input?.value ?? ""), window.location.href);
+    return {
+      value: String(input?.value ?? ""),
+      path: url.pathname,
+      hasShopQuery: Boolean(url.searchParams.get("shop")),
+      inputCount: document.querySelectorAll("#pilotBookingLink").length,
+      inputVisible: Boolean(input?.getClientRects().length),
+      inputEnabled: Boolean(input && !input.disabled),
+      copyVisible: Boolean(document.getElementById("pilotCopyBookingBtn")?.getClientRects().length),
+      openVisible: Boolean(document.getElementById("pilotOpenBookingBtn")?.getClientRects().length),
+    };
+  });
 }
 
 async function selectSyntheticBarber(publicPage, syntheticUsername) {
@@ -1447,17 +1489,26 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
 
   await page.goto(`${frontendUrl}/pages/business-owner.html`);
-  const dashboardDiagnostics = await dashboardBookingLinkDiagnostics(page, request, authToken);
-  const bookingLinkInput = page.locator("#pilotBookingLink");
+  let bookingLinkState;
   try {
-    await expect(bookingLinkInput).toBeVisible();
-    await expect(bookingLinkInput).toHaveValue(/\/pages\/book\.html\?shop=.+/);
-    await expect(page.locator("#pilotCopyBookingBtn")).toBeVisible();
-    await expect(page.locator("#pilotOpenBookingBtn")).toBeVisible();
+    bookingLinkState = await captureDashboardBookingLink(page);
+    expect(bookingLinkState.inputCount).toBe(1);
+    expect(bookingLinkState.path).toBe("/pages/book.html");
+    expect(bookingLinkState.hasShopQuery).toBe(true);
+
+    const popupPromise = page.waitForEvent("popup");
+    await page.locator("#pilotOpenBookingBtn").click();
+    const openedBookingPage = await popupPromise;
+    await openedBookingPage.waitForLoadState("domcontentloaded");
+    const openedUrl = new URL(openedBookingPage.url());
+    expect(openedUrl.pathname).toBe("/pages/book.html");
+    expect(Boolean(openedUrl.searchParams.get("shop"))).toBe(true);
+    await openedBookingPage.close();
   } catch (error) {
+    const dashboardDiagnostics = await dashboardBookingLinkDiagnostics(page, request, authToken);
     throw new Error(`Owner dashboard did not expose its public booking URL: ${JSON.stringify({ ...dashboardDiagnostics, assertionError: safeDiagnosticText(error?.message) })}`);
   }
-  const bookingLink = await bookingLinkInput.inputValue();
+  const bookingLink = bookingLinkState.value;
   const publicContext = await browser.newContext();
   const directoryPage = await publicContext.newPage();
   const directoryContextResponse = directoryPage.waitForResponse((response) => (
