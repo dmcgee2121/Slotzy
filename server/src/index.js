@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, storeManageToken, writeShop, writeStore } from "./storage/index.js";
+import { STORAGE_ADAPTER, readStore, storeManageToken, writeService, writeShop, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -1765,7 +1765,10 @@ app.post("/api/services", requireAuth, async (req, res) => {
       serviceCountBeforeWrite: db.services.length,
     };
     db.services.push(service);
-    await writeStore(db);
+    // Persist only the new service and its provider membership. Replaying the
+    // full hosted document here grows with unrelated pilot data and can exceed
+    // the database statement timeout before the browser receives a response.
+    await writeService(service, db);
     return res.status(201).json({ service });
   } catch (error) {
     logStagingServicePersistenceFailure(error, persistenceContext);

@@ -117,6 +117,19 @@ export function buildPostgresShopSnapshot(shop, owner = null) {
   });
 }
 
+export function buildPostgresServiceSnapshot(service, provider = null) {
+  return normalizePostgresSnapshot({
+    // The provider record recreates/repairs only the membership needed by the
+    // provider_services row. The target shop mapping already exists.
+    users: provider ? [{ ...provider, shopId: service?.shopId ?? provider?.shopId ?? null }] : [],
+    shops: [],
+    services: [service],
+    availability: {},
+    bookings: [],
+    emails: [],
+  });
+}
+
 // Server-only adapter. It maps relational rows back to the document shape that
 // current Express routes expect; routes do not receive database column names.
 export function createPostgresStore(env = process.env) {
@@ -235,6 +248,18 @@ export function createPostgresStore(env = process.env) {
     fail(error, "write shop snapshot", networkFailures);
   }
 
+  async function writeService(service, store = null) {
+    beginOperation();
+    const providerUsername = String(service?.barberUsername ?? service?.ownerUsername ?? "").trim().toLowerCase();
+    const provider = Array.isArray(store?.users)
+      ? store.users.find((user) => String(user?.username ?? "").trim().toLowerCase() === providerUsername) || null
+      : null;
+    const { error } = await client.rpc("slotzy_storage_write_snapshot", {
+      snapshot: buildPostgresServiceSnapshot(service, provider),
+    });
+    fail(error, "write service snapshot", networkFailures);
+  }
+
   async function appendOutboxEmail(email) {
     beginOperation();
     const { error } = await client.from("email_outbox").insert({ recipient_email: email.to, subject: email.subject, template_type: email.tags?.[0] ?? null, payload: { html: email.html ?? "", text: email.text ?? "", tags: email.tags ?? [], meta: email.meta ?? {} }, delivery_status: "pending" });
@@ -271,12 +296,13 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, writeStore, writeShop, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, writeStore, writeShop, writeService, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
 export const writeStore = async (store) => createPostgresStore().writeStore(store);
 export const writeShop = async (shop, store) => createPostgresStore().writeShop(shop, store);
+export const writeService = async (service, store) => createPostgresStore().writeService(service, store);
 export const appendOutboxEmail = async (email) => createPostgresStore().appendOutboxEmail(email);
 export const listOutboxEmails = async (limit) => createPostgresStore().listOutboxEmails(limit);
 export const clearOutboxEmails = async () => createPostgresStore().clearOutboxEmails();

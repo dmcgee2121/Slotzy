@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createJsonStore } from "../src/storage/jsonStore.js";
-import { buildPostgresShopSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
+import { buildPostgresServiceSnapshot, buildPostgresShopSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
 
 const temporaryDirectories = [];
 
@@ -91,6 +91,28 @@ test("Postgres shop writes exclude unrelated rows and preserve canonical brandin
   assert.deepEqual(creationSnapshot.services, []);
   assert.deepEqual(creationSnapshot.availability, {});
   assert.deepEqual(creationSnapshot.bookings, []);
+});
+
+test("Postgres service creation writes only its provider membership and service", () => {
+  const snapshot = buildPostgresServiceSnapshot({
+    id: "service_1",
+    name: "Cut",
+    shopId: "shop_1",
+    barberUsername: "owner",
+  }, {
+    id: "user_1",
+    username: "owner",
+    role: "owner",
+    shopId: "shop_1",
+  });
+
+  assert.equal(snapshot.users.length, 1);
+  assert.equal(snapshot.users[0].shopId, "shop_1");
+  assert.deepEqual(snapshot.shops, []);
+  assert.equal(snapshot.services.length, 1);
+  assert.deepEqual(snapshot.availability, {});
+  assert.deepEqual(snapshot.bookings, []);
+  assert.deepEqual(snapshot.emails, []);
 });
 
 test("JSON storage normalizes incomplete persisted data without losing valid user records", async () => {
