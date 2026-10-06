@@ -1980,7 +1980,35 @@ app.get("/api/availability", requireAuth, (req, res) => {
   return res.json({ availability });
 });
 
+function logStagingAvailabilityPersistenceFailure(error, context) {
+  const environment = String(process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  if (environment !== "staging" && environment !== "development") return;
+  const diagnostic = error?.storageDiagnostic && typeof error.storageDiagnostic === "object"
+    ? error.storageDiagnostic
+    : {};
+  console.error("[Slotzy:availability] PUT /api/availability persistence failed", {
+    storage: STORAGE_ADAPTER,
+    code: String(error?.code ?? "") || "unclassified",
+    operation: String(diagnostic.operation ?? "") || "unknown",
+    networkFailurePresent: Object.keys(diagnostic).some((key) => /^network/i.test(key) || /network/i.test(String(diagnostic[key] ?? ""))),
+    authenticatedUserPresent: Boolean(context?.authenticatedUserPresent),
+    authenticatedUserHasShop: Boolean(context?.authenticatedUserHasShop),
+    providerPresent: Boolean(context?.providerPresent),
+    providerHasShop: Boolean(context?.providerHasShop),
+    providerMembershipMatched: Boolean(context?.providerMembershipMatched),
+    availabilityObjectPresent: Boolean(context?.availabilityObjectPresent),
+    timezonePresent: Boolean(context?.timezonePresent),
+    weeklyObjectPresent: Boolean(context?.weeklyObjectPresent),
+    weeklyDayCount: Math.max(0, Number(context?.weeklyDayCount) || 0),
+    timeOffArrayPresent: Boolean(context?.timeOffArrayPresent),
+    recurringBlocksArrayPresent: Boolean(context?.recurringBlocksArrayPresent),
+    serviceCountBeforeWrite: Math.max(0, Number(context?.serviceCountBeforeWrite) || 0),
+    availabilityProviderCountBeforeWrite: Math.max(0, Number(context?.availabilityProviderCountBeforeWrite) || 0),
+  });
+}
+
 app.put("/api/availability", requireAuth, async (req, res) => {
+  let persistenceContext = null;
   try {
     const db = req.db;
     const user = req.user;
@@ -2006,6 +2034,25 @@ app.put("/api/availability", requireAuth, async (req, res) => {
     }
 
     const payload = req.body?.availability !== undefined ? req.body.availability : req.body;
+    const targetProvider = findUserByUsername(db, targetUsername);
+    const targetShopId = targetProvider ? getUserShopId(db, targetProvider) : "";
+    persistenceContext = {
+      authenticatedUserPresent: Boolean(user),
+      authenticatedUserHasShop: Boolean(getUserShopId(db, user)),
+      providerPresent: Boolean(targetProvider),
+      providerHasShop: Boolean(targetShopId),
+      providerMembershipMatched: Boolean(targetProvider && userBelongsToShop(db, targetUsername, targetShopId)),
+      availabilityObjectPresent: Boolean(payload && typeof payload === "object" && !Array.isArray(payload)),
+      timezonePresent: Boolean(String(payload?.timezone ?? "").trim()),
+      weeklyObjectPresent: Boolean(payload?.weekly && typeof payload.weekly === "object" && !Array.isArray(payload.weekly)),
+      weeklyDayCount: payload?.weekly && typeof payload.weekly === "object" && !Array.isArray(payload.weekly)
+        ? Object.keys(payload.weekly).length
+        : 0,
+      timeOffArrayPresent: Array.isArray(payload?.timeOff),
+      recurringBlocksArrayPresent: Array.isArray(payload?.recurringBlocks),
+      serviceCountBeforeWrite: Array.isArray(db.services) ? db.services.length : 0,
+      availabilityProviderCountBeforeWrite: Object.keys(db.availability).length,
+    };
     const availability = normalizeAvailabilityEntry(payload);
     db.availability[targetUsername] = availability;
     await writeStore(db);
@@ -2014,8 +2061,9 @@ app.put("/api/availability", requireAuth, async (req, res) => {
       barberUsername: targetUsername,
       availability,
     });
-  } catch {
-    return res.status(500).json({ error: "internal server error" });
+  } catch (error) {
+    logStagingAvailabilityPersistenceFailure(error, persistenceContext);
+    return res.status(500).json({ error: "internal server error", code: "availability_persistence_failed" });
   }
 });
 

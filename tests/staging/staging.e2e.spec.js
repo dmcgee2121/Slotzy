@@ -1016,7 +1016,20 @@ test("focused staging owner setup API chain", async ({ request }) => {
     data: { barberUsername: apiIdentity.username, availability: { timezone: "America/Chicago", bufferMinutes: 0, weekly, timeOff: [] } },
   });
   if (availabilityResponse.status() !== 200) {
-    failStage("F", "availability/setup write failed", safeResponse(availabilityResponse, await readJson(availabilityResponse)));
+    const availabilityPayload = await readJson(availabilityResponse);
+    failStage("F", "availability/setup write failed", {
+      ...safeResponse(availabilityResponse, availabilityPayload),
+      errorClassification: availabilityPayload?.code === "availability_persistence_failed"
+        ? "authoritative_persistence_failure"
+        : "unclassified_server_failure",
+      authenticatedProviderRequested: Boolean(apiIdentity.username),
+      availabilityObjectPresent: true,
+      timezonePresent: true,
+      weeklyObjectPresent: true,
+      weeklyDayCount: Object.keys(weekly).length,
+      timeOffArrayPresent: true,
+      recurringBlocksArrayPresent: false,
+    });
   }
   await readServices("F");
   // Reaching here classifies the authoritative API chain as G; the browser
