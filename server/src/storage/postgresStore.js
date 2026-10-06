@@ -103,9 +103,12 @@ export function normalizePostgresSnapshot(store) {
   };
 }
 
-export function buildPostgresShopSnapshot(shop) {
+export function buildPostgresShopSnapshot(shop, owner = null) {
   return normalizePostgresSnapshot({
-    users: [],
+    // Shop creation must reconcile the owner's membership in the same narrow
+    // RPC. Existing branding updates may omit it because membership already
+    // exists, but writeShop supplies the authoritative owner when available.
+    users: owner ? [{ ...owner, shopId: shop?.id ?? owner?.shopId ?? null }] : [],
     shops: [shop],
     services: [],
     availability: {},
@@ -220,10 +223,14 @@ export function createPostgresStore(env = process.env) {
   // The reconciliation RPC updates only rows named by its input. A shop-only
   // snapshot keeps branding writes atomic without retransmitting every other
   // shop's embedded images and unrelated operational data.
-  async function writeShop(shop) {
+  async function writeShop(shop, store = null) {
     beginOperation();
+    const ownerUsername = String(shop?.ownerUsername ?? "").trim().toLowerCase();
+    const owner = Array.isArray(store?.users)
+      ? store.users.find((user) => String(user?.username ?? "").trim().toLowerCase() === ownerUsername) || null
+      : null;
     const { error } = await client.rpc("slotzy_storage_write_snapshot", {
-      snapshot: buildPostgresShopSnapshot(shop),
+      snapshot: buildPostgresShopSnapshot(shop, owner),
     });
     fail(error, "write shop snapshot", networkFailures);
   }
@@ -269,7 +276,7 @@ export function createPostgresStore(env = process.env) {
 
 export const readStore = async () => createPostgresStore().readStore();
 export const writeStore = async (store) => createPostgresStore().writeStore(store);
-export const writeShop = async (shop) => createPostgresStore().writeShop(shop);
+export const writeShop = async (shop, store) => createPostgresStore().writeShop(shop, store);
 export const appendOutboxEmail = async (email) => createPostgresStore().appendOutboxEmail(email);
 export const listOutboxEmails = async (limit) => createPostgresStore().listOutboxEmails(limit);
 export const clearOutboxEmails = async () => createPostgresStore().clearOutboxEmails();

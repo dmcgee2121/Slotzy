@@ -63,12 +63,13 @@ test("Postgres snapshots map browser branding aliases to RPC logo and cover fiel
 });
 
 test("Postgres shop writes exclude unrelated rows and preserve canonical branding", () => {
-  const snapshot = buildPostgresShopSnapshot({
+  const shop = {
     id: "shop_1",
     ownerUsername: "owner",
     logoDataUrl: "data:image/png;base64,small-logo-fixture",
     coverDataUrl: "data:image/webp;base64,small-cover-fixture",
-  });
+  };
+  const snapshot = buildPostgresShopSnapshot(shop);
 
   assert.deepEqual(snapshot.users, []);
   assert.deepEqual(snapshot.services, []);
@@ -78,6 +79,18 @@ test("Postgres shop writes exclude unrelated rows and preserve canonical brandin
   assert.equal(snapshot.shops.length, 1);
   assert.equal(snapshot.shops[0].logo, "data:image/png;base64,small-logo-fixture");
   assert.equal(snapshot.shops[0].cover, "data:image/webp;base64,small-cover-fixture");
+
+  const creationSnapshot = buildPostgresShopSnapshot(shop, {
+    id: "user_1",
+    username: "owner",
+    role: "owner",
+    shopId: null,
+  });
+  assert.equal(creationSnapshot.users.length, 1);
+  assert.equal(creationSnapshot.users[0].shopId, "shop_1");
+  assert.deepEqual(creationSnapshot.services, []);
+  assert.deepEqual(creationSnapshot.availability, {});
+  assert.deepEqual(creationSnapshot.bookings, []);
 });
 
 test("JSON storage normalizes incomplete persisted data without losing valid user records", async () => {

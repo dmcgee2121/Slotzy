@@ -1496,15 +1496,24 @@ app.post("/api/shops", requireAuth, async (req, res) => {
       ownerRecord.shopId = shop.id;
     }
 
-    await writeStore(db);
+    // Creating one shop must not reconcile the complete hosted document. The
+    // narrow shop snapshot also includes only this owner's membership, keeping
+    // unrelated services, schedules, bookings, and branding out of the write.
+    await writeShop(shop, db);
     return res.status(201).json({ shop });
   } catch (error) {
     logStagingShopFailure("POST /api/shops failed", {
       status: 500,
       storage: STORAGE_ADAPTER,
       code: String(error?.code ?? ""),
-      message: String(error?.message ?? "unknown error"),
-      storageDiagnostic: error?.storageDiagnostic ?? null,
+      operation: String(error?.storageDiagnostic?.operation ?? "unknown"),
+      userCount: Array.isArray(req.db?.users) ? req.db.users.length : 0,
+      shopCount: Array.isArray(req.db?.shops) ? req.db.shops.length : 0,
+      serviceCount: Array.isArray(req.db?.services) ? req.db.services.length : 0,
+      bookingCount: Array.isArray(req.db?.bookings) ? req.db.bookings.length : 0,
+      availabilityProviderCount: req.db?.availability && typeof req.db.availability === "object"
+        ? Object.keys(req.db.availability).length
+        : 0,
     });
     return res.status(500).json({ error: "internal server error" });
   }
