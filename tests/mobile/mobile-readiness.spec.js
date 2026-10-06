@@ -1040,6 +1040,67 @@ test("owner setup is guided and usable through completion on mobile", async ({ p
   await expect(page.locator("#setupGoDashboard")).toHaveText("Finish and Open Dashboard");
 });
 
+test("hosted owner setup leaves Step 1 after authoritative shop create without waiting on unrelated reads", async ({ page }) => {
+  const seed = buildSeed();
+  const owner = { ...seed.local.Slotzy_users[0], shopId: null, role: "owner" };
+  const createdShop = {
+    id: "authoritative-new-shop-id",
+    name: "Authoritative New Shop",
+    businessName: "Authoritative New Shop",
+    slug: "authoritative-new-shop",
+    ownerUsername: owner.username,
+  };
+  let shopCreated = false;
+  let shopPostCount = 0;
+  let serviceGetCount = 0;
+  let availabilityGetCount = 0;
+
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+    sessionStorage.setItem("Slotzy_setupStep", "1");
+  });
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith("/auth/me")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: { ...owner, shopId: shopCreated ? createdShop.id : null } }) });
+      return;
+    }
+    if (path.endsWith("/shops") && request.method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ shops: shopCreated ? [createdShop] : [] }) });
+      return;
+    }
+    if (path.endsWith("/shops") && request.method() === "POST") {
+      shopPostCount += 1;
+      shopCreated = true;
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ shop: createdShop }) });
+      return;
+    }
+    if (path.endsWith("/services") || path.endsWith("/availability")) {
+      const requestCount = path.endsWith("/services") ? ++serviceGetCount : ++availabilityGetCount;
+      if (requestCount > 1) {
+        await new Promise(() => {});
+        return;
+      }
+      const body = path.endsWith("/services") ? { services: [] } : { availability: {} };
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+      return;
+    }
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/owner-setup.html");
+  await expect(page.getByRole("heading", { name: "Name your shop" })).toBeVisible();
+  await page.locator("#setupShopName").fill(createdShop.name);
+  await page.locator("#setupStep1Next").click();
+
+  await expect(page.getByRole("heading", { name: "Choose your booking team" })).toBeVisible();
+  await expect(page.locator("#setupStep1Next")).not.toHaveAttribute("aria-busy", "true");
+  expect(shopPostCount).toBe(1);
+});
+
 test("hosted owner setup renders a created service before an empty refresh catches up", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   seed.local.Slotzy_services = [];

@@ -277,9 +277,8 @@ import {
     }
 
     try {
-      await saveOwnerShop(shopName);
-      await saveOwnerRecord(String(ui.ownerDisplayNameInput?.value ?? state.username).trim() || state.username);
-      await refreshSetupStatus();
+      const savedShop = await saveOwnerShop(shopName);
+      applyConfirmedShopStep(savedShop);
       applySetupStatus();
       setStatus(ui.shopStatus, "Shop details saved.", true);
       window.showToast?.("Saved.", { type: "success" });
@@ -303,8 +302,8 @@ import {
     }
 
     try {
-      await saveOwnerRecord(ownerDisplayName);
-      await refreshSetupStatus();
+      const savedOwner = await saveOwnerRecord(ownerDisplayName);
+      applyConfirmedOwnerRecord(savedOwner);
       applySetupStatus();
       showStep(3);
     } catch (error) {
@@ -657,17 +656,26 @@ import {
     // concurrent legacy single-shop PATCH used the not-yet-persisted local ID
     // and could fail while the generic data-store fallback still let setup
     // advance. Require this one create/update to finish before leaving Step 1.
-    await dataStore.saveShopsAsync(nextShops, { fallbackOnError: false });
+    const savedShops = await dataStore.saveShopsAsync(nextShops, { fallbackOnError: false });
+    const authoritativeShops = Array.isArray(savedShops) ? savedShops : dataStore.getShops();
+    const savedShop = authoritativeShops.find((shop) => (
+      String(shop?.name ?? shop?.businessName ?? "").trim() === shopName
+    )) || authoritativeShops[0] || null;
+    const savedShopId = String(savedShop?.id ?? "").trim();
+    if (!savedShop || !savedShopId) throw new Error("shop_create_response_invalid");
+
+    nextUsers[ownerIndex >= 0 ? ownerIndex : nextUsers.length].shopId = savedShopId;
     dataStore.saveUsers(nextUsers);
     dataStore.saveShop({
       ...legacyShop,
       businessName: shopName,
       name: shopName,
       logoDataUrl: String(state.shopLogoDataUrl ?? "").trim() || null,
-      shopId,
+      shopId: savedShopId,
       bookingPolicy,
       updatedAt: new Date().toISOString(),
     });
+    return savedShop;
   }
 
   async function saveOwnerRecord(displayName) {
@@ -682,7 +690,54 @@ import {
       displayName,
       shopId: state.shopId || String(owner?.shopId ?? "").trim() || null,
     };
-    await dataStore.saveUsersAsync(nextUsers);
+    const savedUsers = await dataStore.saveUsersAsync(nextUsers);
+    const authoritativeUsers = Array.isArray(savedUsers) ? savedUsers : nextUsers;
+    return authoritativeUsers.find((user) => String(user?.username ?? "").trim() === state.username)
+      || nextUsers[ownerIndex >= 0 ? ownerIndex : nextUsers.length - 1];
+  }
+
+  function applyConfirmedShopStep(shop) {
+    const shopId = String(shop?.id ?? "").trim();
+    if (!shopId) throw new Error("shop_create_response_invalid");
+    const owner = {
+      ...(state.setupStatus?.owner || {}),
+      username: state.username,
+      role: "owner",
+      displayName: String(state.setupStatus?.owner?.displayName ?? state.username).trim() || state.username,
+      shopId,
+    };
+    const existingStaff = Array.isArray(state.setupStatus?.staff) ? state.setupStatus.staff : [];
+    const staff = [owner, ...existingStaff.filter((entry) => String(entry?.username ?? "").trim() !== state.username)];
+    state.setupStatus = {
+      ...(state.setupStatus || {}),
+      owner,
+      shop,
+      shopId,
+      shopName: String(shop?.name ?? shop?.businessName ?? "").trim(),
+      staff,
+      additionalBarbers: staff.filter((entry) => String(entry?.role ?? "").toLowerCase() === "barber"),
+      hasNamedShop: true,
+      needsWizard: true,
+    };
+    state.shopId = shopId;
+    state.shopName = state.setupStatus.shopName;
+    state.shopSlug = String(shop?.slug ?? "").trim() || toSlug(state.shopName || state.username);
+    state.shopLogoDataUrl = getStoredShopLogoDataUrl(shop, dataStore.getShop() || {});
+  }
+
+  function applyConfirmedOwnerRecord(owner) {
+    if (!owner || String(owner?.username ?? "").trim() !== state.username) {
+      throw new Error("owner_refresh_response_invalid");
+    }
+    const normalizedOwner = { ...owner, shopId: state.shopId || String(owner?.shopId ?? "").trim() || null };
+    const existingStaff = Array.isArray(state.setupStatus?.staff) ? state.setupStatus.staff : [];
+    const staff = [normalizedOwner, ...existingStaff.filter((entry) => String(entry?.username ?? "").trim() !== state.username)];
+    state.setupStatus = {
+      ...(state.setupStatus || {}),
+      owner: normalizedOwner,
+      staff,
+      additionalBarbers: staff.filter((entry) => String(entry?.role ?? "").toLowerCase() === "barber"),
+    };
   }
 
   function renderShopLogoPreview() {
