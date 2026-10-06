@@ -186,7 +186,7 @@ import {
   }
 
   async function refreshSetupStatus() {
-    state.setupStatus = await getOwnerSetupStatus(state.username);
+    state.setupStatus = await getOwnerSetupStatus(state.username, { sequential: true });
     mergeConfirmedCreatedServicesIntoSetupStatus();
     state.shopId = String(state.setupStatus?.shopId ?? "").trim();
     state.shopName = String(state.setupStatus?.shopName ?? "").trim();

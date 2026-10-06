@@ -209,13 +209,33 @@ export function clearSetupProgress() {
   storage.removeItem(SETUP_SESSION_KEYS.COMPLETE);
 }
 
-export async function getOwnerSetupStatus(username) {
-  const [users, shops, services, availabilityMap] = await Promise.all([
-    dataStore.getUsersAsync({ fallbackOnError: false }),
-    dataStore.getShopsAsync({ fallbackOnError: false }),
-    dataStore.getServicesAsync({ fallbackOnError: false }),
-    dataStore.getAvailabilityMapAsync({ fallbackOnError: false }),
-  ]);
+export async function getOwnerSetupStatus(username, { sequential = false } = {}) {
+  // Each hosted collection read currently reconstructs the authoritative
+  // store. Running all four at once can overload that read path and make a
+  // valid fresh-owner token appear to flip from 200 to 401 (the API's auth
+  // middleware also classifies a readStore failure as an auth failure).
+  // Fresh setup initialization and the dashboard gate opt into sequencing so
+  // they have one stable authenticated snapshot request in flight at a time.
+  // Other established owner pages retain their existing parallel guard reads.
+  // Keep fallback disabled: hosted setup must still fail closed rather than
+  // accepting local compatibility data.
+  let users;
+  let shops;
+  let services;
+  let availabilityMap;
+  if (sequential) {
+    users = await dataStore.getUsersAsync({ fallbackOnError: false });
+    shops = await dataStore.getShopsAsync({ fallbackOnError: false });
+    services = await dataStore.getServicesAsync({ fallbackOnError: false });
+    availabilityMap = await dataStore.getAvailabilityMapAsync({ fallbackOnError: false });
+  } else {
+    [users, shops, services, availabilityMap] = await Promise.all([
+      dataStore.getUsersAsync({ fallbackOnError: false }),
+      dataStore.getShopsAsync({ fallbackOnError: false }),
+      dataStore.getServicesAsync({ fallbackOnError: false }),
+      dataStore.getAvailabilityMapAsync({ fallbackOnError: false }),
+    ]);
+  }
 
   const normalizedUsers = Array.isArray(users) ? users : [];
   const normalizedShops = Array.isArray(shops) ? shops : [];
@@ -260,7 +280,7 @@ export async function getOwnerSetupStatus(username) {
   });
 }
 
-export async function shouldShowOwnerSetupWizard(username) {
-  const status = await getOwnerSetupStatus(username);
+export async function shouldShowOwnerSetupWizard(username, options) {
+  const status = await getOwnerSetupStatus(username, options);
   return Boolean(status?.needsWizard);
 }
