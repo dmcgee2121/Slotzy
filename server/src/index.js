@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, storeManageToken, writeAvailability, writeService, writeShop, writeStore } from "./storage/index.js";
+import { STORAGE_ADAPTER, readStore, readUserByUsername, storeManageToken, writeAvailability, writeService, writeShop, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -1061,34 +1061,86 @@ async function handleBookingNotifyRequest(req, res, type) {
   }
 }
 
-async function requireAuth(req, res, next) {
-  try {
-    const token = getBearerToken(req);
-    if (!token) {
-      return res.status(401).json({ error: "missing bearer token" });
-    }
+function verifyBearerUsername(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    res.status(401).json({ error: "missing bearer token" });
+    return "";
+  }
 
+  try {
     const payload = jwt.verify(token, JWT_SECRET);
     const username = normalizeUsername(payload?.username);
     if (!username) {
-      return res.status(401).json({ error: "invalid token payload" });
+      res.status(401).json({ error: "invalid token payload" });
+      return "";
     }
+    return username;
+  } catch {
+    res.status(401).json({ error: "invalid or expired token" });
+    return "";
+  }
+}
 
+function logAuthStorageFailure(error, { operation, authHeaderPresent, jwtVerified, usernamePresent }) {
+  console.error("[Slotzy:auth] Protected storage read failed", {
+    storage: STORAGE_ADAPTER,
+    operation,
+    authHeaderPresent,
+    jwtVerified,
+    storageReadSuccess: false,
+    storageErrorCode: String(error?.code ?? ""),
+    storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+    usernamePresent,
+    userFound: false,
+  });
+}
+
+function normalizedAuthenticatedUser(user) {
+  return {
+    ...user,
+    username: normalizeUsername(user.username),
+    role: normalizeRole(user.role),
+  };
+}
+
+async function requireSessionAuth(req, res, next) {
+  const username = verifyBearerUsername(req, res);
+  if (!username) return;
+  try {
+    const user = await readUserByUsername(username);
+    if (!user) return res.status(401).json({ error: "user not found for token" });
+    req.user = normalizedAuthenticatedUser(user);
+    return next();
+  } catch (error) {
+    logAuthStorageFailure(error, {
+      operation: "read auth user",
+      authHeaderPresent: true,
+      jwtVerified: true,
+      usernamePresent: true,
+    });
+    return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
+  }
+}
+
+async function requireAuth(req, res, next) {
+  const username = verifyBearerUsername(req, res);
+  if (!username) return;
+  try {
     const db = await readStore();
     const user = findUserByUsername(db, username);
-    if (!user) {
-      return res.status(401).json({ error: "user not found for token" });
-    }
-
+    if (!user) return res.status(401).json({ error: "user not found for token" });
     req.db = db;
-    req.user = {
-      ...user,
-      username: normalizeUsername(user.username),
-      role: normalizeRole(user.role),
-    };
+    req.user = normalizedAuthenticatedUser(user);
     return next();
-  } catch {
-    return res.status(401).json({ error: "invalid or expired token" });
+  } catch (error) {
+    logAuthStorageFailure(error, {
+      operation: "read protected snapshot",
+      authHeaderPresent: true,
+      jwtVerified: true,
+      usernamePresent: true,
+    });
+    return res.status(503).json({ error: "service temporarily unavailable", code: "storage_unavailable" });
   }
 }
 
@@ -1426,7 +1478,7 @@ app.get("/api/public/booking-context", async (req, res) => {
   }
 });
 
-app.get("/api/auth/me", requireAuth, (req, res) => {
+app.get("/api/auth/me", requireSessionAuth, (req, res) => {
   return res.json({ user: buildAuthUser(req.user) });
 });
 

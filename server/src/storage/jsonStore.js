@@ -62,6 +62,22 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     }
   }
 
+  async function readUserByUsername(username) {
+    const key = String(username ?? "").trim().toLowerCase();
+    if (!key) return null;
+    const store = await readStore();
+    const user = store.users.find((candidate) => String(candidate?.username ?? "").trim().toLowerCase() === key);
+    if (!user) return null;
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      role: user.role,
+      shopId: user.shopId ?? null,
+      createdAt: user.createdAt,
+    };
+  }
+
   async function appendOutboxEmail(email) {
     const store = await readStore();
     store.emails.push(email);
@@ -99,6 +115,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
 
   return {
     readStore,
+    readUserByUsername,
     writeStore,
     writeShop,
     writeService,
@@ -113,6 +130,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
 const defaultJsonStore = createJsonStore();
 
 export const readStore = defaultJsonStore.readStore;
+export const readUserByUsername = defaultJsonStore.readUserByUsername;
 export const writeStore = defaultJsonStore.writeStore;
 export const writeShop = defaultJsonStore.writeShop;
 export const writeService = defaultJsonStore.writeService;

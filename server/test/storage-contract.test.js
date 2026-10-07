@@ -39,6 +39,10 @@ test("JSON storage round-trips users, shops, services, availability, and booking
 
   await store.writeStore(state);
   assert.deepEqual(await store.readStore(), state);
+  assert.deepEqual(await store.readUserByUsername(" OWNER "), {
+    id: "user_1", username: "owner", displayName: undefined, role: "owner", shopId: null, createdAt: undefined,
+  });
+  assert.equal(await store.readUserByUsername("missing-owner"), null);
 });
 
 test("Postgres snapshots map browser branding aliases to RPC logo and cover fields", () => {

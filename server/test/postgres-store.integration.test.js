@@ -74,6 +74,16 @@ postgresTest("Postgres user create/read contract", async () => {
   await store.writeStore(state);
   const read = await store.readStore();
   assert.equal(read.users.length, 1); assert.equal(read.users[0].username, "fixture-owner"); assert.equal(read.users[0].shopId, null);
+  const authUser = await store.readUserByUsername("FIXTURE-OWNER");
+  assert.equal(authUser.username, "fixture-owner"); assert.equal(authUser.shopId, null);
+});
+
+postgresTest("Postgres auth user lookup returns canonical shop linkage without a full snapshot", async () => {
+  await seedBase();
+  const authUser = await store.readUserByUsername("fixture-owner");
+  assert.equal(authUser.username, "fixture-owner");
+  assert.equal(authUser.role, "owner");
+  assert.equal(authUser.shopId, "shop-fixture");
 });
 
 postgresTest("Postgres shop create/read/update contract", async () => {

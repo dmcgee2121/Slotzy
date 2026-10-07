@@ -126,6 +126,7 @@ function collectApiLifecycleDiagnostics(page, expectedOrigin, expectedPath) {
 function collectOwnerSetupLifecycleDiagnostics(page, expectedOrigin) {
   const events = [];
   const paths = new Set(["/api/auth/me", "/api/shops", "/api/services", "/api/availability"]);
+  let firstAuthCredential;
   const describe = (request) => {
     try {
       const url = new URL(request.url());
@@ -140,7 +141,14 @@ function collectOwnerSetupLifecycleDiagnostics(page, expectedOrigin) {
   };
   const onRequest = (request) => {
     const entry = describe(request);
-    add(entry && { type: "request", ...entry });
+    if (!entry) return;
+    const authorization = String(request.headers()?.authorization ?? "");
+    const isAuthCheck = entry.path === "/api/auth/me";
+    const authHeaderPresent = Boolean(authorization);
+    let tokenChanged = false;
+    if (isAuthCheck && firstAuthCredential === undefined) firstAuthCredential = authorization;
+    else if (isAuthCheck) tokenChanged = authorization !== firstAuthCredential;
+    add({ type: "request", ...entry, authHeaderPresent, ...(isAuthCheck ? { tokenChanged } : {}) });
   };
   const onResponse = (response) => {
     const entry = describe(response.request());

@@ -7,6 +7,7 @@ This contract is the persistence boundary used by `server/src/index.js` and `ser
 | Operation | Input/output | Current JSON behavior |
 | --- | --- | --- |
 | `readStore()` | Returns one normalized store document | Reads `server/src/db.json`. Missing file is created with the required empty shape. |
+| `readUserByUsername(username)` | Returns the matching authentication-safe user identity, including canonical shop linkage when present, or `null` | Reads only the requested identity. It must not expose password hashes or require reconstruction of unrelated operational collections. |
 | `writeStore(store)` | Accepts one store document | Normalizes and rewrites the full document. Route business logic currently mutates the loaded document before this call. |
 | `appendOutboxEmail(email)` | Returns the supplied email record | Adds it to `emails` and persists the document. |
 | `listOutboxEmails(limit)` | Returns newest-first email records | Reads from `emails`, sorts by `createdAtISO`, and applies a non-negative integer limit. |
@@ -41,9 +42,9 @@ Each provider availability entry also preserves `recurringBlocks`, an array of `
 
 - The adapter must preserve the route-visible data shapes and existing API status/response behavior.
 - It must not silently switch adapters or fall back to local JSON after an explicitly selected adapter fails.
-- JSON is the only active runtime adapter today. `db.js` remains a compatibility shim for legacy `readDb`/`writeDb` imports.
+- JSON remains the local/default adapter. Hosted environments may explicitly select the Postgres adapter. `db.js` remains a compatibility shim for legacy `readDb`/`writeDb` imports.
 - A Postgres adapter must use server-only credentials. Browser code must never import it or receive Supabase service-role credentials.
-- The eventual Postgres implementation may internally use narrower domain queries/transactions, but it must be covered by equivalent contract and API tests before selection is enabled for a real environment.
+- Postgres may use narrower domain queries/transactions, but each narrow operation must preserve the route-visible contract and have equivalent storage/API coverage.
 
 ## Postgres adapter status
 
