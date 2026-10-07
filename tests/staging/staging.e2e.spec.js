@@ -375,15 +375,16 @@ async function browserAuthState(page) {
   });
 }
 
-async function servicesApiState(request, authToken, expectedName) {
+async function servicesApiNamesState(request, authToken, expectedNames) {
   const endpoint = new URL("/api/services", apiUrl);
   const token = String(authToken ?? "").trim();
+  const names = Array.isArray(expectedNames) ? expectedNames.map((name) => String(name ?? "").trim()) : [];
   const safeState = {
     status: 0,
     endpointPath: endpoint.pathname,
     serviceCount: 0,
-    hasExpectedService: false,
     hasToken: Boolean(token),
+    expectedServicesPresent: names.map(() => false),
   };
   if (!token) return safeState;
 
@@ -394,11 +395,12 @@ async function servicesApiState(request, authToken, expectedName) {
     let payload = null;
     try { payload = await response.json(); } catch { /* safe shape below */ }
     const services = Array.isArray(payload?.services) ? payload.services : [];
+    const returnedNames = new Set(services.map((service) => String(service?.name ?? service?.title ?? "").trim()));
     return {
       ...safeState,
       status: response.status(),
       serviceCount: services.length,
-      hasExpectedService: services.some((service) => String(service?.name ?? service?.title ?? "").trim() === expectedName),
+      expectedServicesPresent: names.map((name) => returnedNames.has(name)),
     };
   } catch (error) {
     return {
@@ -407,6 +409,14 @@ async function servicesApiState(request, authToken, expectedName) {
       errorMessage: safeDiagnosticText(error?.message ?? "service read failed"),
     };
   }
+}
+
+async function servicesApiState(request, authToken, expectedName) {
+  const state = await servicesApiNamesState(request, authToken, [expectedName]);
+  return {
+    ...state,
+    hasExpectedService: state.expectedServicesPresent[0] === true,
+  };
 }
 
 async function ownerShopApiState(request, authToken, expectedShopName) {
@@ -810,14 +820,17 @@ async function serviceCreateResponseState(response, expectedName, inputState) {
 }
 
 async function requireSetupServices(request, authToken, expectedNames, checkpoint, page) {
-  const states = [];
-  for (const name of expectedNames) states.push(await servicesApiState(request, authToken, name));
-  const first = states[0] ?? { status: 0, serviceCount: 0, hasToken: Boolean(authToken) };
-  const allPresent = states.length === expectedNames.length && states.every((state) => state.status === 200 && state.hasExpectedService);
-  if (!allPresent || first.serviceCount < expectedNames.length) {
-    throw new Error(`Owner setup services failed persistence checkpoint: ${JSON.stringify({ checkpoint, endpointPath: first.endpointPath, status: first.status, serviceCount: first.serviceCount, hasToken: first.hasToken, expectedSyntheticServices: expectedNames, expectedServicesPresent: states.map((state, index) => ({ name: expectedNames[index], present: state.hasExpectedService })), currentPath: new URL(page.url()).pathname })}`);
+  // Verify all expected names from one authoritative response. Separate reads
+  // can overlap dashboard initialization and report metadata from the first
+  // response while treating a later failed read as a missing second service.
+  const state = await servicesApiNamesState(request, authToken, expectedNames);
+  const allPresent = state.status === 200
+    && state.expectedServicesPresent.length === expectedNames.length
+    && state.expectedServicesPresent.every(Boolean);
+  if (!allPresent || state.serviceCount < expectedNames.length) {
+    throw new Error(`Owner setup services failed persistence checkpoint: ${JSON.stringify({ checkpoint, endpointPath: state.endpointPath, status: state.status, serviceCount: state.serviceCount, hasToken: state.hasToken, expectedSyntheticServices: expectedNames, expectedServicesPresent: state.expectedServicesPresent.map((present, index) => ({ name: expectedNames[index], present })), requestErrorPresent: Boolean(state.errorName || state.errorMessage), currentPath: new URL(page.url()).pathname })}`);
   }
-  return { status: first.status, serviceCount: first.serviceCount, hasToken: first.hasToken };
+  return { status: state.status, serviceCount: state.serviceCount, hasToken: state.hasToken };
 }
 
 async function registrationOutcome(page, response, expectedUser, browserErrors, expectedApiOrigin) {
