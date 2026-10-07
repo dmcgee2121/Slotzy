@@ -78,6 +78,25 @@ postgresTest("Postgres user create/read contract", async () => {
   assert.equal(authUser.username, "fixture-owner"); assert.equal(authUser.shopId, null);
 });
 
+postgresTest("Postgres narrow user registration preserves unrelated rows", async () => {
+  await seedBase();
+  await store.writeUser({
+    id: "user-narrow-registration",
+    username: "fixture-narrow-owner",
+    displayName: "Fixture Narrow Owner",
+    passwordHash: "not-a-real-password",
+    role: "owner",
+    shopId: null,
+    createdAt: new Date().toISOString(),
+  });
+  const authUser = await store.readUserByUsername("fixture-narrow-owner");
+  const snapshot = await store.readStore();
+  assert.equal(authUser.username, "fixture-narrow-owner");
+  assert.equal(authUser.shopId, null);
+  assert.equal(snapshot.shops.length, 1);
+  assert.equal(snapshot.services.length, 1);
+});
+
 postgresTest("Postgres auth user lookup returns canonical shop linkage without a full snapshot", async () => {
   await seedBase();
   const authUser = await store.readUserByUsername("fixture-owner");

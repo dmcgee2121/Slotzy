@@ -19,6 +19,7 @@ export const STORAGE_ADAPTER = requestedAdapter;
 export const readStore = activeStore.readStore;
 export const readUserByUsername = activeStore.readUserByUsername;
 export const writeStore = activeStore.writeStore;
+export const writeUser = activeStore.writeUser;
 export const writeShop = activeStore.writeShop;
 export const writeService = activeStore.writeService;
 export const writeAvailability = activeStore.writeAvailability;

@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, readUserByUsername, storeManageToken, writeAvailability, writeService, writeShop, writeStore } from "./storage/index.js";
+import { STORAGE_ADAPTER, readStore, readUserByUsername, storeManageToken, writeAvailability, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -1297,6 +1297,10 @@ async function seedAdminDemoShop() {
 }
 
 app.post("/api/auth/register", async (req, res) => {
+  let registrationStage = "validation";
+  let duplicateUsername = false;
+  let userCreated = false;
+  let tokenIssued = false;
   try {
     const username = normalizeUsername(req.body?.username);
     const password = String(req.body?.password ?? "");
@@ -1318,19 +1322,22 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ error: "role must be owner, barber, or customer" });
     }
 
-    const db = await readStore();
-    const exists = Boolean(findUserByUsername(db, username));
-    if (exists) {
+    registrationStage = "duplicate_check";
+    duplicateUsername = Boolean(await readUserByUsername(username));
+    if (duplicateUsername) {
       return res.status(409).json({ error: "username already exists" });
     }
 
     if (role === ROLE_BARBER && requestedShopId) {
+      registrationStage = "shop_validation";
+      const db = await readStore();
       const shopExists = db.shops.some((shop) => normalizeUsername(shop?.id) === requestedShopId);
       if (!shopExists) {
         return res.status(400).json({ error: "shopId does not exist for barber account" });
       }
     }
 
+    registrationStage = "password_hash";
     const passwordHash = await bcrypt.hash(password, 10);
     const now = new Date().toISOString();
     const user = {
@@ -1343,21 +1350,36 @@ app.post("/api/auth/register", async (req, res) => {
       createdAt: now,
     };
 
-    db.users.push(user);
-    await writeStore(db);
+    registrationStage = "user_write";
+    await writeUser(user);
+    userCreated = true;
 
+    registrationStage = "token_issue";
     const token = signToken(user);
+    tokenIssued = true;
     const authUser = buildAuthUser(user);
     return res.status(201).json({ token, user: authUser });
   } catch (error) {
-    // Keep the browser response generic, but make hosted diagnostics actionable.
-    // Never log request bodies: they contain passwords and may later contain PII.
+    const storageErrorCode = String(error?.code ?? "");
+    const uniqueConflict = registrationStage === "user_write" && storageErrorCode === "23505";
+    // Never log request bodies or arbitrary error messages: registration input
+    // contains a password and may later contain private contact information.
     console.error("[Slotzy:auth] POST /api/auth/register failed", {
+      route: "/api/auth/register",
       storage: STORAGE_ADAPTER,
-      code: String(error?.code ?? ""),
-      message: String(error?.message ?? "unknown error"),
-      storageDiagnostic: error?.storageDiagnostic ?? null,
+      operation: registrationStage,
+      errorName: String(error?.name ?? "Error"),
+      storageErrorCode,
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      duplicateUsername: duplicateUsername || uniqueConflict,
+      duplicateEmail: false,
+      storageReadFailed: registrationStage === "duplicate_check" || registrationStage === "shop_validation",
+      storageWriteFailed: registrationStage === "user_write",
+      passwordHashFailed: registrationStage === "password_hash",
+      userCreated,
+      tokenIssued,
     });
+    if (uniqueConflict) return res.status(409).json({ error: "username already exists" });
     return res.status(500).json({ error: "internal server error" });
   }
 });

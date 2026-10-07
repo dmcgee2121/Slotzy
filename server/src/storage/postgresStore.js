@@ -143,6 +143,17 @@ export function buildPostgresAvailabilitySnapshot(username, availability) {
   });
 }
 
+export function buildPostgresUserSnapshot(user) {
+  return normalizePostgresSnapshot({
+    users: [user],
+    shops: [],
+    services: [],
+    availability: {},
+    bookings: [],
+    emails: [],
+  });
+}
+
 // Server-only adapter. It maps relational rows back to the document shape that
 // current Express routes expect; routes do not receive database column names.
 export function createPostgresStore(env = process.env) {
@@ -304,6 +315,17 @@ export function createPostgresStore(env = process.env) {
     fail(error, "write snapshot", networkFailures);
   }
 
+  // Registration creates one identity. Sending only that identity through the
+  // additive base RPC avoids rewriting unrelated hosted operational data while
+  // keeping user creation and legacy source mapping in one transaction.
+  async function writeUser(user) {
+    beginOperation();
+    const { error } = await client.rpc("slotzy_storage_write_snapshot", {
+      snapshot: buildPostgresUserSnapshot(user),
+    });
+    fail(error, "write user snapshot", networkFailures);
+  }
+
   // The reconciliation RPC updates only rows named by its input. A shop-only
   // snapshot keeps branding writes atomic without retransmitting every other
   // shop's embedded images and unrelated operational data.
@@ -375,12 +397,13 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, writeStore, writeShop, writeService, writeAvailability, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, writeStore, writeUser, writeShop, writeService, writeAvailability, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
 export const readUserByUsername = async (username) => createPostgresStore().readUserByUsername(username);
 export const writeStore = async (store) => createPostgresStore().writeStore(store);
+export const writeUser = async (user) => createPostgresStore().writeUser(user);
 export const writeShop = async (shop, store) => createPostgresStore().writeShop(shop, store);
 export const writeService = async (service, store) => createPostgresStore().writeService(service, store);
 export const writeAvailability = async (username, availability, store) => createPostgresStore().writeAvailability(username, availability, store);

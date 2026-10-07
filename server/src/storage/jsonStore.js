@@ -49,6 +49,18 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     await fs.writeFile(filePath, JSON.stringify(normalized, null, 2), "utf-8");
   }
 
+  async function writeUser(user) {
+    const store = await readStore();
+    const key = String(user?.username ?? "").trim().toLowerCase();
+    if (store.users.some((candidate) => String(candidate?.username ?? "").trim().toLowerCase() === key)) {
+      const error = new Error("username already exists");
+      error.code = "23505";
+      throw error;
+    }
+    store.users.push(user);
+    await writeStore(store);
+  }
+
   async function readStore() {
     try {
       const raw = await fs.readFile(filePath, "utf-8");
@@ -117,6 +129,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     readStore,
     readUserByUsername,
     writeStore,
+    writeUser,
     writeShop,
     writeService,
     writeAvailability,
@@ -132,6 +145,7 @@ const defaultJsonStore = createJsonStore();
 export const readStore = defaultJsonStore.readStore;
 export const readUserByUsername = defaultJsonStore.readUserByUsername;
 export const writeStore = defaultJsonStore.writeStore;
+export const writeUser = defaultJsonStore.writeUser;
 export const writeShop = defaultJsonStore.writeShop;
 export const writeService = defaultJsonStore.writeService;
 export const writeAvailability = defaultJsonStore.writeAvailability;

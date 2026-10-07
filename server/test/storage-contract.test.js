@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createJsonStore } from "../src/storage/jsonStore.js";
-import { buildPostgresAvailabilitySnapshot, buildPostgresServiceSnapshot, buildPostgresShopSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
+import { buildPostgresAvailabilitySnapshot, buildPostgresServiceSnapshot, buildPostgresShopSnapshot, buildPostgresUserSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
 
 const temporaryDirectories = [];
 
@@ -95,6 +95,32 @@ test("Postgres shop writes exclude unrelated rows and preserve canonical brandin
   assert.deepEqual(creationSnapshot.services, []);
   assert.deepEqual(creationSnapshot.availability, {});
   assert.deepEqual(creationSnapshot.bookings, []);
+});
+
+test("Postgres user registration snapshots exclude unrelated operational rows", () => {
+  const user = { id: "user_new", username: "new-owner", passwordHash: "fixture-hash", role: "owner", shopId: null };
+  const snapshot = buildPostgresUserSnapshot(user);
+
+  assert.deepEqual(snapshot.users, [user]);
+  assert.deepEqual(snapshot.shops, []);
+  assert.deepEqual(snapshot.services, []);
+  assert.deepEqual(snapshot.availability, {});
+  assert.deepEqual(snapshot.bookings, []);
+  assert.deepEqual(snapshot.emails, []);
+});
+
+test("JSON narrow user creation preserves existing data and rejects duplicates", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [{ id: "existing", username: "existing-owner", role: "owner" }],
+    shops: [{ id: "existing-shop" }], services: [], availability: {}, bookings: [], emails: [],
+  });
+  const user = { id: "new", username: "new-owner", role: "owner" };
+  await store.writeUser(user);
+  const state = await store.readStore();
+  assert.deepEqual(state.users, [{ id: "existing", username: "existing-owner", role: "owner" }, user]);
+  assert.deepEqual(state.shops, [{ id: "existing-shop" }]);
+  await assert.rejects(() => store.writeUser({ id: "duplicate", username: "NEW-OWNER" }), (error) => error?.code === "23505");
 });
 
 test("Postgres service creation writes only its provider membership and service", () => {
