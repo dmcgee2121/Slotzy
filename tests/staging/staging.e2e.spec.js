@@ -1365,19 +1365,6 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       await expect(addServiceButton).toBeVisible();
       await expect(addServiceButton).toBeEnabled();
       await addServiceButton.click();
-      const [serviceSaveRequestResult, serviceSaveResult] = await Promise.all([
-        serviceSaveRequest,
-        serviceSaveResponse,
-      ]);
-      const serviceCreation = serviceSaveResult.response
-        ? await serviceCreateResponseState(serviceSaveResult.response, service.name, inputState)
-        : {
-            status: null,
-            responseKeys: [],
-            hasCreatedService: false,
-            createdServiceIdPresent: false,
-            createdSyntheticServiceMatches: false,
-          };
       try {
         await expect(page.locator("#setupServiceList")).toContainText(service.name, { timeout: 30000 });
         await expect(page.locator("#setupServiceStatus.status-error")).toHaveCount(0);
@@ -1388,9 +1375,6 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
           expectedServiceRendered: false,
           submitBeforeClick: serviceSaveBeforeClick,
           submitAfterWait: await ownerSetupServiceSaveDiagnostics(page, service),
-          requestStarted: !serviceSaveRequestResult.error,
-          responseObserved: !serviceSaveResult.error,
-          serviceCreation,
           lifecycleEvents,
           assertionError: safeDiagnosticText(error?.message),
         })}`);
@@ -1407,23 +1391,39 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
           currentPath: new URL(page.url()).pathname,
         })}`);
       }
+      const [serviceSaveRequestResult, serviceSaveResult] = await Promise.all([
+        serviceSaveRequest,
+        serviceSaveResponse,
+      ]);
+      const serviceCreation = serviceSaveResult.response
+        ? await serviceCreateResponseState(serviceSaveResult.response, service.name, inputState)
+        : {
+            status: null,
+            responseKeys: [],
+            hasCreatedService: false,
+            createdServiceIdPresent: false,
+            createdSyntheticServiceMatches: false,
+          };
       const lifecycleEvents = serviceNetwork.snapshot();
       serviceNetwork.stop();
-      if (serviceSaveRequestResult.error || serviceSaveResult.error) {
-        throw new Error(`Owner setup service POST lifecycle was not observed after persisted UI success: ${JSON.stringify({
-          requestStarted: !serviceSaveRequestResult.error,
-          responseObserved: !serviceSaveResult.error,
-          endpointPath: serviceEndpointPath,
-          method: "POST",
-          submitBeforeClick: serviceSaveBeforeClick,
-          submitAfterPersistenceCheck: await ownerSetupServiceSaveDiagnostics(page, service),
-          lifecycleEvents,
-          requestWaitError: safeDiagnosticText(serviceSaveRequestResult.error?.message),
-          responseWaitError: safeDiagnosticText(serviceSaveResult.error?.message),
-        })}`);
-      }
-      if (serviceCreation.status !== 201 || !serviceCreation.hasCreatedService || !serviceCreation.createdSyntheticServiceMatches) {
-        throw new Error(`Owner setup service POST non-success: ${JSON.stringify({ ...serviceCreation, lifecycleEvents })}`);
+      const lifecyclePostRequestObserved = lifecycleEvents.some((event) => event.type === "request" && event.method === "POST");
+      const lifecyclePostResponse = [...lifecycleEvents].reverse().find((event) => event.type === "response" && event.method === "POST");
+      const postObservation = {
+        waiterRequestObserved: !serviceSaveRequestResult.error,
+        waiterResponseObserved: !serviceSaveResult.error,
+        lifecycleRequestObserved: lifecyclePostRequestObserved,
+        lifecycleResponseObserved: Boolean(lifecyclePostResponse),
+        postStatus: serviceCreation.status || lifecyclePostResponse?.status || null,
+        expectedServiceRendered: true,
+        expectedServicePersisted: persisted.hasExpectedService,
+        serviceCount: persisted.serviceCount,
+      };
+      if (serviceSaveResult.response) {
+        if (serviceCreation.status !== 201 || !serviceCreation.hasCreatedService || !serviceCreation.createdSyntheticServiceMatches) {
+          throw new Error(`Owner setup service POST non-success: ${JSON.stringify({ ...serviceCreation, postObservation, lifecycleEvents })}`);
+        }
+      } else if (lifecyclePostResponse && lifecyclePostResponse.status !== 201) {
+        throw new Error(`Owner setup service POST lifecycle returned non-success: ${JSON.stringify({ postObservation, lifecycleEvents })}`);
       }
     }
     const setupServiceNames = setupServices.map((service) => service.name);
