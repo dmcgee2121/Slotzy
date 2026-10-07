@@ -20,6 +20,7 @@ export const readStore = activeStore.readStore;
 export const writeStore = activeStore.writeStore;
 export const writeShop = activeStore.writeShop;
 export const writeService = activeStore.writeService;
+export const writeAvailability = activeStore.writeAvailability;
 export const appendOutboxEmail = activeStore.appendOutboxEmail;
 export const listOutboxEmails = activeStore.listOutboxEmails;
 export const clearOutboxEmails = activeStore.clearOutboxEmails;

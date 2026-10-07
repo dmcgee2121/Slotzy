@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, storeManageToken, writeService, writeShop, writeStore } from "./storage/index.js";
+import { STORAGE_ADAPTER, readStore, storeManageToken, writeAvailability, writeService, writeShop, writeStore } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -2067,7 +2067,7 @@ app.put("/api/availability", requireAuth, async (req, res) => {
     };
     const availability = normalizeAvailabilityEntry(payload);
     db.availability[targetUsername] = availability;
-    await writeStore(db);
+    await writeAvailability(targetUsername, availability, db);
 
     return res.json({
       barberUsername: targetUsername,

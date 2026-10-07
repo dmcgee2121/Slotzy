@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createJsonStore } from "../src/storage/jsonStore.js";
-import { buildPostgresServiceSnapshot, buildPostgresShopSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
+import { buildPostgresAvailabilitySnapshot, buildPostgresServiceSnapshot, buildPostgresShopSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
 
 const temporaryDirectories = [];
 
@@ -113,6 +113,35 @@ test("Postgres service creation writes only its provider membership and service"
   assert.deepEqual(snapshot.availability, {});
   assert.deepEqual(snapshot.bookings, []);
   assert.deepEqual(snapshot.emails, []);
+});
+
+test("Postgres availability writes include only the target provider schedule", () => {
+  const availability = {
+    timezone: "America/Chicago",
+    bufferMinutes: 10,
+    weekly: { mon: { enabled: true, start: "09:00", end: "17:00" } },
+    timeOff: [],
+    recurringBlocks: [{
+      id: "11111111-1111-4111-8111-111111111111",
+      weekday: "mon",
+      start: "12:00",
+      end: "13:00",
+      label: "Lunch",
+      enabled: true,
+    }],
+  };
+  const snapshot = buildPostgresAvailabilitySnapshot("owner", availability);
+
+  assert.deepEqual(snapshot.users, []);
+  assert.deepEqual(snapshot.shops, []);
+  assert.deepEqual(snapshot.services, []);
+  assert.deepEqual(snapshot.bookings, []);
+  assert.deepEqual(snapshot.emails, []);
+  assert.deepEqual(snapshot.availability, { owner: availability });
+});
+
+test("Postgres availability snapshots require a target provider", () => {
+  assert.throws(() => buildPostgresAvailabilitySnapshot("", {}), /provider username/);
 });
 
 test("JSON storage normalizes incomplete persisted data without losing valid user records", async () => {

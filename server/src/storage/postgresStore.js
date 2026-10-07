@@ -130,6 +130,19 @@ export function buildPostgresServiceSnapshot(service, provider = null) {
   });
 }
 
+export function buildPostgresAvailabilitySnapshot(username, availability) {
+  const providerUsername = String(username ?? "").trim();
+  if (!providerUsername) throw new Error("Availability write requires a provider username");
+  return normalizePostgresSnapshot({
+    users: [],
+    shops: [],
+    services: [],
+    availability: { [providerUsername]: availability },
+    bookings: [],
+    emails: [],
+  });
+}
+
 // Server-only adapter. It maps relational rows back to the document shape that
 // current Express routes expect; routes do not receive database column names.
 export function createPostgresStore(env = process.env) {
@@ -260,6 +273,14 @@ export function createPostgresStore(env = process.env) {
     fail(error, "write service snapshot", networkFailures);
   }
 
+  async function writeAvailability(username, availability) {
+    beginOperation();
+    const { error } = await client.rpc("slotzy_storage_write_snapshot_with_recurring", {
+      snapshot: buildPostgresAvailabilitySnapshot(username, availability),
+    });
+    fail(error, "write availability snapshot", networkFailures);
+  }
+
   async function appendOutboxEmail(email) {
     beginOperation();
     const { error } = await client.from("email_outbox").insert({ recipient_email: email.to, subject: email.subject, template_type: email.tags?.[0] ?? null, payload: { html: email.html ?? "", text: email.text ?? "", tags: email.tags ?? [], meta: email.meta ?? {} }, delivery_status: "pending" });
@@ -296,13 +317,14 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, writeStore, writeShop, writeService, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, writeStore, writeShop, writeService, writeAvailability, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
 export const writeStore = async (store) => createPostgresStore().writeStore(store);
 export const writeShop = async (shop, store) => createPostgresStore().writeShop(shop, store);
 export const writeService = async (service, store) => createPostgresStore().writeService(service, store);
+export const writeAvailability = async (username, availability, store) => createPostgresStore().writeAvailability(username, availability, store);
 export const appendOutboxEmail = async (email) => createPostgresStore().appendOutboxEmail(email);
 export const listOutboxEmails = async (limit) => createPostgresStore().listOutboxEmails(limit);
 export const clearOutboxEmails = async () => createPostgresStore().clearOutboxEmails();
