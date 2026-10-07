@@ -784,12 +784,19 @@ async function servicesPageDiagnostics(page, expectedServiceName) {
       .filter(visible)
       .map((element) => String(element.textContent || "").trim());
     const serviceCards = Array.from(document.querySelectorAll("#serviceList .owner-service-card"));
+    let cachedServices = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem("Slotzy_services") || "[]");
+      if (Array.isArray(parsed)) cachedServices = parsed;
+    } catch { /* counts and booleans remain safe defaults */ }
     return {
       currentPath: window.location.pathname,
       serviceEditorVisible: visible(Array.from(document.querySelectorAll("h1")).find((heading) => String(heading.textContent || "").trim() === "Service Editor")),
       serviceListPresent: Boolean(list),
       serviceCardCount: serviceCards.length,
       expectedServiceCardPresent: serviceCards.some((card) => String(card.textContent || "").includes(serviceName)),
+      cachedServiceCount: cachedServices.length,
+      cachedExpectedServicePresent: cachedServices.some((service) => String(service?.name ?? service?.title ?? "").trim() === serviceName),
       loadingStateVisible: visibleText("#serviceList .empty-state-title").includes("Loading services…"),
       loadErrorVisible: visibleText("#serviceList .empty-state-title").includes("Could not load services"),
       retryLoadVisible: Array.from(document.querySelectorAll("button[data-action='retry-load']")).some(visible),
@@ -799,6 +806,20 @@ async function servicesPageDiagnostics(page, expectedServiceName) {
         .filter((text) => /loading services|could not load services|couldn.t save/i.test(text)),
     };
   }, expectedServiceName).catch((error) => ({ pageClosed: page.isClosed(), diagnosticError: safeDiagnosticText(error?.message) }));
+}
+
+function summarizeServiceReadLifecycle(events) {
+  const serviceReads = events.filter((event) => event.method === "GET");
+  const requestCount = serviceReads.filter((event) => event.type === "request").length;
+  const responses = serviceReads.filter((event) => event.type === "response");
+  const failedCount = serviceReads.filter((event) => event.type === "requestfailed").length;
+  return {
+    requestCount,
+    responseCount: responses.length,
+    responseStatuses: responses.map((event) => event.status),
+    failedCount,
+    unresolvedRequestCount: Math.max(0, requestCount - responses.length - failedCount),
+  };
 }
 
 async function serviceCreateResponseState(response, expectedName, inputState) {
@@ -1508,6 +1529,7 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
       ...servicesPageState,
       persistedBeforeManage,
       lifecycleEvents,
+      serviceReadLifecycle: summarizeServiceReadLifecycle(lifecycleEvents),
       visibleSyntheticServices,
       assertionError: safeDiagnosticText(error?.message),
     })}`);

@@ -1168,11 +1168,25 @@ async function apiSaveShop(shopObj) {
   return refreshed;
 }
 
+let servicesReadInFlight = null;
+
 async function apiGetServices() {
-  const payload = await apiRequest("/services");
-  const services = Array.isArray(payload?.services) ? payload.services : [];
-  saveServices(services);
-  return services;
+  // The owner setup guard and service editor initialize independently on the
+  // same page. Share their authoritative read so one request cannot finish for
+  // the guard while a duplicate page-owned request remains pending forever.
+  if (servicesReadInFlight) return servicesReadInFlight;
+  const request = (async () => {
+    const payload = await apiRequest("/services");
+    const services = Array.isArray(payload?.services) ? payload.services : [];
+    saveServices(services);
+    return services;
+  })();
+  servicesReadInFlight = request;
+  try {
+    return await request;
+  } finally {
+    if (servicesReadInFlight === request) servicesReadInFlight = null;
+  }
 }
 
 async function apiSaveServices(servicesInput) {

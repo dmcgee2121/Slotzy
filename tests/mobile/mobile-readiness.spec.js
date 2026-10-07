@@ -2049,7 +2049,7 @@ test("services list shows loading and retryable fetch failure instead of a misle
   });
   await page.route("**/api/services**", async (route) => {
     requestCount += 1;
-    if (requestCount <= 2) {
+    if (requestCount === 1) {
       await new Promise((resolve) => setTimeout(resolve, 150));
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
       return;
@@ -2063,6 +2063,7 @@ test("services list shows loading and retryable fetch failure instead of a misle
   await expect(page.getByRole("heading", { name: "Could not load services", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Retry loading services", exact: true }).click();
   await expect(page.getByRole("heading", { name: "E2E Mobile Cut", exact: true })).toBeVisible();
+  expect(requestCount).toBe(2);
 });
 
 test("owner account badge sits below mobile navigation as account context", async ({ page }) => {
