@@ -1448,45 +1448,64 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   }
 
   const servicesEndpointPath = "/api/services";
+  // Verify persistence before navigation. Previously this check started while
+  // manage-services.js and the setup guard were also loading services, creating
+  // three overlapping hosted reads. The eventual test timeout closed the page
+  // and disposed this request context; it was not an app-initiated close.
+  const persistedBeforeManage = await servicesApiState(request, authToken, identity.serviceName);
+  if (persistedBeforeManage.status !== 200 || !persistedBeforeManage.hasExpectedService) {
+    throw new Error(`Persisted service was unavailable before manage-services page load: ${JSON.stringify(persistedBeforeManage)}`);
+  }
+  const servicesPage = await context.newPage();
+  await servicesPage.addInitScript(({ username }) => {
+    sessionStorage.setItem("Slotzy_user", JSON.stringify({ username, role: "owner" }));
+  }, { username: identity.username });
   // Listen before navigation. manage-services starts its authoritative read
   // during module initialization, so registering after goto can miss it.
   // The rendered page state is the success criterion; the lifecycle trace is
   // retained only to diagnose a failed render without turning a cached/already
   // completed read into a 180-second test timeout.
-  const servicesNetwork = collectApiLifecycleDiagnostics(page, expectedApiOrigin, servicesEndpointPath);
-  await page.goto(`${frontendUrl}/pages/manage-services.html`);
-  const persistedAfterReload = await servicesApiState(request, authToken, identity.serviceName);
+  const servicesNetwork = collectApiLifecycleDiagnostics(servicesPage, expectedApiOrigin, servicesEndpointPath);
+  await servicesPage.goto(`${frontendUrl}/pages/manage-services.html`);
   try {
-    await expect(page).toHaveURL(/\/pages\/manage-services\.html$/);
-    await expect(page.getByRole("heading", { name: "Service Editor", exact: true })).toBeVisible();
-    await expect(page.locator("#serviceList .owner-service-card").filter({
-      has: page.getByRole("heading", { name: identity.serviceName, exact: true }),
+    await expect(servicesPage).toHaveURL(/\/pages\/manage-services\.html$/);
+    await expect(servicesPage.getByRole("heading", { name: "Service Editor", exact: true })).toBeVisible();
+    await expect(servicesPage.locator("#serviceList .owner-service-card").filter({
+      has: servicesPage.getByRole("heading", { name: identity.serviceName, exact: true }),
     })).toHaveCount(1);
-    await expect(page.getByRole("heading", { name: "Loading services…", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Could not load services", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Retry loading services", exact: true })).toHaveCount(0);
-    await expect(page.locator("#serviceFormStatus.service-form-status-error")).toHaveCount(0);
+    await expect(servicesPage.getByRole("heading", { name: "Loading services…", exact: true })).toHaveCount(0);
+    await expect(servicesPage.getByRole("heading", { name: "Could not load services", exact: true })).toHaveCount(0);
+    await expect(servicesPage.getByRole("button", { name: "Retry loading services", exact: true })).toHaveCount(0);
+    await expect(servicesPage.locator("#serviceFormStatus.service-form-status-error")).toHaveCount(0);
   } catch (error) {
     const lifecycleEvents = servicesNetwork.snapshot();
     servicesNetwork.stop();
+    const servicesPageState = await servicesPageDiagnostics(servicesPage, identity.serviceName);
+    const visibleSyntheticServices = await visibleSyntheticServiceTexts(servicesPage);
+    await servicesPage.close().catch(() => {});
     throw new Error(`Manage services page did not resolve to the persisted service: ${JSON.stringify({
-      ...await servicesPageDiagnostics(page, identity.serviceName),
-      persistedAfterReload,
+      ...servicesPageState,
+      persistedBeforeManage,
       lifecycleEvents,
-      visibleSyntheticServices: await visibleSyntheticServiceTexts(page),
+      visibleSyntheticServices,
       assertionError: safeDiagnosticText(error?.message),
     })}`);
   }
   const servicesLifecycleEvents = servicesNetwork.snapshot();
   servicesNetwork.stop();
-  if (persistedAfterReload.status !== 200 || !persistedAfterReload.hasExpectedService) {
-    throw new Error(`Persisted service was unavailable after manage-services page load: ${JSON.stringify({
-      ...persistedAfterReload,
-      servicesPage: await servicesPageDiagnostics(page, identity.serviceName),
-      lifecycleEvents: servicesLifecycleEvents,
-      visibleSyntheticServices: await visibleSyntheticServiceTexts(page),
-    })}`);
-  }
+  const servicesUi = await servicesPageDiagnostics(servicesPage, identity.serviceName);
+  const visibleSyntheticServices = await visibleSyntheticServiceTexts(servicesPage);
+  await servicesPage.close();
+  expect(servicesUi.pageClosed).not.toBe(true);
+  expect(servicesUi.currentPath).toBe("/pages/manage-services.html");
+  expect(servicesUi.expectedServiceCardPresent).toBe(true);
+  expect(servicesUi.serviceCardCount).toBeGreaterThanOrEqual(1);
+  expect(servicesUi.loadingStateVisible).toBe(false);
+  expect(servicesUi.loadErrorVisible).toBe(false);
+  expect(servicesUi.retryLoadVisible).toBe(false);
+  expect(servicesUi.formSaveErrorVisible).toBe(false);
+  expect(visibleSyntheticServices).toContain(identity.serviceName);
+  expect(servicesLifecycleEvents.some((event) => event.type === "response" && event.status === 200)).toBe(true);
 
   await page.goto(`${frontendUrl}/pages/business-owner.html`);
   let bookingLinkState;
