@@ -6,8 +6,9 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
+import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
 
@@ -2301,37 +2302,59 @@ app.get("/api/public/manage", async (req, res) => {
 });
 
 app.patch("/api/public/manage/cancel", async (req, res) => {
+  let operation = "token_validation";
+  let tokenPresent = false;
+  let bookingFound = false;
+  let statusBefore = "";
+  let statusAfter = "";
+  let eventCreated = false;
   try {
     const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
-    const db = await readStore();
-    const index = db.bookings.findIndex((entry) => hasManageToken(entry, token));
-    if (index < 0) return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
-    const booking = db.bookings[index];
-    const shop = findShopById(db, resolveBookingShopId(db, booking));
-    const start = getBookingStartDate(booking);
-    const policy = normalizeBookingPolicy(shop?.bookingPolicy);
-    if (!shop || !start || !["booked", "confirmed"].includes(normalizeBookingStatus(booking.status))) {
-      return res.status(409).json({ error: "This appointment cannot be cancelled.", code: "cancellation_unavailable" });
+    tokenPresent = Boolean(token);
+    if (!token || token.length < 32) {
+      return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
     }
-    if (Date.now() >= start.getTime() - policy.cancelHours * 60 * 60 * 1000) {
-      return res.status(409).json({ error: `Cancellations must be made at least ${policy.cancelHours} hours before.`, code: "cancellation_policy" });
-    }
-    const next = { ...booking, status: "cancelled", updatedAtISO: new Date().toISOString() };
-    db.bookings[index] = next;
-    await writeStore(db);
+
+    operation = "atomic_manage_cancellation";
+    const result = await cancelBookingByManageTokenHash(hashManageToken(token));
+    bookingFound = result?.bookingFound === true;
+    statusBefore = String(result?.statusBefore ?? "").trim().toLowerCase();
+    statusAfter = String(result?.statusAfter ?? "").trim().toLowerCase();
+    eventCreated = result?.eventCreated === true;
+    const httpResult = buildPublicManageCancelHttpResult({
+      ...result,
+      booking: publicManageBooking(result?.booking),
+    });
+    if (httpResult.status !== 200) return res.status(httpResult.status).json(httpResult.body);
+
+    operation = "notification_dispatch";
     try {
-      await sendBookingNotifications(db, {
+      await sendBookingNotifications(null, {
         type: "booking_cancelled",
-        booking: next,
-        previousBooking: booking,
+        booking: result.booking,
+        previousBooking: result.previousBooking,
+        shop: result.shop,
+        barber: result.barber,
+        owner: result.owner,
       });
     } catch {
       // Cancellation persistence is authoritative; notification delivery is
       // deliberately best-effort and must not turn a saved cancellation into
       // an error response.
     }
-    return res.json({ booking: publicManageBooking(next) });
-  } catch {
+    return res.status(httpResult.status).json(httpResult.body);
+  } catch (error) {
+    console.error("[Slotzy:manage] PATCH /api/public/manage/cancel failed", {
+      storage: STORAGE_ADAPTER,
+      operation,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      tokenPresent,
+      bookingFound,
+      statusBefore,
+      statusAfter,
+      eventCreated,
+    });
     return res.status(500).json({ error: "Could not cancel this appointment. Please try again.", code: "manage_cancel_failed" });
   }
 });

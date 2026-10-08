@@ -304,6 +304,51 @@ test("JSON booking write adds only the requested booking", async () => {
   assert.deepEqual(saved.shops, [{ id: "shop_1" }]);
 });
 
+test("JSON manage-token cancellation enforces token, status, and policy while recording an event", async () => {
+  const store = await createTestStore();
+  const tokenHash = "a".repeat(64);
+  const futureStart = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+  const booking = {
+    id: "booking_cancel", shopId: "shop_cancel", barberUsername: "owner", serviceName: "Cut",
+    clientName: "Fixture Client", clientContact: "fixture@example.test", startISO: futureStart,
+    endISO: new Date(new Date(futureStart).getTime() + 30 * 60 * 1000).toISOString(),
+    status: "booked", manageTokenHash: tokenHash,
+  };
+  await store.writeStore({
+    users: [{ username: "owner", displayName: "Owner", role: "owner", shopId: "shop_cancel" }],
+    shops: [{ id: "shop_cancel", ownerUsername: "owner", bookingPolicy: { cancelHours: 24 } }],
+    services: [], availability: {}, bookings: [booking], emails: [],
+  });
+
+  assert.equal((await store.cancelBookingByManageTokenHash("b".repeat(64))).outcome, "invalid_token");
+  const result = await store.cancelBookingByManageTokenHash(tokenHash);
+  assert.equal(result.outcome, "cancelled");
+  assert.equal(result.statusBefore, "booked");
+  assert.equal(result.statusAfter, "cancelled");
+  assert.equal(result.eventCreated, true);
+  assert.equal(result.booking.manageTokenHash, undefined);
+  const saved = await store.readStore();
+  assert.equal(saved.bookings[0].status, "cancelled");
+  assert.equal(saved.bookings[0].manageTokenHash, tokenHash);
+  assert.equal(saved.bookingEvents.length, 1);
+  assert.equal(saved.bookingEvents[0].eventType, "cancelled");
+  assert.equal((await store.cancelBookingByManageTokenHash(tokenHash)).outcome, "cancellation_unavailable");
+});
+
+test("JSON manage-token cancellation rejects requests inside the shop cancellation window", async () => {
+  const store = await createTestStore();
+  const tokenHash = "c".repeat(64);
+  const nearStart = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+  await store.writeStore({
+    users: [], shops: [{ id: "shop_policy", bookingPolicy: { cancelHours: 24 } }], services: [], availability: {},
+    bookings: [{ id: "booking_policy", shopId: "shop_policy", startISO: nearStart, status: "confirmed", manageTokenHash: tokenHash }], emails: [],
+  });
+  const result = await store.cancelBookingByManageTokenHash(tokenHash);
+  assert.equal(result.outcome, "cancellation_policy");
+  assert.equal(result.cancelHours, 24);
+  assert.equal((await store.readStore()).bookings[0].status, "confirmed");
+});
+
 test("JSON storage normalizes incomplete persisted data without losing valid user records", async () => {
   const store = await createTestStore();
   await store.writeStore({ users: [{ username: "owner" }], availability: [] });

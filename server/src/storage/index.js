@@ -30,6 +30,7 @@ export const writeShop = activeStore.writeShop;
 export const writeService = activeStore.writeService;
 export const writeAvailability = activeStore.writeAvailability;
 export const writeBooking = activeStore.writeBooking;
+export const cancelBookingByManageTokenHash = activeStore.cancelBookingByManageTokenHash;
 export const appendOutboxEmail = activeStore.appendOutboxEmail;
 export const listOutboxEmails = activeStore.listOutboxEmails;
 export const clearOutboxEmails = activeStore.clearOutboxEmails;

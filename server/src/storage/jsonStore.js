@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { timingSafeEqual } from "node:crypto";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -275,6 +276,61 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     return { booking };
   }
 
+  async function cancelBookingByManageTokenHash(tokenHash) {
+    const expectedHash = String(tokenHash ?? "").trim();
+    const store = await readStore();
+    const index = store.bookings.findIndex((booking) => {
+      const storedHash = String(booking?.manageTokenHash ?? "").trim();
+      if (!storedHash || storedHash.length !== expectedHash.length) return false;
+      return timingSafeEqual(Buffer.from(storedHash), Buffer.from(expectedHash));
+    });
+    if (index < 0) return { outcome: "invalid_token", bookingFound: false, eventCreated: false };
+
+    const previousBooking = { ...store.bookings[index] };
+    const statusBefore = String(previousBooking?.status ?? "booked").trim().toLowerCase();
+    if (statusBefore !== "booked" && statusBefore !== "confirmed") {
+      return { outcome: "cancellation_unavailable", bookingFound: true, statusBefore, statusAfter: statusBefore, eventCreated: false };
+    }
+
+    const shop = store.shops.find((entry) => String(entry?.id ?? "") === String(previousBooking?.shopId ?? "")) || null;
+    const cancelHoursValue = Number(shop?.bookingPolicy?.cancelHours ?? 24);
+    const cancelHours = Number.isFinite(cancelHoursValue) && cancelHoursValue >= 0 ? Math.floor(cancelHoursValue) : 24;
+    const startAt = new Date(String(previousBooking?.startISO ?? previousBooking?.startAtISO ?? ""));
+    if (!shop || !Number.isFinite(startAt.getTime())) {
+      return { outcome: "cancellation_unavailable", bookingFound: true, statusBefore, statusAfter: statusBefore, eventCreated: false };
+    }
+    if (Date.now() >= startAt.getTime() - cancelHours * 60 * 60 * 1000) {
+      return { outcome: "cancellation_policy", bookingFound: true, cancelHours, statusBefore, statusAfter: statusBefore, eventCreated: false };
+    }
+
+    const now = new Date().toISOString();
+    const booking = { ...previousBooking, status: "cancelled", cancelledAtISO: now, updatedAtISO: now };
+    store.bookings[index] = booking;
+    if (!Array.isArray(store.bookingEvents)) store.bookingEvents = [];
+    store.bookingEvents.push({
+      id: `event_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`,
+      bookingId: booking.id,
+      eventType: "cancelled",
+      actorType: "public_client",
+      beforeState: previousBooking,
+      afterState: booking,
+      occurredAtISO: now,
+    });
+    await writeStore(store);
+
+    const providerUsername = String(booking?.barberUsername ?? booking?.ownerUsername ?? "").trim();
+    const barber = store.users.find((entry) => String(entry?.username ?? "").trim() === providerUsername) || null;
+    const owner = store.users.find((entry) => String(entry?.username ?? "").trim() === String(shop?.ownerUsername ?? "").trim()) || null;
+    // The persisted credential remains authoritative, but storage callers do
+    // not need it after lookup and must never receive or serialize the hash.
+    const { manageTokenHash: _bookingTokenHash, ...safeBooking } = booking;
+    const { manageTokenHash: _previousTokenHash, ...safePreviousBooking } = previousBooking;
+    return {
+      outcome: "cancelled", bookingFound: true, statusBefore, statusAfter: "cancelled", eventCreated: true,
+      booking: safeBooking, previousBooking: safePreviousBooking, shop, barber, owner,
+    };
+  }
+
   return {
     readStore,
     readUserByUsername,
@@ -290,6 +346,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     writeService,
     writeAvailability,
     writeBooking,
+    cancelBookingByManageTokenHash,
     appendOutboxEmail,
     listOutboxEmails,
     clearOutboxEmails,
@@ -313,6 +370,7 @@ export const writeShop = defaultJsonStore.writeShop;
 export const writeService = defaultJsonStore.writeService;
 export const writeAvailability = defaultJsonStore.writeAvailability;
 export const writeBooking = defaultJsonStore.writeBooking;
+export const cancelBookingByManageTokenHash = defaultJsonStore.cancelBookingByManageTokenHash;
 export const appendOutboxEmail = defaultJsonStore.appendOutboxEmail;
 export const listOutboxEmails = defaultJsonStore.listOutboxEmails;
 export const clearOutboxEmails = defaultJsonStore.clearOutboxEmails;

@@ -8,7 +8,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test:storage": "node --test test/storage-contract.test.js test/migration-safety.test.js",
-    "test:api": "node --test test/runtime-policy.test.js test/schedule-policy.test.js",
+    "test:api": "node --test test/runtime-policy.test.js test/schedule-policy.test.js test/manage-cancel-api.test.js",
     "test:storage:postgres": "node --test test/postgres-store.integration.test.js"
   },
   "dependencies": {

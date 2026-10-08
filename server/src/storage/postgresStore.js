@@ -853,6 +853,27 @@ export function createPostgresStore(env = process.env) {
     }
     return createBookingAtomically(buildAtomicBookingPayload(booking, targets));
   }
+  async function cancelBookingByManageTokenHash(tokenHash) {
+    beginOperation();
+    const { data, error } = await client.rpc("slotzy_cancel_booking_by_manage_token_hash", {
+      p_token_hash: String(tokenHash ?? "").trim(),
+    });
+    fail(error, "cancel booking by manage token", networkFailures);
+    const result = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+    return {
+      outcome: String(result.outcome ?? "invalid_token"),
+      bookingFound: result.booking_found === true,
+      statusBefore: String(result.status_before ?? ""),
+      statusAfter: String(result.status_after ?? ""),
+      cancelHours: Number(result.cancel_hours ?? 0),
+      eventCreated: result.event_created === true,
+      booking: result.booking && typeof result.booking === "object" ? result.booking : null,
+      previousBooking: result.previous_booking && typeof result.previous_booking === "object" ? result.previous_booking : null,
+      shop: result.shop && typeof result.shop === "object" ? result.shop : null,
+      barber: result.barber && typeof result.barber === "object" ? result.barber : null,
+      owner: result.owner && typeof result.owner === "object" ? result.owner : null,
+    };
+  }
   async function storeManageToken(bookingSourceId, tokenHash, expiresAt) {
     beginOperation();
     const { data: mapping, error: mapError } = await client.from("legacy_source_ids").select("target_id").eq("entity_type", "booking").eq("source_id", bookingSourceId).eq("is_canonical", true).maybeSingle();
@@ -868,7 +889,7 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, cancelBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
@@ -885,6 +906,7 @@ export const writeShop = async (shop, store) => createPostgresStore().writeShop(
 export const writeService = async (service, store) => createPostgresStore().writeService(service, store);
 export const writeAvailability = async (username, availability, store) => createPostgresStore().writeAvailability(username, availability, store);
 export const writeBooking = async (booking) => createPostgresStore().writeBooking(booking);
+export const cancelBookingByManageTokenHash = async (tokenHash) => createPostgresStore().cancelBookingByManageTokenHash(tokenHash);
 export const appendOutboxEmail = async (email) => createPostgresStore().appendOutboxEmail(email);
 export const listOutboxEmails = async (limit) => createPostgresStore().listOutboxEmails(limit);
 export const clearOutboxEmails = async () => createPostgresStore().clearOutboxEmails();

@@ -205,6 +205,33 @@ postgresTest("Postgres manage-token lookup contract", async () => {
   assert.equal(data.booking_id, created.booking.id); assert.equal(data.token_hash, tokenHash); assert.notEqual(data.token_hash, rawToken); assert.equal(data.revoked_at, null);
 });
 
+postgresTest("Postgres atomic manage-token cancellation updates booking and records one event", async () => {
+  const { ids } = await seedBase();
+  const tokenHash = createHash("sha256").update("fixture-cancel-token-not-stored").digest("hex");
+  const created = await createAtomicBooking(ids, { confirmationCode: "CAN001", tokenHash });
+
+  assert.equal((await store.cancelBookingByManageTokenHash("f".repeat(64))).outcome, "invalid_token");
+  const result = await store.cancelBookingByManageTokenHash(tokenHash);
+  assert.equal(result.outcome, "cancelled");
+  assert.equal(result.bookingFound, true);
+  assert.equal(result.statusBefore, "booked");
+  assert.equal(result.statusAfter, "cancelled");
+  assert.equal(result.eventCreated, true);
+  assert.equal(result.booking.id, created.booking.id);
+  assert.equal(result.booking.manageTokenHash, undefined);
+
+  const [{ data: booking, error: bookingError }, { data: events, error: eventsError }, { data: token, error: tokenError }] = await Promise.all([
+    client.from("bookings").select("status,cancelled_at").eq("id", created.booking.id).single(),
+    client.from("booking_events").select("event_type,actor_type").eq("booking_id", created.booking.id).eq("event_type", "cancelled"),
+    client.from("booking_manage_tokens").select("revoked_at,last_used_at").eq("booking_id", created.booking.id).eq("token_hash", tokenHash).single(),
+  ]);
+  assert.ifError(bookingError); assert.ifError(eventsError); assert.ifError(tokenError);
+  assert.equal(booking.status, "cancelled"); assert.ok(booking.cancelled_at);
+  assert.deepEqual(events, [{ event_type: "cancelled", actor_type: "public_client" }]);
+  assert.equal(token.revoked_at, null); assert.ok(token.last_used_at);
+  assert.equal((await store.cancelBookingByManageTokenHash(tokenHash)).outcome, "cancellation_unavailable");
+});
+
 postgresTest("Postgres snapshot write and read round trip contract", async () => {
   const state = baseState(); state.bookings.push({ id: "booking-snapshot", shopId: "shop-fixture", barberUsername: "fixture-owner", serviceName: "Fixture Cut", clientName: "Snapshot Client", clientContact: "snapshot@example.test", clientEmail: "snapshot@example.test", startISO: "2032-06-05T15:00:00.000Z", endISO: "2032-06-05T15:30:00.000Z", durationMinutes: 30, status: "booked", confirmationCode: "SNP001" });
   await store.writeStore(state); const roundTrip = await store.readStore();
