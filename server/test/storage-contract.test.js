@@ -42,7 +42,26 @@ test("JSON storage round-trips users, shops, services, availability, and booking
   assert.deepEqual(await store.readUserByUsername(" OWNER "), {
     id: "user_1", username: "owner", displayName: undefined, role: "owner", shopId: null, createdAt: undefined,
   });
+  assert.equal("passwordHash" in await store.readUserByUsername("owner"), false);
+  assert.deepEqual(await store.readLoginCredentialByUsername(" OWNER "), {
+    id: "user_1", username: "owner", displayName: undefined, role: "owner", shopId: null,
+    createdAt: undefined, passwordHash: undefined,
+  });
   assert.equal(await store.readUserByUsername("missing-owner"), null);
+  assert.equal(await store.readLoginCredentialByUsername("missing-owner"), null);
+});
+
+test("JSON login credential lookup is the only identity read that exposes the password hash", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [{ id: "user_login", username: "login-owner", displayName: "Login Owner", passwordHash: "fixture-hash", role: "owner", shopId: "shop_login" }],
+    shops: [{ id: "shop_login", ownerUsername: "login-owner" }], services: [], availability: {}, bookings: [], emails: [],
+  });
+  const identity = await store.readUserByUsername("LOGIN-OWNER");
+  const credential = await store.readLoginCredentialByUsername("LOGIN-OWNER");
+  assert.equal(identity.passwordHash, undefined);
+  assert.equal(credential.passwordHash, "fixture-hash");
+  assert.equal(credential.shopId, "shop_login");
 });
 
 test("Postgres snapshots map browser branding aliases to RPC logo and cover fields", () => {

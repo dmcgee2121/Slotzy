@@ -103,6 +103,17 @@ postgresTest("Postgres auth user lookup returns canonical shop linkage without a
   assert.equal(authUser.username, "fixture-owner");
   assert.equal(authUser.role, "owner");
   assert.equal(authUser.shopId, "shop-fixture");
+  assert.equal(authUser.passwordHash, undefined);
+  assert.equal(await store.readUserByUsername("missing-owner"), null);
+});
+
+postgresTest("Postgres login credential lookup returns only one credential and canonical linkage", async () => {
+  await seedBase();
+  const credential = await store.readLoginCredentialByUsername("FIXTURE-OWNER");
+  assert.equal(credential.username, "fixture-owner");
+  assert.equal(credential.passwordHash, "not-a-real-password");
+  assert.equal(credential.shopId, "shop-fixture");
+  assert.equal(await store.readLoginCredentialByUsername("missing-owner"), null);
 });
 
 postgresTest("Postgres shop create/read/update contract", async () => {

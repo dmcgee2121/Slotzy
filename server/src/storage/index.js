@@ -18,6 +18,7 @@ const activeStore = requestedAdapter === "postgres"
 export const STORAGE_ADAPTER = requestedAdapter;
 export const readStore = activeStore.readStore;
 export const readUserByUsername = activeStore.readUserByUsername;
+export const readLoginCredentialByUsername = activeStore.readLoginCredentialByUsername;
 export const writeStore = activeStore.writeStore;
 export const writeUser = activeStore.writeUser;
 export const writeShop = activeStore.writeShop;

@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, readLoginCredentialByUsername, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -1086,6 +1086,7 @@ function logAuthStorageFailure(error, { operation, authHeaderPresent, jwtVerifie
   console.error("[Slotzy:auth] Protected storage read failed", {
     storage: STORAGE_ADAPTER,
     operation,
+    statusCode: 503,
     authHeaderPresent,
     jwtVerified,
     storageReadSuccess: false,
@@ -1093,6 +1094,8 @@ function logAuthStorageFailure(error, { operation, authHeaderPresent, jwtVerifie
     storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
     usernamePresent,
     userFound: false,
+    membershipPresent: false,
+    shopPresent: false,
   });
 }
 
@@ -1127,18 +1130,35 @@ async function requireAuth(req, res, next) {
   const username = verifyBearerUsername(req, res);
   if (!username) return;
   try {
-    const db = await readStore();
-    const user = findUserByUsername(db, username);
+    const user = await readUserByUsername(username);
     if (!user) return res.status(401).json({ error: "user not found for token" });
-    req.db = db;
     req.user = normalizedAuthenticatedUser(user);
     return next();
   } catch (error) {
     logAuthStorageFailure(error, {
-      operation: "read protected snapshot",
+      operation: "read authenticated identity",
       authHeaderPresent: true,
       jwtVerified: true,
       usernamePresent: true,
+    });
+    return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
+  }
+}
+
+async function requireRouteStore(req, res, next) {
+  try {
+    req.db = await readStore();
+    return next();
+  } catch (error) {
+    console.error("[Slotzy:storage] Protected route storage read failed", {
+      storage: STORAGE_ADAPTER,
+      operation: "read protected route snapshot",
+      statusCode: 503,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      userFound: Boolean(req.user),
+      membershipPresent: Boolean(req.user?.shopId),
+      shopPresent: Boolean(req.user?.shopId),
     });
     return res.status(503).json({ error: "service temporarily unavailable", code: "storage_unavailable" });
   }
@@ -1385,6 +1405,8 @@ app.post("/api/auth/register", async (req, res) => {
 });
 
 app.post("/api/auth/login", async (req, res) => {
+  let operation = "validation";
+  let userFound = false;
   try {
     const username = normalizeUsername(req.body?.username);
     const password = String(req.body?.password ?? "");
@@ -1393,20 +1415,37 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ error: "username and password are required" });
     }
 
-    const db = await readStore();
-    const user = findUserByUsername(db, username);
+    operation = "credential_lookup";
+    const user = await readLoginCredentialByUsername(username);
+    userFound = Boolean(user);
     if (!user) {
       return res.status(401).json({ error: "invalid credentials" });
     }
 
+    operation = "password_compare";
     const ok = await bcrypt.compare(password, String(user.passwordHash ?? ""));
     if (!ok) {
       return res.status(401).json({ error: "invalid credentials" });
     }
 
+    operation = "token_issue";
     const token = signToken(user);
     return res.json({ token, user: buildAuthUser(user) });
-  } catch {
+  } catch (error) {
+    const storageFailure = operation === "credential_lookup";
+    console.error("[Slotzy:auth] POST /api/auth/login failed", {
+      storage: STORAGE_ADAPTER,
+      operation,
+      statusCode: storageFailure ? 503 : 500,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      userFound,
+      membershipPresent: false,
+      shopPresent: false,
+    });
+    if (storageFailure) {
+      return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
+    }
     return res.status(500).json({ error: "internal server error" });
   }
 });
@@ -1504,7 +1543,7 @@ app.get("/api/auth/me", requireSessionAuth, (req, res) => {
   return res.json({ user: buildAuthUser(req.user) });
 });
 
-app.get("/api/shops", requireAuth, (req, res) => {
+app.get("/api/shops", requireAuth, requireRouteStore, (req, res) => {
   const db = req.db;
   const user = req.user;
 
@@ -1517,7 +1556,7 @@ app.get("/api/shops", requireAuth, (req, res) => {
   return res.json({ shops });
 });
 
-app.post("/api/shops", requireAuth, async (req, res) => {
+app.post("/api/shops", requireAuth, requireRouteStore, async (req, res) => {
   try {
     const db = req.db;
     const user = req.user;
@@ -1593,7 +1632,7 @@ app.post("/api/shops", requireAuth, async (req, res) => {
   }
 });
 
-app.patch("/api/shops/:shopId", requireAuth, async (req, res) => {
+app.patch("/api/shops/:shopId", requireAuth, requireRouteStore, async (req, res) => {
   try {
     const db = req.db;
     const user = req.user;
@@ -1696,7 +1735,7 @@ async function optionalAuth(req, res, next) {
   }
 }
 
-app.get("/api/services", requireAuth, (req, res) => {
+app.get("/api/services", requireAuth, requireRouteStore, (req, res) => {
   const db = req.db;
   const user = req.user;
   const queryShopId = normalizeUsername(req.query.shopId);
@@ -1749,7 +1788,7 @@ function logStagingServicePersistenceFailure(error, context) {
   });
 }
 
-app.post("/api/services", requireAuth, async (req, res) => {
+app.post("/api/services", requireAuth, requireRouteStore, async (req, res) => {
   let persistenceContext = null;
   try {
     const db = req.db;
@@ -1850,7 +1889,7 @@ app.post("/api/services", requireAuth, async (req, res) => {
   }
 });
 
-app.patch("/api/services/:serviceId", requireAuth, async (req, res) => {
+app.patch("/api/services/:serviceId", requireAuth, requireRouteStore, async (req, res) => {
   try {
     const db = req.db;
     const user = req.user;
@@ -1970,7 +2009,7 @@ app.patch("/api/services/:serviceId", requireAuth, async (req, res) => {
   }
 });
 
-app.delete("/api/services/:serviceId", requireAuth, async (req, res) => {
+app.delete("/api/services/:serviceId", requireAuth, requireRouteStore, async (req, res) => {
   try {
     const db = req.db;
     const user = req.user;
@@ -2000,7 +2039,7 @@ app.delete("/api/services/:serviceId", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/availability", requireAuth, (req, res) => {
+app.get("/api/availability", requireAuth, requireRouteStore, (req, res) => {
   const db = req.db;
   const user = req.user;
   const requestedUsername = normalizeUsername(req.query.barberUsername);
@@ -2093,7 +2132,7 @@ function logStagingAvailabilityPersistenceFailure(error, context) {
   });
 }
 
-app.put("/api/availability", requireAuth, async (req, res) => {
+app.put("/api/availability", requireAuth, requireRouteStore, async (req, res) => {
   let persistenceContext = null;
   try {
     const db = req.db;
@@ -2153,7 +2192,7 @@ app.put("/api/availability", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/bookings", requireAuth, (req, res) => {
+app.get("/api/bookings", requireAuth, requireRouteStore, (req, res) => {
   const db = req.db;
   const user = req.user;
   const queryStatus = String(req.query.status ?? "").trim().toLowerCase();
@@ -2537,7 +2576,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
   }
 });
 
-app.patch("/api/bookings/:bookingId", requireAuth, async (req, res) => {
+app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req, res) => {
   try {
     const db = req.db;
     const user = req.user;

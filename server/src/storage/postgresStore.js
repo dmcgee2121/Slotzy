@@ -338,6 +338,65 @@ export function createPostgresStore(env = process.env) {
     };
   }
 
+  // Login is the sole caller allowed to receive the password hash. Keep that
+  // query separate from authenticated identity reads so middleware and public
+  // responses cannot acquire credential material accidentally.
+  async function readLoginCredentialByUsername(username) {
+    beginOperation();
+    const key = String(username ?? "").trim();
+    if (!key) return null;
+
+    const { data: row, error } = await client.from("users")
+      .select("id,username,display_name,password_hash,role,created_at")
+      .eq("username", key)
+      .is("deleted_at", null)
+      .maybeSingle();
+    fail(error, "read login credential", networkFailures);
+    if (!row) return null;
+
+    const [{ data: membershipRows, error: membershipError }, { data: ownedShopRows, error: ownedShopError }] = await Promise.all([
+      client.from("shop_members")
+        .select("shop_id")
+        .eq("user_id", row.id)
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("created_at")
+        .limit(1),
+      client.from("shops")
+        .select("id")
+        .eq("owner_user_id", row.id)
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("created_at")
+        .limit(1),
+    ]);
+    fail(membershipError, "read login membership", networkFailures);
+    fail(ownedShopError, "read login owned shop", networkFailures);
+    const relationalShopId = membershipRows?.[0]?.shop_id ?? ownedShopRows?.[0]?.id ?? null;
+
+    let shopId = relationalShopId;
+    if (relationalShopId) {
+      const { data: mapping, error: mappingError } = await client.from("legacy_source_ids")
+        .select("source_id")
+        .eq("entity_type", "shop")
+        .eq("target_id", relationalShopId)
+        .eq("is_canonical", true)
+        .maybeSingle();
+      fail(mappingError, "read login shop identity", networkFailures);
+      shopId = mapping?.source_id ?? relationalShopId;
+    }
+
+    return {
+      id: row.id,
+      username: row.username,
+      displayName: row.display_name,
+      passwordHash: row.password_hash,
+      role: row.role,
+      shopId,
+      createdAt: iso(row.created_at),
+    };
+  }
+
   // The legacy routes save whole documents. Reconciliation must run in one
   // database RPC; it is never a browser call or a JSON fallback.
   async function writeStore(store) {
@@ -458,11 +517,12 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, readLoginCredentialByUsername, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
 export const readUserByUsername = async (username) => createPostgresStore().readUserByUsername(username);
+export const readLoginCredentialByUsername = async (username) => createPostgresStore().readLoginCredentialByUsername(username);
 export const writeStore = async (store) => createPostgresStore().writeStore(store);
 export const writeUser = async (user) => createPostgresStore().writeUser(user);
 export const writeShop = async (shop, store) => createPostgresStore().writeShop(shop, store);

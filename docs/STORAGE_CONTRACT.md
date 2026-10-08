@@ -8,6 +8,7 @@ This contract is the persistence boundary used by `server/src/index.js` and `ser
 | --- | --- | --- |
 | `readStore()` | Returns one normalized store document | Reads `server/src/db.json`. Missing file is created with the required empty shape. |
 | `readUserByUsername(username)` | Returns the matching authentication-safe user identity, including canonical shop linkage when present, or `null` | Reads only the requested identity. It must not expose password hashes or require reconstruction of unrelated operational collections. |
+| `readLoginCredentialByUsername(username)` | Returns one login-only credential record or `null` | Reads only the requested active user. This is the sole auth read allowed to include `passwordHash`; it is used only for server-side bcrypt comparison and must never be serialized in an API response. |
 | `writeStore(store)` | Accepts one store document | Normalizes and rewrites the full document. Route business logic currently mutates the loaded document before this call. |
 | `writeUser(user)` | Creates one authoritative user identity | JSON appends to its local document; Postgres sends only the user through the additive snapshot RPC. Duplicate usernames fail and unrelated operational rows remain untouched. |
 | `writeBooking(booking, store?)` | Persists one validated booking | JSON retains its document write. Postgres resolves only the referenced shop, provider membership, and service, then calls the atomic booking RPC. |
@@ -37,6 +38,8 @@ The non-enumerating `POST /api/public/manage/recover` endpoint accepts contact, 
 ```
 
 `readStore` and `writeStore` normalize malformed or missing top-level collections to that shape. This normalization is a compatibility requirement for the current Express helpers, which read and mutate these collections in memory before persistence.
+
+Login uses `readLoginCredentialByUsername` for its server-side bcrypt comparison. JWT middleware uses `readUserByUsername`, which never includes a password hash. A valid JWT followed by an identity-storage failure is classified as a temporary `503` dependency failure rather than an invalid `401`; missing, invalid, expired, or unknown-user tokens remain `401`. Protected routes that still need the legacy document for resource authorization load it explicitly after identity authentication, keeping that compatibility read out of the authentication boundary until those routes are narrowed separately.
 
 Each provider availability entry also preserves `recurringBlocks`, an array of `{ id, weekday, start, end, label, enabled }`. `weekday` uses `sun` through `sat`; times are local `HH:mm` values in the entry's timezone. These weekly exclusions are distinct from absolute-date `timeOff` entries.
 
