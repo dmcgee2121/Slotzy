@@ -136,6 +136,27 @@ postgresTest("Postgres booking create/read/update and overlap rejection contract
   assert.equal((await store.readStore()).bookings[0].status, "confirmed");
 });
 
+postgresTest("Postgres narrow booking write resolves legacy references and preserves unrelated rows", async () => {
+  await seedBase();
+  const booking = {
+    id: randomUUID(), shopId: "shop-fixture", serviceId: "service-cut",
+    barberUsername: "fixture-owner", ownerUsername: "fixture-owner",
+    clientName: "Fixture Client", clientContact: "client@example.test",
+    startISO: "2032-06-03T15:00:00.000Z", endISO: "2032-06-03T15:30:00.000Z",
+    timezone: "America/Chicago", durationMinutes: 30, status: "booked",
+    confirmationCode: "NAR001", manageTokenHash: "narrow-token-hash",
+    manageTokenExpiresAt: "2032-07-03T15:30:00.000Z",
+    policySnapshot: {}, serviceSnapshot: { name: "Fixture Cut" }, requestId: randomUUID(),
+  };
+  const created = await store.writeBooking(booking);
+  const snapshot = await store.readStore();
+  assert.ok(created.booking.id);
+  assert.equal(snapshot.bookings.length, 1);
+  assert.equal(snapshot.services.length, 1);
+  assert.equal(snapshot.shops.length, 1);
+  assert.equal(snapshot.bookings[0].manageTokenHash, "narrow-token-hash");
+});
+
 postgresTest("Postgres manage-token lookup contract", async () => {
   const { ids } = await seedBase(); const rawToken = "fixture-raw-token-not-stored"; const tokenHash = createHash("sha256").update(rawToken).digest("hex");
   const created = await createAtomicBooking(ids, { confirmationCode: "TOK001", tokenHash });

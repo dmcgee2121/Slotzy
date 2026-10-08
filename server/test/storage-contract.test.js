@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createJsonStore } from "../src/storage/jsonStore.js";
-import { buildPostgresAvailabilitySnapshot, buildPostgresServiceSnapshot, buildPostgresShopSnapshot, buildPostgresUserSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
+import { buildAtomicBookingPayload, buildPostgresAvailabilitySnapshot, buildPostgresServiceSnapshot, buildPostgresShopSnapshot, buildPostgresUserSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
 
 const temporaryDirectories = [];
 
@@ -172,6 +172,38 @@ test("Postgres availability writes include only the target provider schedule", (
 
 test("Postgres availability snapshots require a target provider", () => {
   assert.throws(() => buildPostgresAvailabilitySnapshot("", {}), /provider username/);
+});
+
+test("atomic booking payload keeps security and policy fields while excluding unrelated state", () => {
+  const payload = buildAtomicBookingPayload({
+    clientName: "Fixture Client", clientContact: "client@example.test",
+    startISO: "2032-06-03T15:00:00.000Z", endISO: "2032-06-03T15:30:00.000Z",
+    timezone: "America/Chicago", durationMinutes: 30, status: "booked",
+    confirmationCode: "FIX001", depositRequired: true, depositAmount: 10, depositStatus: "unpaid",
+    policySnapshot: { cancelHours: 24 }, serviceSnapshot: { name: "Fixture Cut" },
+    manageTokenHash: "fixture-hash", manageTokenExpiresAt: "2032-07-03T15:30:00.000Z",
+    requestId: "11111111-1111-4111-8111-111111111111",
+  }, { shopId: "shop-uuid", providerMemberId: "member-uuid", serviceId: "service-uuid" });
+
+  assert.equal(payload.shop_id, "shop-uuid");
+  assert.equal(payload.provider_member_id, "member-uuid");
+  assert.equal(payload.service_id, "service-uuid");
+  assert.equal(payload.client_email, "client@example.test");
+  assert.equal(payload.manage_token_hash, "fixture-hash");
+  assert.deepEqual(payload.policy_snapshot, { cancelHours: 24 });
+  assert.deepEqual(payload.service_snapshot, { name: "Fixture Cut" });
+  assert.equal(payload.queue_notification, false);
+});
+
+test("JSON booking write adds only the requested booking", async () => {
+  const store = await createTestStore();
+  const state = { users: [], shops: [{ id: "shop_1" }], services: [], availability: {}, bookings: [], emails: [] };
+  await store.writeStore(state);
+  const booking = { id: "booking_1", shopId: "shop_1", status: "booked", manageTokenHash: "fixture-hash" };
+  await store.writeBooking(booking, state);
+  const saved = await store.readStore();
+  assert.deepEqual(saved.bookings, [booking]);
+  assert.deepEqual(saved.shops, [{ id: "shop_1" }]);
 });
 
 test("JSON storage normalizes incomplete persisted data without losing valid user records", async () => {

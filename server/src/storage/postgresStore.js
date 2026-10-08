@@ -154,6 +154,37 @@ export function buildPostgresUserSnapshot(user) {
   });
 }
 
+export function buildAtomicBookingPayload(booking, targets) {
+  const contact = String(booking?.clientContact ?? "").trim();
+  const email = String(booking?.clientEmail ?? "").trim() || (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) ? contact : "");
+  const phone = String(booking?.clientPhone ?? "").trim() || (!email ? contact : "");
+  return {
+    shop_id: targets.shopId,
+    provider_member_id: targets.providerMemberId,
+    service_id: targets.serviceId,
+    client_name: String(booking?.clientName ?? "").trim(),
+    client_email: email,
+    client_phone: phone,
+    client_contact: contact,
+    start_at: booking.startISO,
+    end_at: booking.endISO,
+    timezone: String(booking?.timezone ?? "America/Chicago").trim() || "America/Chicago",
+    duration_minutes: Number(booking?.durationMinutes ?? 30),
+    status: String(booking?.status ?? "booked").trim() || "booked",
+    confirmation_code: String(booking?.confirmationCode ?? "").trim(),
+    deposit_required: Boolean(booking?.depositRequired),
+    deposit_amount_cents: cents(booking?.depositAmount),
+    deposit_status: String(booking?.depositStatus ?? "not_required").trim() || "not_required",
+    policy_snapshot: booking?.policySnapshot && typeof booking.policySnapshot === "object" ? booking.policySnapshot : {},
+    service_snapshot: booking?.serviceSnapshot && typeof booking.serviceSnapshot === "object" ? booking.serviceSnapshot : {},
+    manage_token_hash: String(booking?.manageTokenHash ?? "").trim(),
+    manage_token_expires_at: booking?.manageTokenExpiresAt,
+    actor_type: "public_client",
+    request_id: booking?.requestId,
+    queue_notification: false,
+  };
+}
+
 // Server-only adapter. It maps relational rows back to the document shape that
 // current Express routes expect; routes do not receive database column names.
 export function createPostgresStore(env = process.env) {
@@ -382,6 +413,36 @@ export function createPostgresStore(env = process.env) {
     beginOperation();
     const { data, error } = await client.rpc("slotzy_create_booking", { payload }); fail(error, "create booking atomically", networkFailures); return data;
   }
+  async function writeBooking(booking) {
+    beginOperation();
+    const shopSourceId = String(booking?.shopId ?? "").trim();
+    const serviceSourceId = String(booking?.serviceId ?? "").trim();
+    const providerSourceId = `${shopSourceId}:${String(booking?.barberUsername ?? booking?.ownerUsername ?? "").trim()}`;
+    const references = [
+      ["shop", shopSourceId],
+      ["service", serviceSourceId],
+      ["member", providerSourceId],
+    ];
+    const { data: mappings, error: mappingError } = await client.from("legacy_source_ids")
+      .select("entity_type,source_id,target_id")
+      .in("entity_type", references.map(([entityType]) => entityType))
+      .in("source_id", references.map(([, sourceId]) => sourceId))
+      .eq("is_canonical", true);
+    fail(mappingError, "resolve booking references", networkFailures);
+    const targetBySource = new Map((mappings ?? []).map((row) => [`${row.entity_type}:${row.source_id}`, row.target_id]));
+    const targets = {
+      shopId: targetBySource.get(`shop:${shopSourceId}`),
+      serviceId: targetBySource.get(`service:${serviceSourceId}`),
+      providerMemberId: targetBySource.get(`member:${providerSourceId}`),
+    };
+    if (!targets.shopId || !targets.serviceId || !targets.providerMemberId) {
+      const error = new Error("booking references could not be resolved");
+      error.code = "booking_reference_missing";
+      error.storageDiagnostic = { operation: "resolve booking references" };
+      throw error;
+    }
+    return createBookingAtomically(buildAtomicBookingPayload(booking, targets));
+  }
   async function storeManageToken(bookingSourceId, tokenHash, expiresAt) {
     beginOperation();
     const { data: mapping, error: mapError } = await client.from("legacy_source_ids").select("target_id").eq("entity_type", "booking").eq("source_id", bookingSourceId).eq("is_canonical", true).maybeSingle();
@@ -397,7 +458,7 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, writeStore, writeUser, writeShop, writeService, writeAvailability, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
@@ -407,6 +468,7 @@ export const writeUser = async (user) => createPostgresStore().writeUser(user);
 export const writeShop = async (shop, store) => createPostgresStore().writeShop(shop, store);
 export const writeService = async (service, store) => createPostgresStore().writeService(service, store);
 export const writeAvailability = async (username, availability, store) => createPostgresStore().writeAvailability(username, availability, store);
+export const writeBooking = async (booking) => createPostgresStore().writeBooking(booking);
 export const appendOutboxEmail = async (email) => createPostgresStore().appendOutboxEmail(email);
 export const listOutboxEmails = async (limit) => createPostgresStore().listOutboxEmails(limit);
 export const clearOutboxEmails = async () => createPostgresStore().clearOutboxEmails();

@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readStore, readUserByUsername, storeManageToken, writeAvailability, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -2298,6 +2298,12 @@ app.post("/api/public/manage/recover", async (req, res) => {
 });
 
 app.post("/api/bookings", optionalAuth, async (req, res) => {
+  let bookingStage = "validation";
+  let validationPassed = false;
+  let conflictCheckPassed = false;
+  let bookingWriteStarted = false;
+  let bookingCreated = false;
+  let emailOutboxCreatedCount = 0;
   try {
     const db = req.db;
     const user = req.user;
@@ -2416,6 +2422,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
       if (conflict) {
         return res.status(409).json({ error: "selected time is no longer available", code: "booking_conflict" });
       }
+      conflictCheckPassed = true;
     }
 
     let customerUsername = normalizeUsername(req.body?.customerUsername);
@@ -2461,13 +2468,37 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     if (endISO) booking.endISO = endISO;
     if (!booking.serviceName && booking.serviceTitle) booking.serviceName = String(booking.serviceTitle);
     if (!booking.serviceTitle && booking.serviceName) booking.serviceTitle = String(booking.serviceName);
+    booking.confirmationCode = getConfirmationCode(booking.id);
+    booking.timezone = normalizeAvailabilityEntry(db.availability?.[provider.username]).timezone;
+    booking.policySnapshot = policy;
+    booking.serviceSnapshot = service ? {
+      id: normalizeUsername(service.id),
+      name: booking.serviceName,
+      durationMinutes: canonicalDuration,
+      price: booking.price,
+    } : {};
+    booking.manageTokenExpiresAt = manageToken
+      ? new Date(new Date(endISO).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    booking.requestId = booking.id;
+    validationPassed = true;
 
-    db.bookings.push(booking);
-    await writeStore(db);
-    if (manageToken && STORAGE_ADAPTER === "postgres") {
-      await storeManageToken(booking.id, booking.manageTokenHash, new Date(new Date(endISO).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString());
+    bookingStage = "booking_write";
+    bookingWriteStarted = true;
+    if (isAnonymous && STORAGE_ADAPTER === "postgres") {
+      const created = await writeBooking(booking);
+      const persistedId = normalizeUsername(created?.booking?.id);
+      if (!persistedId) throw new Error("atomic booking write returned no booking id");
+      booking.id = persistedId;
+      db.bookings.push(booking);
+    } else {
+      db.bookings.push(booking);
+      await writeStore(db);
     }
-    await sendBookingNotifications(db, {
+    bookingCreated = true;
+
+    bookingStage = "notification_dispatch";
+    const notificationResult = await sendBookingNotifications(db, {
       type: "booking_created",
       booking,
       // The raw token is available only during this request. When a hosted
@@ -2475,6 +2506,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
       // confirmation; provider messages intentionally receive no token.
       manageLink: buildManageLinkForRecovery(req, manageToken),
     });
+    emailOutboxCreatedCount = getEmailMode() === "outbox" ? notificationResult.results.length : 0;
 
     // The token is returned once and is never included in logs, owner reads, or
     // subsequent booking responses. The browser turns it into the receipt URL.
@@ -2482,8 +2514,24 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
   } catch (error) {
     const code = String(error?.code ?? "").toLowerCase();
     const message = String(error?.message ?? "").toLowerCase();
+    console.error("[Slotzy:bookings] POST /api/bookings failed", {
+      route: "/api/bookings",
+      storage: STORAGE_ADAPTER,
+      operation: bookingStage,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      networkFailurePresent: Object.keys(error?.storageDiagnostic ?? {}).some((key) => key.toLowerCase().includes("network")),
+      validationPassed,
+      conflictCheckPassed,
+      bookingWriteStarted,
+      bookingCreated,
+      emailOutboxCreatedCount,
+    });
     if (code.includes("23p01") || message.includes("booking_overlap")) {
       return res.status(409).json({ error: "selected time is no longer available", code: "booking_conflict" });
+    }
+    if (message.includes("slot_unavailable")) {
+      return res.status(409).json({ error: "selected time is no longer available", code: "slot_unavailable" });
     }
     return res.status(500).json({ error: "booking could not be saved", code: "booking_save_failed" });
   }

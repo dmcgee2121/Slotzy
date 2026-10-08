@@ -125,6 +125,15 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     await writeStore(store);
   }
 
+  async function writeBooking(booking, store = null) {
+    const next = store ?? await readStore();
+    if (!next.bookings.some((entry) => String(entry?.id ?? "") === String(booking?.id ?? ""))) {
+      next.bookings.push(booking);
+    }
+    await writeStore(next);
+    return { booking };
+  }
+
   return {
     readStore,
     readUserByUsername,
@@ -133,6 +142,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     writeShop,
     writeService,
     writeAvailability,
+    writeBooking,
     appendOutboxEmail,
     listOutboxEmails,
     clearOutboxEmails,
@@ -149,6 +159,7 @@ export const writeUser = defaultJsonStore.writeUser;
 export const writeShop = defaultJsonStore.writeShop;
 export const writeService = defaultJsonStore.writeService;
 export const writeAvailability = defaultJsonStore.writeAvailability;
+export const writeBooking = defaultJsonStore.writeBooking;
 export const appendOutboxEmail = defaultJsonStore.appendOutboxEmail;
 export const listOutboxEmails = defaultJsonStore.listOutboxEmails;
 export const clearOutboxEmails = defaultJsonStore.clearOutboxEmails;
