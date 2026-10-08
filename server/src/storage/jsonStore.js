@@ -15,6 +15,24 @@ const EMPTY_STORE = {
   emails: [],
 };
 
+const PROVIDER_ROLES = new Set(["owner", "barber"]);
+const ACTIVE_BOOKING_STATUSES = new Set(["booked", "confirmed"]);
+
+function normalizedText(value) {
+  return String(value ?? "").trim();
+}
+
+function isSyntheticE2eShop(shop) {
+  const names = [shop?.name, shop?.businessName].map(normalizedText).filter(Boolean);
+  if (names.some((value) => /^e2e\s/i.test(value) || /e2e-/i.test(value))) return true;
+  return [shop?.slug, shop?.id].map(normalizedText).filter(Boolean)
+    .some((value) => /(^|[-_])e2e(?:[-_]|$)/i.test(value));
+}
+
+function isProviderRole(role) {
+  return PROVIDER_ROLES.has(normalizedText(role).toLowerCase());
+}
+
 export function createEmptyStore() {
   return {
     users: [],
@@ -107,6 +125,70 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     };
   }
 
+  // JSON remains document-backed locally, but this method returns the same
+  // restricted, public booking projection as Postgres: never credentials,
+  // customer contacts, manage-token hashes, or email/outbox data.
+  async function readPublicBookingStore({ shopId = "", slug = "" } = {}) {
+    const store = await readStore();
+    const requestedShopId = normalizedText(shopId);
+    const requestedSlug = normalizedText(slug).toLowerCase();
+    const directLookup = Boolean(requestedShopId || requestedSlug);
+    const selectedShops = store.shops.filter((shop) => {
+      if (requestedShopId) return normalizedText(shop?.id) === requestedShopId;
+      if (requestedSlug) return normalizedText(shop?.slug).toLowerCase() === requestedSlug;
+      return !isSyntheticE2eShop(shop);
+    });
+    const shops = selectedShops.map((shop) => ({
+      id: shop.id, name: shop.name, businessName: shop.businessName, slug: shop.slug,
+      active: shop.active, shopPhone: shop.shopPhone ?? shop.phone, address: shop.address,
+      logo: shop.logo ?? shop.logoDataUrl, cover: shop.cover ?? shop.coverDataUrl,
+      branding: shop.branding && typeof shop.branding === "object" ? shop.branding : {},
+      bookingPolicy: shop.bookingPolicy,
+      ownerUsername: shop.ownerUsername,
+    }));
+    const shopIds = new Set(shops.map((shop) => normalizedText(shop?.id)).filter(Boolean));
+    const users = store.users
+      .filter((user) => shopIds.has(normalizedText(user?.shopId)) && isProviderRole(user?.role))
+      .map((user) => ({ id: user.id, username: user.username, displayName: user.displayName, role: user.role, shopId: user.shopId ?? null, createdAt: user.createdAt }));
+    const usernames = new Set(users.map((user) => normalizedText(user.username)).filter(Boolean));
+    const services = store.services
+      .filter((service) => service?.active !== false)
+      .filter((service) => shopIds.has(normalizedText(service?.shopId)))
+      .filter((service) => usernames.has(normalizedText(service?.barberUsername ?? service?.ownerUsername)))
+      .map((service) => ({
+        id: service.id, name: service.name, title: service.title, price: service.price,
+        durationMinutes: service.durationMinutes, duration: service.duration,
+        shopId: service.shopId, barberUsername: service.barberUsername ?? service.ownerUsername,
+        ownerUsername: service.ownerUsername ?? service.barberUsername, active: service.active !== false,
+      }));
+    const availability = Object.fromEntries(users.map((user) => [user.username, store.availability?.[user.username] ?? {}]));
+    const bookings = store.bookings
+      .filter((booking) => shopIds.has(normalizedText(booking?.shopId)))
+      .filter((booking) => ACTIVE_BOOKING_STATUSES.has(normalizedText(booking?.status).toLowerCase()))
+      .map((booking) => ({
+        shopId: booking.shopId,
+        ownerUsername: booking.ownerUsername ?? booking.barberUsername,
+        barberUsername: booking.barberUsername ?? booking.ownerUsername,
+        startISO: booking.startISO ?? booking.startAtISO,
+        endISO: booking.endISO,
+        durationMinutes: booking.durationMinutes ?? booking.duration,
+        status: booking.status,
+      }));
+    return { users, shops, services, availability, bookings, emails: [], directLookup };
+  }
+
+  async function listServicesForAuthenticatedUser(user) {
+    const store = await readStore();
+    const role = normalizedText(user?.role).toLowerCase();
+    if (role === "owner") {
+      return store.services.filter((service) => normalizedText(service?.shopId) === normalizedText(user?.shopId));
+    }
+    if (role === "barber") {
+      return store.services.filter((service) => normalizedText(service?.barberUsername ?? service?.ownerUsername).toLowerCase() === normalizedText(user?.username).toLowerCase());
+    }
+    return null;
+  }
+
   async function appendOutboxEmail(email) {
     const store = await readStore();
     store.emails.push(email);
@@ -155,6 +237,8 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     readStore,
     readUserByUsername,
     readLoginCredentialByUsername,
+    readPublicBookingStore,
+    listServicesForAuthenticatedUser,
     writeStore,
     writeUser,
     writeShop,
@@ -173,6 +257,8 @@ const defaultJsonStore = createJsonStore();
 export const readStore = defaultJsonStore.readStore;
 export const readUserByUsername = defaultJsonStore.readUserByUsername;
 export const readLoginCredentialByUsername = defaultJsonStore.readLoginCredentialByUsername;
+export const readPublicBookingStore = defaultJsonStore.readPublicBookingStore;
+export const listServicesForAuthenticatedUser = defaultJsonStore.listServicesForAuthenticatedUser;
 export const writeStore = defaultJsonStore.writeStore;
 export const writeUser = defaultJsonStore.writeUser;
 export const writeShop = defaultJsonStore.writeShop;

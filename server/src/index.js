@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, readLoginCredentialByUsername, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, listServicesForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -1451,10 +1451,11 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.get("/api/public/booking-context", async (req, res) => {
+  let operation = "read public booking context";
   try {
-    const db = await readStore();
     const requestedShopId = normalizeUsername(req.query.shopId);
     const requestedSlug = String(req.query.shop ?? "").trim().toLowerCase();
+    const db = await readPublicBookingStore({ shopId: requestedShopId, slug: requestedSlug });
     const isDirectLookup = Boolean(requestedShopId || requestedSlug);
     let shops = isDirectLookup
       ? [...db.shops]
@@ -1534,7 +1535,17 @@ app.get("/api/public/booking-context", async (req, res) => {
       availabilityByBarber,
       bookings,
     });
-  } catch {
+  } catch (error) {
+    console.error("[Slotzy:booking] Public context read failed", {
+      storage: STORAGE_ADAPTER,
+      operation,
+      statusCode: 500,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      shopCount: 0,
+      serviceCount: 0,
+      providerCount: 0,
+    });
     return res.status(500).json({ error: "booking page is temporarily unavailable", code: "booking_context_unavailable" });
   }
 });
@@ -1735,20 +1746,33 @@ async function optionalAuth(req, res, next) {
   }
 }
 
-app.get("/api/services", requireAuth, requireRouteStore, (req, res) => {
-  const db = req.db;
+app.get("/api/services", requireAuth, async (req, res) => {
   const user = req.user;
   const queryShopId = normalizeUsername(req.query.shopId);
   const queryBarberUsername = normalizeUsername(req.query.barberUsername);
   const queryActive = String(req.query.active ?? "").trim().toLowerCase();
-
-  let services = [...db.services];
-
-  if (isOwner(user)) {
-    const ownerShopId = getUserShopId(db, user);
-    services = services.filter((service) => normalizeUsername(service?.shopId) === ownerShopId);
-  } else if (isBarber(user)) {
-    services = services.filter((service) => canBarberManageService(user, service));
+  let services;
+  try {
+    if (isOwner(user) || isBarber(user)) {
+      services = await listServicesForAuthenticatedUser(user);
+    } else {
+      // Customer behavior remains the legacy all-service listing until that
+      // route receives its own authorization/read projection package.
+      const db = await readStore();
+      services = [...db.services];
+    }
+  } catch (error) {
+    console.error("[Slotzy:services] GET /api/services read failed", {
+      storage: STORAGE_ADAPTER,
+      operation: isOwner(user) || isBarber(user) ? "read authenticated services" : "read customer service snapshot",
+      statusCode: 503,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      shopCount: 0,
+      serviceCount: 0,
+      providerCount: 0,
+    });
+    return res.status(503).json({ error: "service temporarily unavailable", code: "storage_unavailable" });
   }
 
   if (queryShopId) {

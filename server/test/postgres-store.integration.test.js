@@ -107,6 +107,25 @@ postgresTest("Postgres auth user lookup returns canonical shop linkage without a
   assert.equal(await store.readUserByUsername("missing-owner"), null);
 });
 
+postgresTest("Postgres public booking projection excludes private operational data", async () => {
+  await seedBase();
+  const projection = await store.readPublicBookingStore({ slug: "fixture-cuts" });
+  assert.deepEqual(projection.shops.map((shop) => shop.slug), ["fixture-cuts"]);
+  assert.deepEqual(projection.users.map((user) => user.username), ["fixture-owner"]);
+  assert.equal(projection.users[0].passwordHash, undefined);
+  assert.deepEqual(projection.services.map((service) => service.name), ["Fixture Cut"]);
+  assert.deepEqual(projection.emails, []);
+  assert.equal(projection.bookings.length, 0);
+});
+
+postgresTest("Postgres authenticated service projection preserves owner scope without a full snapshot", async () => {
+  await seedBase();
+  const user = await store.readUserByUsername("fixture-owner");
+  const services = await store.listServicesForAuthenticatedUser(user);
+  assert.deepEqual(services.map((service) => service.name), ["Fixture Cut"]);
+  assert.equal(await store.listServicesForAuthenticatedUser({ ...user, role: "customer" }), null);
+});
+
 postgresTest("Postgres login credential lookup returns only one credential and canonical linkage", async () => {
   await seedBase();
   const credential = await store.readLoginCredentialByUsername("FIXTURE-OWNER");

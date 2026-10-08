@@ -64,6 +64,53 @@ test("JSON login credential lookup is the only identity read that exposes the pa
   assert.equal(credential.shopId, "shop_login");
 });
 
+test("JSON public booking projection excludes credentials, contacts, tokens, and unrelated shops", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [
+      { id: "owner_1", username: "public-owner", displayName: "Public Owner", passwordHash: "must-not-return", role: "owner", shopId: "shop_public" },
+      { id: "owner_2", username: "other-owner", passwordHash: "must-not-return", role: "owner", shopId: "shop_other" },
+    ],
+    shops: [
+      { id: "shop_public", name: "Public Shop", slug: "public-shop", ownerUsername: "public-owner", bookingPolicy: { bufferMinutes: 5 } },
+      { id: "shop_other", name: "Other Shop", slug: "other-shop", ownerUsername: "other-owner" },
+    ],
+    services: [
+      { id: "service_public", shopId: "shop_public", name: "Public Cut", barberUsername: "public-owner", price: 30, durationMinutes: 30, active: true },
+      { id: "service_other", shopId: "shop_other", name: "Other Cut", barberUsername: "other-owner", active: true },
+    ],
+    availability: { "public-owner": { timezone: "America/Chicago", weekly: {}, timeOff: [], recurringBlocks: [] }, "other-owner": { timezone: "America/Chicago", weekly: {}, timeOff: [], recurringBlocks: [] } },
+    bookings: [
+      { id: "booking_public", shopId: "shop_public", barberUsername: "public-owner", startISO: "2032-01-01T15:00:00.000Z", endISO: "2032-01-01T15:30:00.000Z", durationMinutes: 30, status: "booked", clientContact: "must-not-return", manageTokenHash: "must-not-return" },
+      { id: "booking_other", shopId: "shop_other", barberUsername: "other-owner", status: "booked", clientContact: "must-not-return" },
+    ], emails: [{ to: "must-not-return", html: "must-not-return" }],
+  });
+  const projection = await store.readPublicBookingStore({ slug: "public-shop" });
+  assert.deepEqual(projection.shops.map((shop) => shop.id), ["shop_public"]);
+  assert.deepEqual(projection.users.map((user) => user.username), ["public-owner"]);
+  assert.equal(projection.users[0].passwordHash, undefined);
+  assert.deepEqual(projection.services.map((service) => service.id), ["service_public"]);
+  assert.equal(projection.bookings.length, 1);
+  assert.equal(projection.bookings[0].clientContact, undefined);
+  assert.equal(projection.bookings[0].manageTokenHash, undefined);
+  assert.deepEqual(projection.emails, []);
+});
+
+test("JSON authenticated service projection preserves owner and barber scopes", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [], shops: [], availability: {}, bookings: [], emails: [],
+    services: [
+      { id: "owner_service", shopId: "shop_owner", barberUsername: "owner", active: true },
+      { id: "barber_service", shopId: "shop_owner", barberUsername: "barber", active: false },
+      { id: "other_service", shopId: "shop_other", barberUsername: "other", active: true },
+    ],
+  });
+  assert.deepEqual((await store.listServicesForAuthenticatedUser({ role: "owner", shopId: "shop_owner" })).map((service) => service.id), ["owner_service", "barber_service"]);
+  assert.deepEqual((await store.listServicesForAuthenticatedUser({ role: "barber", username: "barber" })).map((service) => service.id), ["barber_service"]);
+  assert.equal(await store.listServicesForAuthenticatedUser({ role: "customer" }), null);
+});
+
 test("Postgres snapshots map browser branding aliases to RPC logo and cover fields", () => {
   const snapshot = normalizePostgresSnapshot({
     users: [], services: [], availability: {}, bookings: [], emails: [],

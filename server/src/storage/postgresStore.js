@@ -68,6 +68,24 @@ function fail(error, operation, networkFailures = []) {
 const cents = (value) => Math.round(Number(value ?? 0) * 100);
 const dollars = (value) => Number((Number(value ?? 0) / 100).toFixed(2));
 const iso = (value) => value ? new Date(value).toISOString() : "";
+const PUBLIC_PROVIDER_ROLES = new Set(["owner", "barber"]);
+const PUBLIC_BOOKING_STATUSES = ["booked", "confirmed"];
+const PUBLIC_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+function safeText(value) {
+  return String(value ?? "").trim();
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(safeText(value));
+}
+
+function isSyntheticPublicShop(shop) {
+  const names = [shop?.name, shop?.businessName].map(safeText).filter(Boolean);
+  if (names.some((value) => /^e2e\s/i.test(value) || /e2e-/i.test(value))) return true;
+  return [shop?.slug, shop?.id].map(safeText).filter(Boolean)
+    .some((value) => /(^|[-_])e2e(?:[-_]|$)/i.test(value));
+}
 
 function legacyPolicy(row = {}) {
   return {
@@ -338,6 +356,43 @@ export function createPostgresStore(env = process.env) {
     };
   }
 
+  async function readCanonicalSourceIds(entityType, targetIds, operation) {
+    const ids = [...new Set((targetIds ?? []).map((id) => safeText(id)).filter(Boolean))];
+    if (ids.length === 0) return new Map();
+    const rows = await readAllRows(operation, () => client.from("legacy_source_ids")
+      .select("source_id,target_id")
+      .eq("entity_type", entityType)
+      .eq("is_canonical", true)
+      .in("target_id", ids));
+    return new Map(rows.map((row) => [row.target_id, row.source_id]));
+  }
+
+  function mapServiceRowsToLegacy(services, providerServices, membersById, usersById, sourceByService, sourceByShop) {
+    const providerByService = new Map();
+    providerServices.forEach((row) => {
+      if (providerByService.has(row.service_id)) return;
+      const username = usersById.get(membersById.get(row.provider_member_id)?.user_id)?.username ?? "";
+      providerByService.set(row.service_id, username);
+    });
+    return services.map((row) => {
+      const provider = providerByService.get(row.id) ?? "";
+      return {
+        id: sourceByService.get(row.id) ?? row.id,
+        name: row.name,
+        title: row.name,
+        price: dollars(row.price_cents),
+        durationMinutes: row.duration_minutes,
+        duration: row.duration_minutes,
+        shopId: sourceByShop.get(row.shop_id) ?? row.shop_id,
+        barberUsername: provider,
+        ownerUsername: provider,
+        active: row.is_active,
+        createdAtISO: iso(row.created_at),
+        updatedAtISO: iso(row.updated_at),
+      };
+    });
+  }
+
   // Login is the sole caller allowed to receive the password hash. Keep that
   // query separate from authenticated identity reads so middleware and public
   // responses cannot acquire credential material accidentally.
@@ -395,6 +450,143 @@ export function createPostgresStore(env = process.env) {
       shopId,
       createdAt: iso(row.created_at),
     };
+  }
+
+  // Fetches only the anonymous booking projection. It intentionally omits
+  // credential columns, customer contact fields, manage-token hashes, and
+  // email/outbox rows; the route still applies its existing public allowlist.
+  async function readPublicBookingStore({ shopId = "", slug = "" } = {}) {
+    beginOperation();
+    const requestedShopId = safeText(shopId);
+    const requestedSlug = safeText(slug).toLowerCase();
+    let relationalRequestedShopId = requestedShopId;
+    if (requestedShopId) {
+      const { data: mapping, error: mappingError } = await client.from("legacy_source_ids")
+        .select("target_id").eq("entity_type", "shop").eq("source_id", requestedShopId).eq("is_canonical", true).maybeSingle();
+      fail(mappingError, "resolve public booking shop", networkFailures);
+      if (!mapping?.target_id && !isUuid(requestedShopId)) {
+        return { users: [], shops: [], services: [], availability: {}, bookings: [], emails: [] };
+      }
+      relationalRequestedShopId = mapping?.target_id ?? requestedShopId;
+    }
+    let shopQuery = client.from("shops")
+      .select("id,owner_user_id,name,slug,phone,email,logo_url,cover_url,is_active,created_at,updated_at")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .order("id");
+    if (relationalRequestedShopId) shopQuery = shopQuery.eq("id", relationalRequestedShopId);
+    else if (requestedSlug) shopQuery = shopQuery.eq("slug", requestedSlug);
+    const shops = await readAllRows("read public booking shops", () => shopQuery);
+    const visibleShops = (requestedShopId || requestedSlug) ? shops : shops.filter((shop) => !isSyntheticPublicShop(shop));
+    const shopIds = visibleShops.map((shop) => shop.id);
+    if (shopIds.length === 0) return { users: [], shops: [], services: [], availability: {}, bookings: [], emails: [] };
+
+    const [settings, members, services, sourceByShop] = await Promise.all([
+      readAllRows("read public booking settings", () => client.from("shop_settings").select("*").in("shop_id", shopIds)),
+      readAllRows("read public booking members", () => client.from("shop_members")
+        .select("id,shop_id,user_id").in("shop_id", shopIds).eq("is_active", true).is("deleted_at", null).order("id")),
+      readAllRows("read public booking services", () => client.from("services")
+        .select("id,shop_id,name,price_cents,duration_minutes,is_active,created_at,updated_at")
+        .in("shop_id", shopIds).eq("is_active", true).is("deleted_at", null).order("id")),
+      readCanonicalSourceIds("shop", shopIds, "read public booking shop identities"),
+    ]);
+    const userIds = [...new Set([...visibleShops.map((shop) => shop.owner_user_id), ...members.map((member) => member.user_id)].filter(Boolean))];
+    const users = userIds.length === 0 ? [] : await readAllRows("read public booking providers", () => client.from("users")
+      .select("id,username,display_name,role,created_at").in("id", userIds).is("deleted_at", null).order("id"));
+    const usersById = new Map(users.map((user) => [user.id, user]));
+    const membersById = new Map(members.map((member) => [member.id, member]));
+    const providerMembers = members.filter((member) => PUBLIC_PROVIDER_ROLES.has(safeText(usersById.get(member.user_id)?.role).toLowerCase()));
+    const providerMemberIds = providerMembers.map((member) => member.id);
+    const serviceIds = services.map((service) => service.id);
+    const [providerServices, availabilityRows, timeOffRows, recurringRows, bookingRows, sourceByService] = await Promise.all([
+      serviceIds.length === 0 ? Promise.resolve([]) : readAllRows("read public booking provider services", () => client.from("provider_services")
+        .select("provider_member_id,service_id").in("service_id", serviceIds).order("provider_member_id").order("service_id")),
+      providerMemberIds.length === 0 ? Promise.resolve([]) : readAllRows("read public booking availability", () => client.from("availability")
+        .select("provider_member_id,weekday,start_time,end_time,timezone,buffer_minutes,is_enabled").in("provider_member_id", providerMemberIds).order("id")),
+      providerMemberIds.length === 0 ? Promise.resolve([]) : readAllRows("read public booking time off", () => client.from("time_off")
+        .select("id,provider_member_id,starts_at,ends_at,note").in("provider_member_id", providerMemberIds).order("id")),
+      providerMemberIds.length === 0 ? Promise.resolve([]) : readAllRows("read public booking recurring blocks", () => client.from("recurring_time_blocks")
+        .select("id,provider_member_id,weekday,start_time,end_time,label,is_enabled").in("provider_member_id", providerMemberIds).order("provider_member_id").order("weekday").order("start_time")),
+      readAllRows("read public booking windows", () => client.from("bookings")
+        .select("shop_id,provider_member_id,start_at,end_at,duration_minutes,status").in("shop_id", shopIds).in("status", PUBLIC_BOOKING_STATUSES).order("start_at")),
+      readCanonicalSourceIds("service", serviceIds, "read public booking service identities"),
+    ]);
+    const settingsByShop = new Map(settings.map((row) => [row.shop_id, row]));
+    const providerByMember = new Map(providerMembers.map((member) => [member.id, usersById.get(member.user_id)]));
+    const providerUsers = providerMembers.map((member) => {
+      const user = usersById.get(member.user_id);
+      return { id: user.id, username: user.username, displayName: user.display_name, role: user.role, shopId: sourceByShop.get(member.shop_id) ?? member.shop_id, createdAt: iso(user.created_at) };
+    });
+    const scheduleByMember = new Map();
+    availabilityRows.forEach((row) => { const rows = scheduleByMember.get(row.provider_member_id) ?? []; rows.push(row); scheduleByMember.set(row.provider_member_id, rows); });
+    const timeOffByMember = new Map();
+    timeOffRows.forEach((row) => { const rows = timeOffByMember.get(row.provider_member_id) ?? []; rows.push({ id: row.id, startISO: iso(row.starts_at), endISO: iso(row.ends_at), note: row.note ?? "" }); timeOffByMember.set(row.provider_member_id, rows); });
+    const recurringByMember = new Map();
+    recurringRows.forEach((row) => { const rows = recurringByMember.get(row.provider_member_id) ?? []; rows.push({ id: row.id, weekday: PUBLIC_DAYS[row.weekday], start: safeText(row.start_time).slice(0, 5), end: safeText(row.end_time).slice(0, 5), label: row.label ?? "Unavailable", enabled: row.is_enabled !== false }); recurringByMember.set(row.provider_member_id, rows); });
+    const availability = {};
+    providerMembers.forEach((member) => {
+      const provider = providerByMember.get(member.id); if (!provider) return;
+      const rows = scheduleByMember.get(member.id) ?? []; const weekly = {};
+      rows.forEach((row) => { weekly[PUBLIC_DAYS[row.weekday]] = { enabled: row.is_enabled, start: safeText(row.start_time).slice(0, 5), end: safeText(row.end_time).slice(0, 5) }; });
+      availability[provider.username] = { timezone: rows[0]?.timezone ?? "America/Chicago", bufferMinutes: rows[0]?.buffer_minutes ?? 0, weekly, timeOff: timeOffByMember.get(member.id) ?? [], recurringBlocks: recurringByMember.get(member.id) ?? [] };
+    });
+    return {
+      users: providerUsers,
+      shops: visibleShops.map((shop) => ({ id: sourceByShop.get(shop.id) ?? shop.id, name: shop.name, businessName: shop.name, slug: shop.slug, ownerUsername: usersById.get(shop.owner_user_id)?.username ?? "", shopPhone: shop.phone ?? "", shopEmail: shop.email ?? "", logo: shop.logo_url ?? "", cover: shop.cover_url ?? "", createdAtISO: iso(shop.created_at), updatedAtISO: iso(shop.updated_at), bookingPolicy: legacyPolicy(settingsByShop.get(shop.id)) })),
+      services: mapServiceRowsToLegacy(services, providerServices, membersById, usersById, sourceByService, sourceByShop),
+      availability,
+      bookings: bookingRows.map((booking) => ({ shopId: sourceByShop.get(booking.shop_id) ?? booking.shop_id, ownerUsername: providerByMember.get(booking.provider_member_id)?.username ?? "", barberUsername: providerByMember.get(booking.provider_member_id)?.username ?? "", startISO: iso(booking.start_at), endISO: iso(booking.end_at), durationMinutes: booking.duration_minutes, status: booking.status })),
+      emails: [],
+    };
+  }
+
+  async function listServicesForAuthenticatedUser(user) {
+    beginOperation();
+    const role = safeText(user?.role).toLowerCase();
+    if (role !== "owner" && role !== "barber") return null;
+    const userId = safeText(user?.id);
+    if (!userId) return [];
+    let services = [];
+    if (role === "owner") {
+      const sourceShopId = safeText(user?.shopId);
+      if (!sourceShopId) return [];
+      const { data: mapping, error: mappingError } = await client.from("legacy_source_ids")
+        .select("target_id").eq("entity_type", "shop").eq("source_id", sourceShopId).eq("is_canonical", true).maybeSingle();
+      fail(mappingError, "resolve owner service shop", networkFailures);
+      const shopId = mapping?.target_id ?? sourceShopId;
+      services = await readAllRows("read owner services", () => client.from("services")
+        .select("id,shop_id,name,price_cents,duration_minutes,is_active,created_at,updated_at").eq("shop_id", shopId).is("deleted_at", null).order("id"));
+    } else {
+      const memberships = await readAllRows("read service memberships", () => client.from("shop_members")
+        .select("id,shop_id,user_id").eq("user_id", userId).eq("is_active", true).is("deleted_at", null).order("id"));
+      const memberIds = memberships.map((member) => member.id);
+      if (memberIds.length === 0) return [];
+      const ownLinks = await readAllRows("read barber service memberships", () => client.from("provider_services")
+        .select("service_id").in("provider_member_id", memberIds).order("service_id"));
+      const serviceIds = [...new Set(ownLinks.map((row) => row.service_id).filter(Boolean))];
+      if (serviceIds.length === 0) return [];
+      services = await readAllRows("read barber services", () => client.from("services")
+        .select("id,shop_id,name,price_cents,duration_minutes,is_active,created_at,updated_at").in("id", serviceIds).is("deleted_at", null).order("id"));
+    }
+    const serviceIds = services.map((service) => service.id);
+    if (serviceIds.length === 0) return [];
+    const providerServices = await readAllRows("read service providers", () => client.from("provider_services").select("provider_member_id,service_id").in("service_id", serviceIds).order("provider_member_id").order("service_id"));
+    const providerMemberIds = [...new Set(providerServices.map((row) => row.provider_member_id).filter(Boolean))];
+    const [allMembers, sourceByService, sourceByShop] = await Promise.all([
+      providerMemberIds.length === 0 ? Promise.resolve([]) : readAllRows("read service provider identities", () => client.from("shop_members").select("id,shop_id,user_id").in("id", providerMemberIds).eq("is_active", true).is("deleted_at", null).order("id")),
+      readCanonicalSourceIds("service", serviceIds, "read service identities"),
+      readCanonicalSourceIds("shop", [...new Set(services.map((service) => service.shop_id))], "read service shop identities"),
+    ]);
+    const providerUserIds = [...new Set(allMembers.map((member) => member.user_id).filter(Boolean))];
+    const users = providerUserIds.length === 0 ? [] : await readAllRows("read service providers", () => client.from("users").select("id,username").in("id", providerUserIds).is("deleted_at", null).order("id"));
+    const membersById = new Map(allMembers.map((member) => [member.id, member]));
+    const usersById = new Map(users.map((entry) => [entry.id, entry]));
+    const legacy = mapServiceRowsToLegacy(services, providerServices, membersById, usersById, sourceByService, sourceByShop);
+    if (role === "barber") {
+      const username = safeText(user?.username).toLowerCase();
+      return legacy.filter((service) => safeText(service.barberUsername).toLowerCase() === username);
+    }
+    return legacy;
   }
 
   // The legacy routes save whole documents. Reconciliation must run in one
@@ -517,12 +709,14 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, readLoginCredentialByUsername, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
 export const readUserByUsername = async (username) => createPostgresStore().readUserByUsername(username);
 export const readLoginCredentialByUsername = async (username) => createPostgresStore().readLoginCredentialByUsername(username);
+export const readPublicBookingStore = async (options) => createPostgresStore().readPublicBookingStore(options);
+export const listServicesForAuthenticatedUser = async (user) => createPostgresStore().listServicesForAuthenticatedUser(user);
 export const writeStore = async (store) => createPostgresStore().writeStore(store);
 export const writeUser = async (user) => createPostgresStore().writeUser(user);
 export const writeShop = async (shop, store) => createPostgresStore().writeShop(shop, store);
