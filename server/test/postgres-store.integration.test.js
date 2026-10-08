@@ -126,6 +126,17 @@ postgresTest("Postgres authenticated service projection preserves owner scope wi
   assert.equal(await store.listServicesForAuthenticatedUser({ ...user, role: "customer" }), null);
 });
 
+postgresTest("Postgres protected shop, availability, and booking projections remain scoped", async () => {
+  const { ids } = await seedBase();
+  const owner = await store.readUserByUsername("fixture-owner");
+  assert.deepEqual((await store.listShopsForAuthenticatedUser(owner)).map((shop) => shop.slug), ["fixture-cuts"]);
+  assert.deepEqual(Object.keys((await store.readAvailabilityForAuthenticatedUser(owner)).availability), ["fixture-owner"]);
+  const created = await createAtomicBooking(ids, { confirmationCode: "LST001" });
+  const bookings = await store.listBookingsForAuthenticatedUser(owner);
+  assert.deepEqual(bookings.map((booking) => booking.id), [created.booking.id]);
+  assert.equal(bookings[0].manageTokenHash, undefined);
+});
+
 postgresTest("Postgres login credential lookup returns only one credential and canonical linkage", async () => {
   await seedBase();
   const credential = await store.readLoginCredentialByUsername("FIXTURE-OWNER");

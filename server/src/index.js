@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, listServicesForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -1554,17 +1554,26 @@ app.get("/api/auth/me", requireSessionAuth, (req, res) => {
   return res.json({ user: buildAuthUser(req.user) });
 });
 
-app.get("/api/shops", requireAuth, requireRouteStore, (req, res) => {
-  const db = req.db;
+app.get("/api/shops", requireAuth, async (req, res) => {
   const user = req.user;
-
-  if (isCustomer(user)) {
-    return res.json({ shops: db.shops });
+  try {
+    if (isOwner(user) || isBarber(user)) {
+      return res.json({ shops: await listShopsForAuthenticatedUser(user) });
+    }
+    return res.json({ shops: (await readStore()).shops });
+  } catch (error) {
+    console.error("[Slotzy:shops] GET /api/shops read failed", {
+      storage: STORAGE_ADAPTER,
+      operation: isOwner(user) || isBarber(user) ? "read authenticated shops" : "read customer shop snapshot",
+      statusCode: 503,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      shopCount: 0,
+      availabilityCount: 0,
+      bookingCount: 0,
+    });
+    return res.status(503).json({ error: "service temporarily unavailable", code: "storage_unavailable" });
   }
-
-  const shopId = getUserShopId(db, user);
-  const shops = db.shops.filter((shop) => normalizeUsername(shop?.id) === shopId);
-  return res.json({ shops });
 });
 
 app.post("/api/shops", requireAuth, requireRouteStore, async (req, res) => {
@@ -2063,47 +2072,49 @@ app.delete("/api/services/:serviceId", requireAuth, requireRouteStore, async (re
   }
 });
 
-app.get("/api/availability", requireAuth, requireRouteStore, (req, res) => {
-  const db = req.db;
+app.get("/api/availability", requireAuth, async (req, res) => {
   const user = req.user;
   const requestedUsername = normalizeUsername(req.query.barberUsername);
 
+  if (isOwner(user) || isBarber(user)) {
+    try {
+      const result = await readAvailabilityForAuthenticatedUser(user, { barberUsername: requestedUsername });
+      if (result?.outcome === "not_allowed") {
+        return res.status(403).json({ error: isOwner(user) ? "owner can only view availability for own shop providers" : "barber can only view own availability" });
+      }
+      if (result?.outcome === "single") {
+        return res.json({ barberUsername: result.barberUsername, availability: normalizeAvailabilityEntry(result.availability) });
+      }
+      return res.json({ availability: Object.fromEntries(Object.entries(result?.availability ?? {}).map(([username, availability]) => [username, normalizeAvailabilityEntry(availability)])) });
+    } catch (error) {
+      console.error("[Slotzy:availability] GET /api/availability read failed", {
+        storage: STORAGE_ADAPTER,
+        operation: "read authenticated availability",
+        statusCode: 503,
+        storageErrorCode: String(error?.code ?? ""),
+        storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+        shopCount: 0,
+        availabilityCount: 0,
+        bookingCount: 0,
+      });
+      return res.status(503).json({ error: "service temporarily unavailable", code: "storage_unavailable" });
+    }
+  }
+
+  let db;
+  try {
+    db = await readStore();
+  } catch (error) {
+    console.error("[Slotzy:availability] GET /api/availability customer read failed", {
+      storage: STORAGE_ADAPTER, operation: "read customer availability snapshot", statusCode: 503,
+      storageErrorCode: String(error?.code ?? ""), storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      shopCount: 0, availabilityCount: 0, bookingCount: 0,
+    });
+    return res.status(503).json({ error: "service temporarily unavailable", code: "storage_unavailable" });
+  }
+
   if (!db.availability || typeof db.availability !== "object" || Array.isArray(db.availability)) {
     db.availability = {};
-  }
-
-  if (isOwner(user)) {
-    const ownerShopId = getUserShopId(db, user);
-    if (!ownerShopId) {
-      return res.json({ availability: {} });
-    }
-
-    if (requestedUsername) {
-      if (!isUserManageableByOwner(db, user, requestedUsername)) {
-        return res.status(403).json({ error: "owner can only view availability for own shop providers" });
-      }
-      return res.json({
-        barberUsername: requestedUsername,
-        availability: normalizeAvailabilityEntry(db.availability[requestedUsername]),
-      });
-    }
-
-    const usernames = getProviderUsernamesForShop(db, ownerShopId);
-    const availability = {};
-    usernames.forEach((username) => {
-      availability[username] = normalizeAvailabilityEntry(db.availability[username]);
-    });
-    return res.json({ availability });
-  }
-
-  if (isBarber(user)) {
-    if (requestedUsername && !usernamesEqual(requestedUsername, user.username)) {
-      return res.status(403).json({ error: "barber can only view own availability" });
-    }
-    return res.json({
-      barberUsername: user.username,
-      availability: normalizeAvailabilityEntry(db.availability[user.username]),
-    });
   }
 
   if (requestedUsername) {
@@ -2216,22 +2227,34 @@ app.put("/api/availability", requireAuth, requireRouteStore, async (req, res) =>
   }
 });
 
-app.get("/api/bookings", requireAuth, requireRouteStore, (req, res) => {
-  const db = req.db;
+app.get("/api/bookings", requireAuth, async (req, res) => {
   const user = req.user;
   const queryStatus = String(req.query.status ?? "").trim().toLowerCase();
   const queryShopId = normalizeUsername(req.query.shopId);
   const queryBarberUsername = normalizeUsername(req.query.barberUsername);
   const queryCustomerUsername = normalizeUsername(req.query.customerUsername);
 
-  let bookings = [...db.bookings];
-
-  if (isOwner(user)) {
-    bookings = bookings.filter((booking) => canOwnerManageBooking(db, user, booking));
-  } else if (isBarber(user)) {
-    bookings = bookings.filter((booking) => canBarberManageBooking(user, booking));
-  } else {
-    bookings = bookings.filter((booking) => canCustomerViewBooking(user, booking));
+  let bookings;
+  let compatibilityDb = null;
+  try {
+    if (isOwner(user) || isBarber(user)) {
+      bookings = await listBookingsForAuthenticatedUser(user, { status: queryStatus ? normalizeBookingStatus(queryStatus) : "" });
+    } else {
+      compatibilityDb = await readStore();
+      bookings = compatibilityDb.bookings.filter((booking) => canCustomerViewBooking(user, booking));
+    }
+  } catch (error) {
+    console.error("[Slotzy:bookings] GET /api/bookings read failed", {
+      storage: STORAGE_ADAPTER,
+      operation: isOwner(user) || isBarber(user) ? "read authenticated bookings" : "read customer booking snapshot",
+      statusCode: 503,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+      shopCount: 0,
+      availabilityCount: 0,
+      bookingCount: 0,
+    });
+    return res.status(503).json({ error: "service temporarily unavailable", code: "storage_unavailable" });
   }
 
   if (queryStatus) {
@@ -2239,7 +2262,7 @@ app.get("/api/bookings", requireAuth, requireRouteStore, (req, res) => {
     bookings = bookings.filter((booking) => normalizeBookingStatus(booking?.status) === normalizedStatus);
   }
   if (queryShopId) {
-    bookings = bookings.filter((booking) => resolveBookingShopId(db, booking) === queryShopId);
+    bookings = bookings.filter((booking) => (compatibilityDb ? resolveBookingShopId(compatibilityDb, booking) : normalizeUsername(booking?.shopId)) === queryShopId);
   }
   if (queryBarberUsername) {
     bookings = bookings.filter((booking) =>

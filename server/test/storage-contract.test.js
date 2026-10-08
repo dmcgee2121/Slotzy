@@ -111,6 +111,38 @@ test("JSON authenticated service projection preserves owner and barber scopes", 
   assert.equal(await store.listServicesForAuthenticatedUser({ role: "customer" }), null);
 });
 
+test("JSON protected shop, availability, and booking projections preserve owner and barber scopes", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [
+      { id: "owner", username: "owner", role: "owner", shopId: "shop_one" },
+      { id: "barber", username: "barber", role: "barber", shopId: "shop_one" },
+      { id: "other", username: "other", role: "owner", shopId: "shop_two" },
+    ],
+    shops: [{ id: "shop_one", name: "One" }, { id: "shop_two", name: "Two" }], services: [], emails: [],
+    availability: {
+      owner: { timezone: "America/Chicago", weekly: {}, timeOff: [], recurringBlocks: [] },
+      barber: { timezone: "America/Chicago", weekly: {}, timeOff: [], recurringBlocks: [] },
+      other: { timezone: "America/Chicago", weekly: {}, timeOff: [], recurringBlocks: [] },
+    },
+    bookings: [
+      { id: "owner_booking", shopId: "shop_one", barberUsername: "owner", clientContact: "owner-contact" },
+      { id: "barber_booking", shopId: "shop_one", barberUsername: "barber", clientContact: "barber-contact" },
+      { id: "other_booking", shopId: "shop_two", barberUsername: "other", clientContact: "other-contact" },
+    ],
+  });
+  const owner = { id: "owner", username: "owner", role: "owner", shopId: "shop_one" };
+  const barber = { id: "barber", username: "barber", role: "barber", shopId: "shop_one" };
+  assert.deepEqual((await store.listShopsForAuthenticatedUser(owner)).map((shop) => shop.id), ["shop_one"]);
+  assert.deepEqual((await store.listShopsForAuthenticatedUser(barber)).map((shop) => shop.id), ["shop_one"]);
+  assert.deepEqual(Object.keys((await store.readAvailabilityForAuthenticatedUser(owner)).availability).sort(), ["barber", "owner"]);
+  assert.equal((await store.readAvailabilityForAuthenticatedUser(owner, { barberUsername: "other" })).outcome, "not_allowed");
+  assert.equal((await store.readAvailabilityForAuthenticatedUser(barber, { barberUsername: "owner" })).outcome, "not_allowed");
+  assert.deepEqual((await store.listBookingsForAuthenticatedUser(owner)).map((booking) => booking.id).sort(), ["barber_booking", "owner_booking"]);
+  assert.deepEqual((await store.listBookingsForAuthenticatedUser(barber)).map((booking) => booking.id), ["barber_booking"]);
+  assert.equal(await store.listBookingsForAuthenticatedUser({ role: "customer" }), null);
+});
+
 test("Postgres snapshots map browser branding aliases to RPC logo and cover fields", () => {
   const snapshot = normalizePostgresSnapshot({
     users: [], services: [], availability: {}, bookings: [], emails: [],

@@ -189,6 +189,48 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     return null;
   }
 
+  async function listShopsForAuthenticatedUser(user) {
+    const store = await readStore();
+    const role = normalizedText(user?.role).toLowerCase();
+    if (role !== "owner" && role !== "barber") return null;
+    const shopId = normalizedText(user?.shopId);
+    return store.shops.filter((shop) => normalizedText(shop?.id) === shopId);
+  }
+
+  async function readAvailabilityForAuthenticatedUser(user, { barberUsername = "" } = {}) {
+    const store = await readStore();
+    const role = normalizedText(user?.role).toLowerCase();
+    const requested = normalizedText(barberUsername);
+    if (role === "owner") {
+      const shopId = normalizedText(user?.shopId);
+      const providers = store.users.filter((entry) => isProviderRole(entry?.role) && normalizedText(entry?.shopId) === shopId);
+      if (requested) {
+        const provider = providers.find((entry) => normalizedText(entry?.username).toLowerCase() === requested.toLowerCase());
+        if (!provider) return { outcome: "not_allowed" };
+        return { outcome: "single", barberUsername: provider.username, availability: store.availability?.[provider.username] ?? {} };
+      }
+      return { outcome: "list", availability: Object.fromEntries(providers.map((provider) => [provider.username, store.availability?.[provider.username] ?? {}])) };
+    }
+    if (role === "barber") {
+      if (requested && requested.toLowerCase() !== normalizedText(user?.username).toLowerCase()) return { outcome: "not_allowed" };
+      return { outcome: "single", barberUsername: user.username, availability: store.availability?.[user.username] ?? {} };
+    }
+    return null;
+  }
+
+  async function listBookingsForAuthenticatedUser(user, filters = {}) {
+    const store = await readStore();
+    const role = normalizedText(user?.role).toLowerCase();
+    if (role === "owner") {
+      return store.bookings.filter((booking) => normalizedText(booking?.shopId) === normalizedText(user?.shopId));
+    }
+    if (role === "barber") {
+      const username = normalizedText(user?.username).toLowerCase();
+      return store.bookings.filter((booking) => normalizedText(booking?.barberUsername ?? booking?.ownerUsername).toLowerCase() === username);
+    }
+    return null;
+  }
+
   async function appendOutboxEmail(email) {
     const store = await readStore();
     store.emails.push(email);
@@ -239,6 +281,9 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     readLoginCredentialByUsername,
     readPublicBookingStore,
     listServicesForAuthenticatedUser,
+    listShopsForAuthenticatedUser,
+    readAvailabilityForAuthenticatedUser,
+    listBookingsForAuthenticatedUser,
     writeStore,
     writeUser,
     writeShop,
@@ -259,6 +304,9 @@ export const readUserByUsername = defaultJsonStore.readUserByUsername;
 export const readLoginCredentialByUsername = defaultJsonStore.readLoginCredentialByUsername;
 export const readPublicBookingStore = defaultJsonStore.readPublicBookingStore;
 export const listServicesForAuthenticatedUser = defaultJsonStore.listServicesForAuthenticatedUser;
+export const listShopsForAuthenticatedUser = defaultJsonStore.listShopsForAuthenticatedUser;
+export const readAvailabilityForAuthenticatedUser = defaultJsonStore.readAvailabilityForAuthenticatedUser;
+export const listBookingsForAuthenticatedUser = defaultJsonStore.listBookingsForAuthenticatedUser;
 export const writeStore = defaultJsonStore.writeStore;
 export const writeUser = defaultJsonStore.writeUser;
 export const writeShop = defaultJsonStore.writeShop;
