@@ -2506,6 +2506,14 @@
     padding: 12px;
   }
 
+  .owner-setup-page [data-step-panel="3"] .setup-form-cluster > .form-grid-2 {
+    margin-bottom: 16px;
+  }
+
+  .owner-setup-page [data-step-panel="3"] #setupServiceStatus:not(:empty) {
+    margin-top: 12px;
+  }
+
   .owner-setup-page .setup-actions {
     display: grid;
     grid-template-columns: 1fr;
