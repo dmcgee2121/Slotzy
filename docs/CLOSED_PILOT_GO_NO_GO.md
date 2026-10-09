@@ -39,6 +39,17 @@ Installed-PWA cache rollover on a physical phone, a true time-expired link fixtu
 
 Core product evidence is sufficient for a controlled next staging round with one to two trusted barbers/operators and three to five trusted customer testers. Operational roles and the private channel are confirmed outside Git, and the day-one synthetic lifecycle check passed. Invitations are cleared for this cohort only. This is not production readiness, approval for a broader/open beta, or authorization to process payments.
 
+## Release-candidate checkpoint (2026-10-08)
+
+**Status: ready to reopen to the documented tiny trusted staging cohort.** The release-candidate baseline is commit `c6be2da`; the guarded hosted lifecycle is stable and the focused owner-setup chain, synthetic owner-to-customer lifecycle, and negative checks remain the required 3/3 gate.
+
+- Public private-link cancellation is now an API-backed, atomic token-hash operation. It fails closed: a cancelled state is shown only after authoritative persistence, and the private token is neither returned nor logged.
+- Hosted owner dashboard quick-add and owner cancellation actions either receive authoritative API success or retain a retryable error state; they do not claim a local-only save.
+- Owner and customer mobile layout passes improve presentation only. They do not alter booking, cancellation, authentication, or manage-token behavior.
+- No true closed-beta blocker is known for the limited staging scope. Pause invitations immediately if any existing stop condition occurs; a new authoritative-save, private-link, cancellation, or owner-visibility failure is a blocker until investigated.
+
+Accepted, non-blocking follow-up: physical iPhone installed-PWA cache rollover, a true time-expired-link fixture, isolated restore-target application smoke, broader adverse-network/session coverage, and the parked dashboard/calendar refinements. These do not authorize production or a broader pilot.
+
 ## 2026-10-04 gate review update
 
 - Recurring weekly scheduling is deployed, migrated on staging, staging-tested 3/3, and manually accepted.

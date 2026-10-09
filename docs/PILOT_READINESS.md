@@ -10,6 +10,17 @@
 
 An initial docs-only attempt was safely blocked before execution by the staging mutation guard. A separate authorized guarded run subsequently passed **3/3**. The tiny trusted staging pilot is cleared for invitations; immediately pause invitations and investigate any authoritative-save discrepancy, unauthorized private-link access, failed persisted cancellation, missing owner appointment, or possible data disclosure.
 
+## Release-candidate checkpoint (2026-10-08)
+
+- [x] Release-candidate baseline is `c6be2da`; hosted staging is stable for the guarded 3/3 lifecycle gate.
+- [x] Public manage cancellation is API-backed through the atomic, token-hash cancellation operation. Success is rendered only after authoritative persistence; the browser does not receive a manage token in a recovery response.
+- [x] Hosted owner dashboard quick-add and cancellation actions require an authoritative API result and fail closed with retryable feedback when it fails.
+- [x] Owner and customer booking/manage mobile polish is complete without changing backend, booking, cancellation, auth, or token behavior.
+- [x] The tiny trusted staging pilot is ready to reopen within the existing limits: one to two operators, three to five customer testers, no payments, minimum test data, and private support outside Git.
+- [ ] Non-blocking follow-up remains: physical iPhone installed-PWA cache rollover, true expired-link fixture, restore-target app smoke, and adverse network/session coverage.
+
+There is no known true beta blocker for the stated staging-only cohort. Any authoritative-save discrepancy, unauthorized private-link access, failed persisted cancellation, missing owner appointment, or possible data disclosure immediately overrides this checkpoint and pauses invitations.
+
 ## Reliability/recovery validation update (2026-10-04)
 
 - [x] Logout clears browser-held session credentials and returns protected owner pages to sign-in across the mobile automation matrix.
