@@ -87,6 +87,13 @@ The operational roles and private support channel are confirmed outside Git, and
 
 ## Closed-pilot operational gate (2026-10-03)
 
+## Trusted tester feedback Round 2 (2026-10-08)
+
+- Three trusted staging testers completed owner setup, scheduling/recurring-break setup, cover upload, customer booking, private manage-link opening in another browser, cancellation, and owner appointment-manager refresh without a reported freeze or functional failure.
+- No beta blocker is currently known for the tiny trusted staging cohort. Existing immediate-stop conditions remain active.
+- The one mobile Services-step spacing note was fixed in C1a at `f3d79ee`; the remaining slight button/booking delay observation and installed-PWA cache behavior are non-blocking monitoring items for the next two to three trusted testers.
+- Detailed redacted record: [Round 2 trusted tester feedback](docs/CLOSED_PILOT_FEEDBACK_ROUND_2.md).
+
 ## Pilot Round 2 cover-rendering follow-up (2026-10-04)
 
 - Hosted Round 2 retest confirmed that branding persistence and logo delivery are fixed: the saved logo appears in both the public shop chooser and the selected booking page.

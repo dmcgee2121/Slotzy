@@ -21,6 +21,15 @@ An initial docs-only attempt was safely blocked before execution by the staging 
 
 There is no known true beta blocker for the stated staging-only cohort. Any authoritative-save discrepancy, unauthorized private-link access, failed persisted cancellation, missing owner appointment, or possible data disclosure immediately overrides this checkpoint and pauses invitations.
 
+## Trusted tester feedback — Round 2 (2026-10-08)
+
+- [x] Three trusted staging testers reported successful owner setup, scheduling, recurring breaks, cover upload, customer booking, private manage-link opening in another browser, appointment-manager updates, and customer cancellation.
+- [x] No beta blocker, freeze, or failure was reported.
+- [x] C1a fixed the sole mobile Services-step spacing note in the release baseline `f3d79ee`.
+- [ ] Monitor the slight button/booking delay observation and installed-PWA cache behavior during the next round; continue with two to three additional trusted testers inside the existing limits.
+
+See [Round 2 trusted tester feedback](CLOSED_PILOT_FEEDBACK_ROUND_2.md). Keep all individual feedback records redacted and outside Git.
+
 ## Reliability/recovery validation update (2026-10-04)
 
 - [x] Logout clears browser-held session credentials and returns protected owner pages to sign-in across the mobile automation matrix.
