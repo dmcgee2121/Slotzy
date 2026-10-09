@@ -664,6 +664,12 @@ textarea:focus-visible,
   font-weight: 700;
 }
 
+.booking-flow-guidance {
+  margin: 2px 0 0;
+  color: #475569;
+  font-weight: 600;
+}
+
 .booking-contact-section {
   border-bottom: 0;
 }
@@ -745,6 +751,16 @@ textarea:focus-visible,
   border: 1px solid #bfdbfe;
   border-radius: 16px;
   background: #f8fbff;
+}
+
+.booking-submit-help {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid #93c5fd;
+  border-radius: 0 10px 10px 0;
+  background: #f8fbff;
+  color: #334155;
+  line-height: 1.5;
 }
 
 .booking-submit-section p {
@@ -1476,6 +1492,15 @@ textarea:focus-visible,
   background: #f8fbff;
 }
 
+.booking-receipt-manage-link-panel::before {
+  content: "Private appointment link";
+  color: #1d4ed8;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .booking-receipt-manage-link-panel h2,
 .booking-receipt-manage-link-panel p {
   margin: 0;
@@ -1529,6 +1554,8 @@ textarea:focus-visible,
 .manage-access-card {
   display: grid;
   gap: 8px;
+  border-color: #dbeafe;
+  background: linear-gradient(145deg, #f8fbff 0%, #ffffff 72%);
 }
 
 .manage-continue-actions {
@@ -1854,11 +1881,39 @@ textarea:focus-visible,
   }
 
   .booking-flow-section {
-    padding: 16px;
+    gap: 16px;
+    padding: 18px 16px;
+  }
+
+  .booking-steps {
+    gap: 10px;
+  }
+
+  .booking-steps li {
+    min-height: 52px;
+    align-items: flex-start;
+    padding: 11px 12px;
+    font-size: 0.86rem;
+  }
+
+  .booking-flow-heading h3 {
+    font-size: 1.12rem;
+  }
+
+  .public-booking-page #barberSelect,
+  .public-booking-page #serviceSelect,
+  .public-booking-page #bookingDate,
+  .public-booking-page .booking-slot-select {
+    min-height: 48px;
+    font-size: 16px;
   }
 
   .booking-submit-section {
     padding: 16px;
+  }
+
+  .booking-submit-help {
+    padding: 12px;
   }
 
   .public-booking-page .empty-state {
@@ -1960,6 +2015,26 @@ textarea:focus-visible,
   .public-booking-page .public-shop-directory,
   .manage-page-layout .owner-panel {
     overflow-wrap: anywhere;
+  }
+
+  .manage-page-layout {
+    gap: 14px;
+  }
+
+  .manage-page-layout .owner-panel {
+    padding: 16px;
+  }
+
+  .manage-access-card {
+    gap: 10px;
+  }
+
+  .manage-page-layout .owner-section-head {
+    gap: 8px;
+  }
+
+  .manage-page-layout .client-manage-card {
+    gap: 14px;
   }
 
   .booking-receipt-manage-link {

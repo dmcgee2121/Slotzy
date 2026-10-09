@@ -420,6 +420,8 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await page.goto(`/pages/book.html?shop=${SHOP_SLUG}`);
   await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
   await expect(page.getByRole("heading", { name: "Choose what works for you" })).toBeVisible();
+  await expect(page.locator(".booking-flow-guidance")).toContainText("Available times appear after you choose a barber, service, and date.");
+  await expect(page.locator(".booking-submit-help")).toContainText("Confirmation appears next.");
   await expectNoPageOverflow(page, "public booking initial state");
   await expect(page.getByRole("heading", { name: "Select service and date" })).toBeVisible();
   const barberSelect = page.locator("#barberSelect");
@@ -461,12 +463,15 @@ test("public booking receipt and manage cancellation work on mobile", async ({ p
   await page.goto(manageLink);
   const managedCard = page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" });
   await expect(managedCard).toBeVisible();
+  await expect(page.locator(".manage-access-card")).toContainText("Keep it private");
   await expectNoPageOverflow(page, "manage booking page");
   await expectControlFits(page, "button[data-action='cancel-appointment']");
   await managedCard.getByRole("button", { name: "Cancel", exact: true }).click();
   await expectControlFits(page, "button[data-action='confirm-cancel-appointment']");
   await managedCard.getByRole("button", { name: "Confirm Cancel", exact: true }).click();
   await expect(managedCard.locator(".appointment-actions .badge")).toHaveText("Cancelled");
+  await expect(page.locator("#manageStatus")).toContainText("Appointment cancelled. Your appointment list has been updated.");
+  await expect(page.locator("#manageStatus")).toHaveAttribute("role", "status");
   await expect(managedCard.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".client-manage-card").filter({ hasText: "E2E Mobile Cut" }).locator(".appointment-actions .badge")).toHaveText("Cancelled");
