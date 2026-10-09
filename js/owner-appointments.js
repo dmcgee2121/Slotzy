@@ -778,9 +778,16 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     clientNoShowCountByKey = buildClientNoShowCountMap(bookings);
     syncFilterButtons();
     if (window.FullCalendar) {
-      renderCalendar(bookings);
+      try {
+        renderCalendar(bookings);
+      } catch (error) {
+        console.error("[Slotzy:owner-appointments] Could not render calendar.", error);
+        renderSummary(bookings, new Date());
+        renderCalendarFallback(bookings);
+      }
     } else {
       renderSummary(bookings, new Date());
+      renderCalendarFallback(bookings);
     }
     renderOwnerAppointments(bookings);
     if (walkinModalEl && !walkinModalEl.classList.contains("hidden")) {
@@ -1684,6 +1691,43 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     calendarInstance.render();
     enhanceCalendarAccessibility(calendarEl);
     refreshVisibleCalendarDays();
+    // Mobile browsers can finish layout after this script runs (particularly
+    // when restored as a PWA). Ask FullCalendar to measure again once the
+    // containing card has its final width.
+    window.requestAnimationFrame(() => {
+      calendarInstance?.updateSize?.();
+    });
+  }
+
+  function renderCalendarFallback(bookings) {
+    const calendarEl = document.getElementById("calendar");
+    if (!calendarEl) return;
+
+    // FullCalendar is served from a CDN. A phone with an intermittent or
+    // captive-network connection must not be left with a blank Calendar card
+    // if that optional script fails to load.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const upcoming = bookings
+      .filter((booking) => isScheduledStatus(booking.status) && booking.start >= today)
+      .sort((a, b) => a.start - b.start)
+      .slice(0, 5);
+    const rows = upcoming.length
+      ? upcoming.map((booking) => `
+          <li class="calendar-fallback-item">
+            <strong>${escapeHtml(formatDateFriendly(booking.start))}</strong>
+            <span>${escapeHtml(formatTimeLabel(booking.start))} · ${escapeHtml(booking.clientName)} · ${escapeHtml(booking.serviceName)}</span>
+          </li>
+        `).join("")
+      : '<li class="calendar-fallback-empty">No upcoming appointments.</li>';
+
+    calendarEl.innerHTML = `
+      <div class="calendar-fallback" role="status" aria-live="polite">
+        <p class="calendar-fallback-title">Upcoming appointments</p>
+        <p class="small">Calendar view is unavailable right now. Your appointment list is still up to date.</p>
+        <ul>${rows}</ul>
+      </div>
+    `;
   }
 
   function handleCalendarEventDrop(info) {

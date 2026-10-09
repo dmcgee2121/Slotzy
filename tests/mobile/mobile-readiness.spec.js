@@ -1463,6 +1463,71 @@ test("owner weekly hours validation, save state, refresh, and booking times stay
   await expectNoPageOverflow(page, "public booking with saved weekly hours");
 });
 
+test("manage appointments shows a mobile-safe schedule when the calendar CDN is unavailable", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(10, 0, 0, 0);
+  const endsAt = new Date(tomorrow);
+  endsAt.setMinutes(endsAt.getMinutes() + 30);
+  seed.local.Slotzy_bookings = [{
+    id: "booking_mobile_calendar_fallback",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    serviceName: "E2E Mobile Cut",
+    clientName: "Calendar Fallback Client",
+    startISO: tomorrow.toISOString(),
+    endISO: endsAt.toISOString(),
+    durationMinutes: 30,
+    price: 35,
+    status: "booked",
+  }];
+  await seedStorage(page, seed, { includeSession: true });
+  await page.route("**/fullcalendar@6.1.8/index.global.min.js", (route) => route.abort("failed"));
+
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+  const fallback = page.locator("#calendar .calendar-fallback");
+  await expect(fallback).toBeVisible();
+  await expect(fallback).toContainText("Upcoming appointments");
+  await expect(fallback).toContainText("Calendar Fallback Client");
+  await expect(page.locator("#appointment-status")).not.toHaveText("Loading appointments...");
+  await expectNoPageOverflow(page, "appointment calendar fallback");
+});
+
+test("owner appointment confirmation refreshes the visible appointment without a page reload", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(11, 0, 0, 0);
+  const endsAt = new Date(tomorrow);
+  endsAt.setMinutes(endsAt.getMinutes() + 30);
+  seed.local.Slotzy_bookings = [{
+    id: "booking_mobile_confirm_refresh",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    serviceName: "E2E Mobile Cut",
+    clientName: "Refresh Client",
+    startISO: tomorrow.toISOString(),
+    endISO: endsAt.toISOString(),
+    durationMinutes: 30,
+    price: 35,
+    status: "booked",
+  }];
+  await seedStorage(page, seed, { includeSession: true });
+  await installCalendarToolbarStub(page);
+
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const card = page.locator(".appointment-row").filter({ hasText: "Refresh Client" });
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(page.locator("#appointment-status")).toContainText("Appointment confirmed.");
+  await expect(card).toContainText("Confirmed");
+  await expect(card.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
+});
+
 test("owner dashboard navigation and calendar toolbar stay polished on mobile", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await installCalendarToolbarStub(page);

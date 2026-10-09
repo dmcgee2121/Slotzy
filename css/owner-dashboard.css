@@ -2896,6 +2896,47 @@
   }
 }
 
+.owner-page #calendar .calendar-fallback {
+  display: grid;
+  gap: 8px;
+  min-height: 150px;
+  padding: 14px;
+  background: var(--secondary);
+}
+
+.owner-page #calendar .calendar-fallback-title,
+.owner-page #calendar .calendar-fallback p {
+  margin: 0;
+}
+
+.owner-page #calendar .calendar-fallback-title {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.owner-page #calendar .calendar-fallback ul {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.owner-page #calendar .calendar-fallback-item,
+.owner-page #calendar .calendar-fallback-empty {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.owner-page #calendar .calendar-fallback-item span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 /* Tablets benefit from a deliberately bounded work surface instead of the
    wide desktop canvas. This also keeps the branding preview and its controls
    aligned when Safari uses its larger form-control metrics. */
