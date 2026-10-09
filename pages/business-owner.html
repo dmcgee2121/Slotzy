@@ -25,6 +25,7 @@
         <a href="manage-barbers.html" class="link">Team</a>
         <a href="settings.html" class="link">Settings</a>
         <button id="logoutBtn" class="link logout-btn">Logout</button>
+        <span id="userBadge" class="user-badge hidden" aria-label="Signed-in owner account"></span>
       </nav>
     </div>
   </header>
@@ -321,6 +322,7 @@
   <div id="quickServiceModal" class="modal hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="quickServiceModalTitle" aria-describedby="quickServiceStatus">
     <div class="modal-panel">
       <h2 id="quickServiceModalTitle">Add Service</h2>
+      <p class="quick-service-help">Add a client-facing service. It is saved only after confirmation from your hosted shop data.</p>
       <label for="serviceNameQuick">Service Name</label>
       <input id="serviceNameQuick" type="text" />
 

@@ -246,6 +246,29 @@
   gap: 8px;
 }
 
+.owner-page .quick-service-help {
+  margin: -8px 0 4px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.owner-page #quickServiceModal .modal-panel {
+  width: min(94vw, 480px);
+  max-height: min(88vh, 620px);
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+}
+
+.owner-page #quickServiceModal .modal-panel h2 {
+  margin-bottom: 0;
+}
+
+.owner-page #quickServiceModal .modal-panel label {
+  font-weight: 700;
+}
+
 .owner-today-glance-card {
   display: grid;
   gap: 16px;
@@ -2305,6 +2328,34 @@
     grid-column: 1 / -1;
   }
 
+  .owner-dashboard-page .owner-dashboard-header-nav #userBadge {
+    grid-column: 1 / -1;
+    order: -1;
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--secondary);
+    color: var(--text);
+    font-size: 0.84rem;
+  }
+
+  .owner-dashboard-hero {
+    gap: 14px;
+  }
+
+  .owner-dashboard-hero .owner-hero-meta {
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .owner-dashboard-hero #quickAddServiceBtn {
+    flex: 1 1 180px;
+    min-height: 48px;
+  }
+
   .owner-section-grid,
   .owner-two-col,
   .availability-grid {
@@ -2355,6 +2406,35 @@
   .owner-page .owner-panel a.btn {
     width: 100%;
     text-align: center;
+  }
+
+  #owner-upcoming-section .availability-timeoff-item {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  #owner-upcoming-section .availability-timeoff-item > div {
+    min-width: 0;
+  }
+
+  #owner-upcoming-section .availability-timeoff-item .btn {
+    min-height: 46px;
+  }
+
+  #owner-upcoming-section #ownerUpcomingStatus:not(:empty) {
+    margin: 0;
+  }
+
+  .owner-page #quickServiceModal .session-modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .owner-page #quickServiceModal .session-modal-actions .btn {
+    width: 100%;
+    min-height: 46px;
+    margin: 0;
   }
 
   .owner-page .owner-service-actions .btn,
@@ -2898,10 +2978,10 @@
 
   .owner-page .owner-dashboard-header-nav #userBadge {
     grid-column: 1 / -1;
-    justify-self: start;
-    width: auto;
-    min-height: 28px;
-    padding: 2px 0;
+    justify-self: stretch;
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 10px;
   }
 
   .owner-page .owner-layout {

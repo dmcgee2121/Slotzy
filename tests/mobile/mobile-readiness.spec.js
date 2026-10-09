@@ -1388,7 +1388,7 @@ test("logged-in barber dashboard weekly hours use the mobile card layout", async
   await page.locator("#submit-btn").click();
 
   await expect(page).toHaveURL(/\/pages\/business-owner\.html$/);
-  await expect(page.locator("#userBadge")).toHaveCount(0);
+  await expect(page.locator("#userBadge")).toContainText("Welcome");
   await expect(page.locator("#ownerHeroTitle")).toContainText("Welcome");
   const dashboardJumpNav = page.locator(".owner-dashboard-jump-nav");
   await expect(dashboardJumpNav).toBeVisible();
@@ -1464,7 +1464,7 @@ test("owner dashboard navigation and calendar toolbar stay polished on mobile", 
 
   await page.goto("/pages/business-owner.html");
   await expect(page.locator("#pilotBookingLink")).toBeVisible();
-  await expect(page.locator(".owner-dashboard-header-nav #userBadge")).toHaveCount(0);
+  await expect(page.locator(".owner-dashboard-header-nav #userBadge")).toContainText("Welcome");
   await expect(page.locator("#ownerHeroTitle")).toContainText("Welcome");
 
   const dashboardNav = page.locator(".owner-dashboard-header-nav");
@@ -1478,6 +1478,9 @@ test("owner dashboard navigation and calendar toolbar stay polished on mobile", 
   }));
   expect(dashboardNavBounds.scrollWidth, "dashboard navigation must not scroll horizontally").toBeLessThanOrEqual(dashboardNavBounds.clientWidth + 1);
   await expectNoPageOverflow(page, "owner dashboard header navigation");
+
+  await expect(page.locator("#ownerUpcomingStatus")).toHaveAttribute("role", "status");
+  await expect(page.locator("#quickServiceStatus")).toHaveAttribute("role", "status");
 
   const dashboardQuickActions = page.locator(".owner-dashboard-jump-nav");
   await expect(dashboardQuickActions).toBeVisible();
