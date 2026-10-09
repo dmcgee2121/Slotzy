@@ -51,7 +51,7 @@ import * as dataStore from "./dataStore.js";
       closeModal();
     });
 
-    function handleCreateService() {
+    async function handleCreateService() {
       clearStatus();
 
       const name = String(nameInput.value || "").trim();
@@ -84,7 +84,7 @@ import * as dataStore from "./dataStore.js";
       }
 
       const shopId = resolveCurrentShopId();
-      services.push({
+      const service = {
         id: makeServiceId(),
         name,
         title: name,
@@ -96,14 +96,25 @@ import * as dataStore from "./dataStore.js";
         shopId,
         barberUsername: currentUsername,
         ownerUsername: currentUsername,
-      });
-      saveServices(services);
+      };
 
-      setStatus("Service created successfully.", true);
-      window.showToast?.("Service added successfully.", "success");
-      window.setTimeout(() => {
-        closeModal();
-      }, 250);
+      const runtime = dataStore.getApiRuntimeState();
+      createBtn.disabled = true;
+      createBtn.textContent = "Saving…";
+      setStatus("Saving service…", true);
+      try {
+        await dataStore.createServiceAsync(service, { requireApi: runtime.apiEnabled });
+        setStatus("Service created successfully.", true);
+        window.showToast?.("Service added successfully.", "success");
+        window.setTimeout(() => {
+          closeModal();
+        }, 1000);
+      } catch {
+        setStatus("Could not save this service. Please try again.", false);
+      } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = "Create";
+      }
     }
 
     function openModal() {
@@ -142,10 +153,6 @@ import * as dataStore from "./dataStore.js";
 
   function loadServices() {
     return dataStore.getServices();
-  }
-
-  function saveServices(services) {
-    dataStore.saveServices(services);
   }
 
   function resolveCurrentShopId() {

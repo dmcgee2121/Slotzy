@@ -7,7 +7,23 @@ import * as dataStore from "./dataStore.js";
   const barberList = document.getElementById("barberList");
   const mainContainer = document.querySelector("main");
 
+  if (dataStore.getApiRuntimeState().apiEnabled) {
+    renderHostedPilotState();
+    return;
+  }
+
   init();
+
+  function renderHostedPilotState() {
+    if (!mainContainer) return;
+    mainContainer.innerHTML = `
+      <section class="card owner-panel" style="max-width: 560px; margin: 2rem auto; text-align: center;">
+        <h1>Provider management is not available in hosted beta</h1>
+        <p class="small">No provider changes were made. The provider created during setup remains the bookable provider for this pilot.</p>
+        <a href="business-owner.html" class="btn btn-primary">Return to Dashboard</a>
+      </section>
+    `;
+  }
 
   function init() {
     if (!isOwnerUser()) {

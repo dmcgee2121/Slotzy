@@ -4,6 +4,8 @@ import * as dataStore from "./dataStore.js";
   const BOOKING_SYNC_EVENT = dataStore.EVENTS?.BOOKINGS_UPDATED || "slotzy:bookings-updated";
   const BOOKINGS_STORAGE_KEY = dataStore.KEYS?.BOOKINGS || "Slotzy_bookings";
   const container = document.getElementById("owner-upcoming-list");
+  const statusEl = document.getElementById("ownerUpcomingStatus");
+  let cancelInFlight = false;
   if (!container) return;
 
   renderUpcoming();
@@ -90,22 +92,51 @@ import * as dataStore from "./dataStore.js";
     `;
   }
 
-  function handleActionClick(event) {
+  async function handleActionClick(event) {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     const action = target.getAttribute("data-action");
     if (action !== "cancel-owner-booking") return;
     const id = String(target.getAttribute("data-id") ?? "");
-    if (!id) return;
+    if (!id || cancelInFlight) return;
 
     if (!window.confirm("Cancel this booking?")) return;
+    const booking = dataStore.getBookings().find((entry) => String(entry?.id ?? "") === id);
+    if (!booking) {
+      setStatus("This appointment is no longer available. Refresh and try again.", false);
+      return;
+    }
 
-    const bookings = dataStore.getBookings().map((booking) => {
-      if (String(booking?.id ?? "") !== id) return booking;
-      return { ...booking, status: "cancelled" };
-    });
-    dataStore.saveBookings(bookings);
-    renderUpcoming();
+    cancelInFlight = true;
+    target.disabled = true;
+    target.textContent = "Cancelling…";
+    setStatus("Cancelling appointment…", true);
+    try {
+      const runtime = dataStore.getApiRuntimeState();
+      await dataStore.updateBookingAsync(id, { ...booking, status: "cancelled" }, {
+        fallbackOnError: false,
+        requireApi: runtime.apiEnabled,
+      });
+      setStatus("Appointment cancelled.", true);
+      renderUpcoming();
+    } catch {
+      setStatus("Could not cancel this appointment. It was not changed.", false);
+    } finally {
+      cancelInFlight = false;
+      if (target.isConnected) {
+        target.disabled = false;
+        target.textContent = "Cancel";
+      }
+    }
+  }
+
+  function setStatus(message, success) {
+    if (!statusEl) return;
+    statusEl.textContent = String(message ?? "");
+    statusEl.setAttribute("role", success ? "status" : "alert");
+    statusEl.setAttribute("aria-live", success ? "polite" : "assertive");
+    statusEl.classList.remove("status-success", "status-error");
+    statusEl.classList.add(success ? "status-success" : "status-error");
   }
 
   function handleBookingStorageSync(event) {

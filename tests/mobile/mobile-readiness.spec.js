@@ -1998,6 +1998,100 @@ test("hosted service write failure does not create local-only success", async ({
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_services") || "[]").length)).toBe(initialCount);
 });
 
+test("hosted dashboard quick add requires an authoritative service create", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const initialServices = seed.local.Slotzy_services.length;
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/services", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/business-owner.html");
+  await page.locator("#quickAddServiceBtn").click();
+  await page.locator("#serviceNameQuick").fill("Must Not Persist Quick");
+  await page.locator("#servicePriceQuick").fill("30");
+  await page.locator("#serviceDurationQuick").fill("30");
+  await page.locator("#createQuickServiceBtn").click();
+
+  await expect(page.locator("#quickServiceStatus")).toContainText("Could not save this service");
+  await expect(page.locator("#quickServiceModal")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_services") || "[]").length)).toBe(initialServices);
+});
+
+test("hosted dashboard quick add shows success only after the authoritative response", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  let postCount = 0;
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  await page.route("**/api/services", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ services: seed.local.Slotzy_services }) });
+      return;
+    }
+    postCount += 1;
+    const submitted = route.request().postDataJSON();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({ service: { ...submitted, id: "authoritative-quick-service" } }),
+    });
+  });
+
+  await page.goto("/pages/business-owner.html");
+  await page.locator("#quickAddServiceBtn").click();
+  await page.locator("#serviceNameQuick").fill("Authoritative Quick Service");
+  await page.locator("#servicePriceQuick").fill("30");
+  await page.locator("#serviceDurationQuick").fill("30");
+  await page.locator("#createQuickServiceBtn").click();
+
+  await expect(page.locator("#createQuickServiceBtn")).toHaveText("Saving…");
+  await expect(page.locator("#quickServiceStatus")).toContainText("Service created successfully");
+  expect(postCount).toBe(1);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_services") || "[]").some((service) => service?.id === "authoritative-quick-service"))).toBe(true);
+});
+
+test("hosted dashboard cancellation does not mutate local bookings after an API failure", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const start = new Date(Date.now() + (3 * 24 * 60 * 60 * 1000));
+  const end = new Date(start.getTime() + (30 * 60 * 1000));
+  seed.local.Slotzy_bookings = [{
+    id: "hosted-dashboard-cancel",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    serviceName: "E2E Mobile Cut",
+    clientName: "Synthetic Client",
+    clientContact: "555-010-0000",
+    status: "booked",
+    startISO: start.toISOString(),
+    endISO: end.toISOString(),
+  }];
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-token");
+  });
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.route("**/api/bookings/hosted-dashboard-cancel", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) });
+  });
+
+  await page.goto("/pages/business-owner.html");
+  await page.locator('[data-action="cancel-owner-booking"]').click();
+
+  await expect(page.locator("#ownerUpcomingStatus")).toContainText("Could not cancel this appointment");
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("Slotzy_bookings") || "[]")[0]?.status)).toBe("booked");
+  await expect(page.locator('[data-action="cancel-owner-booking"]')).toBeVisible();
+});
+
 test("hosted service create acknowledges one authoritative result without refresh", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   const serverServices = [...seed.local.Slotzy_services];
