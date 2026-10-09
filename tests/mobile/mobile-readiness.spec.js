@@ -1495,6 +1495,35 @@ test("manage appointments shows a mobile-safe schedule when the calendar CDN is 
   await expectNoPageOverflow(page, "appointment calendar fallback");
 });
 
+test("manage appointments replaces an empty FullCalendar shell with the mobile schedule", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(10, 30, 0, 0);
+  seed.local.Slotzy_bookings = [{
+    id: "booking_mobile_empty_calendar",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    serviceName: "E2E Mobile Cut",
+    clientName: "Empty Calendar Client",
+    startISO: tomorrow.toISOString(),
+    endISO: new Date(tomorrow.getTime() + 30 * 60_000).toISOString(),
+    durationMinutes: 30,
+    status: "booked",
+  }];
+  await seedStorage(page, seed, { includeSession: true });
+  await page.route("**/fullcalendar@6.1.8/index.global.min.js", (route) => route.fulfill({
+    contentType: "application/javascript",
+    body: "window.FullCalendar={Calendar:class{constructor(el){this.el=el}getDate(){return new Date()}render(){this.el.innerHTML='<div class=\"fc\"></div>'}destroy(){this.el.innerHTML=''}updateSize(){}}};",
+  }));
+
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#calendar .calendar-fallback")).toContainText("Empty Calendar Client");
+  await expect(page.locator("#calendar > .fc")).toHaveCount(0);
+  await expectNoPageOverflow(page, "empty calendar fallback");
+});
+
 test("owner appointment confirmation refreshes the visible appointment without a page reload", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   const tomorrow = new Date();
@@ -1526,6 +1555,53 @@ test("owner appointment confirmation refreshes the visible appointment without a
   await expect(page.locator("#appointment-status")).toContainText("Appointment confirmed.");
   await expect(card).toContainText("Confirmed");
   await expect(card.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
+});
+
+test("barber can authoritatively confirm an assigned appointment", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true, role: "barber" });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(12, 0, 0, 0);
+  const booking = {
+    id: "booking_mobile_barber_confirm",
+    shopId: SHOP_ID,
+    ownerUsername: BARBER_USERNAME,
+    barberUsername: BARBER_USERNAME,
+    serviceName: "Barber Mobile Cut",
+    clientName: "Barber Confirm Client",
+    startISO: tomorrow.toISOString(),
+    endISO: new Date(tomorrow.getTime() + 30 * 60_000).toISOString(),
+    durationMinutes: 30,
+    status: "booked",
+  };
+  let persistedStatus = booking.status;
+  let patchPayload = null;
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-mobile-barber-token");
+  });
+  await installCalendarToolbarStub(page);
+  await page.route("**/api/bookings**", async (route) => {
+    const request = route.request();
+    if (request.method() === "GET") {
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ bookings: [{ ...booking, status: persistedStatus }] }) });
+    }
+    if (request.method() === "PATCH") {
+      patchPayload = request.postDataJSON();
+      persistedStatus = patchPayload.status;
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ booking: { ...booking, status: persistedStatus } }) });
+    }
+    return route.continue();
+  });
+
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const card = page.locator(".appointment-row").filter({ hasText: "Barber Confirm Client" });
+  await card.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(page.locator("#appointment-status")).toContainText("Appointment confirmed.");
+  await expect(card).toContainText("Confirmed");
+  expect(patchPayload).toEqual({ status: "confirmed" });
 });
 
 test("owner dashboard navigation and calendar toolbar stay polished on mobile", async ({ page }) => {

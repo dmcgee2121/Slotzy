@@ -143,6 +143,33 @@ test("JSON protected shop, availability, and booking projections preserve owner 
   assert.equal(await store.listBookingsForAuthenticatedUser({ role: "customer" }), null);
 });
 
+test("JSON booking status updates persist narrowly without replacing booking data", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [], shops: [], services: [], availability: {}, emails: [],
+    bookings: [{
+      id: "booking_status_update",
+      shopId: "shop_one",
+      barberUsername: "barber",
+      clientName: "Preserved Client",
+      status: "booked",
+    }],
+  });
+
+  const saved = await store.updateBookingStatus("booking_status_update", "confirmed", "2032-01-01T00:00:00.000Z");
+  assert.equal(saved.status, "confirmed");
+  assert.equal(saved.clientName, "Preserved Client");
+  assert.deepEqual((await store.readStore()).bookings[0], {
+    id: "booking_status_update",
+    shopId: "shop_one",
+    barberUsername: "barber",
+    clientName: "Preserved Client",
+    status: "confirmed",
+    updatedAtISO: "2032-01-01T00:00:00.000Z",
+  });
+  assert.equal(await store.updateBookingStatus("missing", "confirmed"), null);
+});
+
 test("Postgres snapshots map browser branding aliases to RPC logo and cover fields", () => {
   const snapshot = normalizePostgresSnapshot({
     users: [], services: [], availability: {}, bookings: [], emails: [],

@@ -68,6 +68,20 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     await fs.writeFile(filePath, JSON.stringify(normalized, null, 2), "utf-8");
   }
 
+  async function updateBookingStatus(bookingId, status, updatedAtISO) {
+    const store = await readStore();
+    const key = normalizedText(bookingId);
+    const index = store.bookings.findIndex((booking) => normalizedText(booking?.id) === key);
+    if (index < 0) return null;
+    store.bookings[index] = {
+      ...store.bookings[index],
+      status: normalizedText(status).toLowerCase(),
+      updatedAtISO: normalizedText(updatedAtISO) || new Date().toISOString(),
+    };
+    await writeStore(store);
+    return store.bookings[index];
+  }
+
   async function writeUser(user) {
     const store = await readStore();
     const key = String(user?.username ?? "").trim().toLowerCase();
@@ -346,6 +360,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     writeService,
     writeAvailability,
     writeBooking,
+    updateBookingStatus,
     cancelBookingByManageTokenHash,
     appendOutboxEmail,
     listOutboxEmails,
@@ -370,6 +385,7 @@ export const writeShop = defaultJsonStore.writeShop;
 export const writeService = defaultJsonStore.writeService;
 export const writeAvailability = defaultJsonStore.writeAvailability;
 export const writeBooking = defaultJsonStore.writeBooking;
+export const updateBookingStatus = defaultJsonStore.updateBookingStatus;
 export const cancelBookingByManageTokenHash = defaultJsonStore.cancelBookingByManageTokenHash;
 export const appendOutboxEmail = defaultJsonStore.appendOutboxEmail;
 export const listOutboxEmails = defaultJsonStore.listOutboxEmails;

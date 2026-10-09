@@ -1696,7 +1696,23 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     // containing card has its final width.
     window.requestAnimationFrame(() => {
       calendarInstance?.updateSize?.();
+      window.requestAnimationFrame(() => {
+        if (calendarHasVisibleGrid(calendarEl)) return;
+        console.warn("[Slotzy:owner-appointments] Calendar rendered without a visible grid; using fallback.");
+        calendarInstance?.destroy?.();
+        calendarInstance = null;
+        renderCalendarFallback(bookings);
+      });
     });
+  }
+
+  function calendarHasVisibleGrid(calendarEl) {
+    const grid = calendarEl?.querySelector(".fc-scrollgrid, .fc-view-harness, .fc-daygrid-body");
+    const dayCell = calendarEl?.querySelector(".fc-daygrid-day");
+    if (!grid || !dayCell) return false;
+    const gridBox = grid.getBoundingClientRect();
+    const dayBox = dayCell.getBoundingClientRect();
+    return gridBox.width > 0 && gridBox.height > 40 && dayBox.width > 0 && dayBox.height > 0;
   }
 
   function renderCalendarFallback(bookings) {
@@ -2884,7 +2900,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
 
     try {
       const runtime = dataStore.getApiRuntimeState();
-      const savedBooking = await dataStore.updateBookingAsync(targetId, nextBooking, {
+      const savedBooking = await dataStore.updateBookingAsync(targetId, { status: nextStatus }, {
         fallbackOnError: false,
         requireApi: runtime.apiEnabled,
       });
@@ -2894,7 +2910,16 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         booking: savedBooking,
       };
     } catch (error) {
-      console.error("[Slotzy:owner-appointments] Could not save appointment status.", error);
+      console.error("[Slotzy:owner-appointments] Could not save appointment status.", {
+        action: nextStatus,
+        role: currentRole,
+        apiEnabled: dataStore.getApiRuntimeState().apiEnabled,
+        errorName: String(error?.name ?? "Error"),
+        errorCode: String(error?.code ?? ""),
+        httpStatus: Number(error?.httpStatus ?? 0),
+        endpointPath: String(error?.endpointPath ?? ""),
+        errorMessage: String(error?.message ?? "Appointment update failed").slice(0, 200),
+      });
       return { ok: false, previousBooking, booking: null };
     }
   }

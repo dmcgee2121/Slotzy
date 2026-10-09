@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
@@ -2647,6 +2647,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
 });
 
 app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req, res) => {
+  let updateStage = "validate";
   try {
     const db = req.db;
     const user = req.user;
@@ -2760,8 +2761,16 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
     next.shopId = shopId;
     next.updatedAtISO = new Date().toISOString();
 
-    db.bookings[index] = next;
-    await writeStore(db);
+    const requestKeys = Object.keys(req.body || {});
+    const isStatusOnlyUpdate = requestKeys.length === 1 && requestKeys[0] === "status";
+    updateStage = isStatusOnlyUpdate ? "persist status" : "persist booking";
+    if (isStatusOnlyUpdate) {
+      const persisted = await updateBookingStatus(current.id, next.status, next.updatedAtISO);
+      if (!persisted) return res.status(404).json({ error: "booking not found" });
+    } else {
+      db.bookings[index] = next;
+      await writeStore(db);
+    }
 
     const currentStatus = normalizeBookingStatus(current?.status);
     const nextStatus = normalizeBookingStatus(next?.status);
@@ -2780,8 +2789,15 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
     }
 
     return res.json({ booking: next });
-  } catch {
-    return res.status(500).json({ error: "internal server error" });
+  } catch (error) {
+    console.error("[Slotzy:bookings] PATCH /api/bookings/:bookingId failed", {
+      storage: STORAGE_ADAPTER,
+      operation: updateStage,
+      statusCode: 500,
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+    });
+    return res.status(500).json({ error: "appointment update could not be saved", code: "booking_update_failed" });
   }
 });
 
