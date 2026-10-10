@@ -2937,6 +2937,17 @@
   overflow-wrap: anywhere;
 }
 
+.owner-page #calendar .calendar-fallback-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.owner-page #calendar .calendar-fallback-item-head .badge {
+  flex: 0 0 auto;
+}
+
 /* Tablets benefit from a deliberately bounded work surface instead of the
    wide desktop canvas. This also keeps the branding preview and its controls
    aligned when Safari uses its larger form-control metrics. */

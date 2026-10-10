@@ -777,7 +777,14 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     const bookings = loadOwnerBookings();
     clientNoShowCountByKey = buildClientNoShowCountMap(bookings);
     syncFilterButtons();
-    if (window.FullCalendar) {
+    if (shouldUseMobileCalendarList()) {
+      if (calendarInstance) {
+        calendarInstance.destroy();
+        calendarInstance = null;
+      }
+      renderSummary(bookings, new Date());
+      renderCalendarFallback(bookings, { intentionalMobileView: true });
+    } else if (window.FullCalendar) {
       try {
         renderCalendar(bookings);
       } catch (error) {
@@ -1610,7 +1617,6 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   function renderCalendar(bookings) {
     const calendarEl = document.getElementById("calendar");
     if (!calendarEl || !window.FullCalendar) return;
-    const compactCalendar = window.matchMedia?.("(max-width: 680px)")?.matches === true;
 
     bookedCountByDay = buildBookedCountByDay(bookings);
     bindCalendarHostEventsOnce(calendarEl);
@@ -1643,10 +1649,8 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     calendarInstance = new window.FullCalendar.Calendar(calendarEl, {
       initialView: "dayGridMonth",
       initialDate,
-      // An auto-height month grid can collapse to the toolbar on a narrow
-      // layout before FullCalendar has measured its containing card.
-      height: compactCalendar ? 390 : "auto",
-      dayMaxEventRows: compactCalendar ? 2 : true,
+      height: "auto",
+      dayMaxEventRows: true,
       headerToolbar: {
         left: "prev,next",
         center: "title",
@@ -1706,6 +1710,10 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     });
   }
 
+  function shouldUseMobileCalendarList() {
+    return window.matchMedia?.("(max-width: 680px)")?.matches === true;
+  }
+
   function calendarHasVisibleGrid(calendarEl) {
     const grid = calendarEl?.querySelector(".fc-scrollgrid, .fc-view-harness, .fc-daygrid-body");
     const dayCell = calendarEl?.querySelector(".fc-daygrid-day");
@@ -1715,7 +1723,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     return gridBox.width > 0 && gridBox.height > 40 && dayBox.width > 0 && dayBox.height > 0;
   }
 
-  function renderCalendarFallback(bookings) {
+  function renderCalendarFallback(bookings, { intentionalMobileView = false } = {}) {
     const calendarEl = document.getElementById("calendar");
     if (!calendarEl) return;
 
@@ -1731,16 +1739,24 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     const rows = upcoming.length
       ? upcoming.map((booking) => `
           <li class="calendar-fallback-item">
-            <strong>${escapeHtml(formatDateFriendly(booking.start))}</strong>
-            <span>${escapeHtml(formatTimeLabel(booking.start))} · ${escapeHtml(booking.clientName)} · ${escapeHtml(booking.serviceName)}</span>
+            <div class="calendar-fallback-item-head">
+              <strong>${escapeHtml(formatDateFriendly(booking.start))}</strong>
+              <span class="badge ${escapeHtml(getStatusBadgeClass(booking.status))}" aria-label="${escapeHtml(`Status: ${formatStatusLabel(booking.status)}`)}">${escapeHtml(formatStatusLabel(booking.status))}</span>
+            </div>
+            <span>${escapeHtml(formatTimeLabel(booking.start))}</span>
+            <span>${escapeHtml(booking.clientName)} · ${escapeHtml(booking.serviceName)}</span>
           </li>
         `).join("")
       : '<li class="calendar-fallback-empty">No upcoming appointments.</li>';
 
+    const helperText = intentionalMobileView
+      ? "A compact schedule for your phone. Use the appointment list below for actions."
+      : "Calendar view is unavailable right now. Your appointment list is still up to date.";
+
     calendarEl.innerHTML = `
       <div class="calendar-fallback" role="status" aria-live="polite">
         <p class="calendar-fallback-title">Upcoming appointments</p>
-        <p class="small">Calendar view is unavailable right now. Your appointment list is still up to date.</p>
+        <p class="small">${escapeHtml(helperText)}</p>
         <ul>${rows}</ul>
       </div>
     `;

@@ -177,7 +177,7 @@ async function expectReadableStatus(page, selector) {
 async function installCalendarToolbarStub(page) {
   await page.route("**/fullcalendar@6.1.8/index.global.min.js", (route) => route.fulfill({
     contentType: "application/javascript",
-    body: `window.FullCalendar={Calendar:class{constructor(el,options){this.el=el;this.options=options;this.date=new Date(options.initialDate||Date.now())}getDate(){return this.date}destroy(){this.el.innerHTML=''}render(){const update=()=>{const title=this.date.toLocaleString(undefined,{month:'long',year:'numeric'});const cells=Array.from({length:7},(_,i)=>'<td class="fc-daygrid-day" data-ymd="2026-10-0'+(i+1)+'"><div class="fc-daygrid-day-frame"><div class="fc-daygrid-day-top">'+(i+1)+'</div></div></td>').join('');this.el.innerHTML='<div class="fc"><div class="fc-header-toolbar"><div class="fc-toolbar-chunk"><button type="button" class="fc-prev-button">Previous</button><button type="button" class="fc-next-button">Next</button></div><div class="fc-toolbar-chunk"><h2 class="fc-toolbar-title">'+title+'</h2></div><div class="fc-toolbar-chunk"><button type="button" class="fc-today-button">Today</button></div></div><table class="fc-scrollgrid"><tbody><tr>'+cells+'</tr></tbody></table></div>';this.el.querySelector('.fc-prev-button').onclick=()=>{this.date.setMonth(this.date.getMonth()-1);update()};this.el.querySelector('.fc-next-button').onclick=()=>{this.date.setMonth(this.date.getMonth()+1);update()};this.el.querySelector('.fc-today-button').onclick=()=>{this.date=new Date();update()};this.options.datesSet&&this.options.datesSet({view:{currentStart:new Date(this.date.getFullYear(),this.date.getMonth(),1)}})};update()}}};`,
+    body: `window.FullCalendar={Calendar:class{constructor(el,options){this.el=el;this.options=options;this.date=new Date(options.initialDate||Date.now())}getDate(){return this.date}destroy(){this.el.innerHTML=''}render(){const update=()=>{const title=this.date.toLocaleString(undefined,{month:'long',year:'numeric'});const cells=Array.from({length:7},(_,i)=>'<td class="fc-daygrid-day" style="height:120px" data-ymd="2026-10-0'+(i+1)+'"><div class="fc-daygrid-day-frame"><div class="fc-daygrid-day-top">'+(i+1)+'</div></div></td>').join('');this.el.innerHTML='<div class="fc"><div class="fc-header-toolbar"><div class="fc-toolbar-chunk"><button type="button" class="fc-prev-button">Previous</button><button type="button" class="fc-next-button">Next</button></div><div class="fc-toolbar-chunk"><h2 class="fc-toolbar-title">'+title+'</h2></div><div class="fc-toolbar-chunk"><button type="button" class="fc-today-button">Today</button></div></div><table class="fc-scrollgrid" style="height:160px"><tbody><tr>'+cells+'</tr></tbody></table></div>';this.el.querySelector('.fc-prev-button').onclick=()=>{this.date.setMonth(this.date.getMonth()-1);update()};this.el.querySelector('.fc-next-button').onclick=()=>{this.date.setMonth(this.date.getMonth()+1);update()};this.el.querySelector('.fc-today-button').onclick=()=>{this.date=new Date();update()};this.options.datesSet&&this.options.datesSet({view:{currentStart:new Date(this.date.getFullYear(),this.date.getMonth(),1)}})};update()}}};`,
   }));
   await page.route("**/fullcalendar@6.1.8/index.global.min.css", (route) => route.fulfill({ contentType: "text/css", body: "" }));
 }
@@ -1463,7 +1463,7 @@ test("owner weekly hours validation, save state, refresh, and booking times stay
   await expectNoPageOverflow(page, "public booking with saved weekly hours");
 });
 
-test("manage appointments shows a mobile-safe schedule when the calendar CDN is unavailable", async ({ page }) => {
+test("manage appointments intentionally uses the compact schedule at phone widths", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1484,13 +1484,21 @@ test("manage appointments shows a mobile-safe schedule when the calendar CDN is 
     status: "booked",
   }];
   await seedStorage(page, seed, { includeSession: true });
-  await page.route("**/fullcalendar@6.1.8/index.global.min.js", (route) => route.abort("failed"));
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.route("**/fullcalendar@6.1.8/index.global.min.js", (route) => route.fulfill({
+    contentType: "application/javascript",
+    body: "window.__calendarConstructed=0;window.FullCalendar={Calendar:class{constructor(){window.__calendarConstructed+=1}}};",
+  }));
 
   await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
   const fallback = page.locator("#calendar .calendar-fallback");
   await expect(fallback).toBeVisible();
   await expect(fallback).toContainText("Upcoming appointments");
   await expect(fallback).toContainText("Calendar Fallback Client");
+  await expect(fallback).toContainText("E2E Mobile Cut");
+  await expect(fallback.getByText("Booked", { exact: true })).toBeVisible();
+  await expect(page.locator("#calendar .fc")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__calendarConstructed)).toBe(0);
   await expect(page.locator("#appointment-status")).not.toHaveText("Loading appointments...");
   await expectNoPageOverflow(page, "appointment calendar fallback");
 });
@@ -1604,7 +1612,7 @@ test("barber can authoritatively confirm an assigned appointment", async ({ page
   expect(patchPayload).toEqual({ status: "confirmed" });
 });
 
-test("owner dashboard navigation and calendar toolbar stay polished on mobile", async ({ page }) => {
+test("owner navigation stays polished on mobile and the calendar grid remains available when wide", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await installCalendarToolbarStub(page);
 
@@ -1639,51 +1647,24 @@ test("owner dashboard navigation and calendar toolbar stay polished on mobile", 
   await expectControlFits(page, ".owner-dashboard-section-action");
   await expectNoPageOverflow(page, "owner dashboard quick-action cards");
 
+  await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
   const calendar = page.locator("#calendar");
   await expect(calendar.locator(".fc-header-toolbar")).toBeVisible();
   await expect(calendar.locator(".fc-daygrid-day")).toHaveCount(7);
+  await expect(calendar.locator(".calendar-fallback")).toHaveCount(0);
   const calendarGrid = await calendar.locator(".fc-scrollgrid").evaluate((grid) => ({
     height: grid.getBoundingClientRect().height,
     clientWidth: grid.clientWidth,
     scrollWidth: grid.scrollWidth,
   }));
-  expect(calendarGrid.height, "mobile calendar must render a readable grid below its controls").toBeGreaterThan(100);
-  expect(calendarGrid.scrollWidth, "mobile calendar grid must not overflow horizontally").toBeLessThanOrEqual(calendarGrid.clientWidth + 1);
-  for (const selector of [".fc-prev-button", ".fc-next-button", ".fc-today-button"]) {
-    await expectControlFits(page, calendar.locator(selector));
-  }
-
-  const toolbar = await calendar.locator(".fc-header-toolbar").evaluate((element) => {
-    const calendarCard = element.closest(".appointments-calendar-panel");
-    const monthLabel = element.querySelector(".fc-toolbar-title");
-    const bounds = (node) => {
-      const box = node.getBoundingClientRect();
-      return { left: box.left, right: box.right, width: box.width };
-    };
-    return {
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-      calendarClientWidth: element.parentElement.clientWidth,
-      calendarScrollWidth: element.parentElement.scrollWidth,
-      cardClientWidth: calendarCard.clientWidth,
-      cardScrollWidth: calendarCard.scrollWidth,
-      calendar: bounds(element.parentElement),
-      monthLabel: bounds(monthLabel),
-      gridTemplateAreas: getComputedStyle(element).gridTemplateAreas,
-    };
-  });
-  expect(toolbar.scrollWidth, "calendar controls must not scroll horizontally").toBeLessThanOrEqual(toolbar.clientWidth + 1);
-  expect(toolbar.calendarScrollWidth, "calendar control container must not scroll horizontally").toBeLessThanOrEqual(toolbar.calendarClientWidth + 1);
-  expect(toolbar.cardScrollWidth, "calendar card must not scroll horizontally").toBeLessThanOrEqual(toolbar.cardClientWidth + 1);
-  expect(toolbar.monthLabel.left, "calendar month label needs comfortable left padding").toBeGreaterThanOrEqual(toolbar.calendar.left + 8);
-  expect(toolbar.monthLabel.right, "calendar month label must not be clipped").toBeLessThanOrEqual(toolbar.calendar.right - 8);
-  expect(toolbar.gridTemplateAreas).toContain("today today");
+  expect(calendarGrid.height, "wide calendar must render a readable grid below its controls").toBeGreaterThan(100);
+  expect(calendarGrid.scrollWidth, "wide calendar grid must remain contained").toBeLessThanOrEqual(calendarGrid.clientWidth + 1);
 
   await calendar.locator(".fc-prev-button").click();
   await calendar.locator(".fc-next-button").click();
   await calendar.locator(".fc-today-button").click();
-  await expectNoPageOverflow(page, "owner appointments calendar controls");
+  await expectNoPageOverflow(page, "wide owner appointments calendar controls");
 });
 
 test("owner critical controls remain usable across mobile pages", async ({ page }) => {
