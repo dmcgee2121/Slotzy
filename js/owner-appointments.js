@@ -115,11 +115,18 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       statusMessageEl.classList.remove("status-success", "status-error");
     }
     try {
-      await dataStore.getBookingsAsync({ fallbackOnError: false });
+      await loadAppointmentsWithRetry();
       if (statusMessageEl?.textContent === "Loading appointments...") {
         statusMessageEl.textContent = "";
       }
-    } catch {
+    } catch (error) {
+      console.error("[Slotzy:owner-appointments] Could not refresh appointments.", {
+        role: currentRole,
+        apiEnabled: dataStore.getApiRuntimeState().apiEnabled,
+        errorCode: String(error?.code ?? ""),
+        httpStatus: Number(error?.httpStatus ?? 0),
+        endpointPath: String(error?.endpointPath ?? ""),
+      });
       setInlineStatus("Could not refresh appointments. Try again.", false);
       appointmentRetryActionsEl?.classList.remove("hidden");
     } finally {
@@ -129,6 +136,23 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       }
     }
     renderAll();
+  }
+
+  async function loadAppointmentsWithRetry() {
+    try {
+      return await dataStore.getBookingsAsync({ fallbackOnError: false });
+    } catch (error) {
+      const status = Number(error?.httpStatus ?? 0);
+      const retryable = status === 0 || status === 429 || status >= 500;
+      if (!retryable) throw error;
+      console.warn("[Slotzy:owner-appointments] Appointment refresh failed once; retrying.", {
+        errorCode: String(error?.code ?? ""),
+        httpStatus: status,
+        endpointPath: String(error?.endpointPath ?? ""),
+      });
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      return dataStore.getBookingsAsync({ fallbackOnError: false });
+    }
   }
 
   function isStaff(user) {

@@ -1612,6 +1612,75 @@ test("barber can authoritatively confirm an assigned appointment", async ({ page
   expect(patchPayload).toEqual({ status: "confirmed" });
 });
 
+test("desktop selected-day confirmation survives a transient refresh failure", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(13, 0, 0, 0);
+  const booking = {
+    id: "booking_desktop_selected_day_confirm",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    serviceName: "Desktop Selected Day Cut",
+    clientName: "Desktop Confirm Client",
+    startISO: tomorrow.toISOString(),
+    endISO: new Date(tomorrow.getTime() + 30 * 60_000).toISOString(),
+    durationMinutes: 30,
+    status: "booked",
+  };
+  let getRequestCount = 0;
+  let persistedStatus = booking.status;
+  let patchPayload = null;
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-desktop-owner-token");
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await installCalendarToolbarStub(page);
+  await page.route("**/api/bookings**", async (route) => {
+    const request = route.request();
+    if (request.method() === "GET") {
+      getRequestCount += 1;
+      if (getRequestCount === 1) {
+        return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "synthetic transient refresh failure" }) });
+      }
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ bookings: [{ ...booking, status: persistedStatus }] }) });
+    }
+    if (request.method() === "PATCH") {
+      patchPayload = request.postDataJSON();
+      persistedStatus = patchPayload.status;
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ booking: { ...booking, status: persistedStatus } }) });
+    }
+    return route.continue();
+  });
+
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+  await expect.poll(() => getRequestCount).toBe(2);
+  await expect(page.locator("#appointment-status")).not.toContainText("Could not refresh appointments");
+
+  const selectedYmd = toYmd(tomorrow);
+  const dayCell = page.locator("#calendar .fc-daygrid-day").first();
+  await dayCell.evaluate((element, ymd) => {
+    element.setAttribute("data-ymd", ymd);
+    element.setAttribute("tabindex", "0");
+  }, selectedYmd);
+  await dayCell.focus();
+  await dayCell.press("Enter");
+  await expect(page.locator("#active-day-filter")).toContainText("Showing appointments for");
+
+  const card = page.locator(".appointment-row").filter({ hasText: "Desktop Confirm Client" });
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(page.locator("#appointment-status")).toContainText("Appointment confirmed.");
+  await expect(page.locator("#appointment-status")).not.toContainText("Could not refresh appointments");
+  await expect(card).toContainText("Confirmed");
+  await expect(page.locator("#active-day-filter")).toContainText("Showing appointments for");
+  expect(patchPayload).toEqual({ status: "confirmed" });
+  expect(getRequestCount, "confirm should update from the PATCH response without a post-confirm GET").toBe(2);
+});
+
 test("owner navigation stays polished on mobile and the calendar grid remains available when wide", async ({ page }) => {
   await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
   await installCalendarToolbarStub(page);
