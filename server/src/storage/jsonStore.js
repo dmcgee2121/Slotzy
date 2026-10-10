@@ -82,6 +82,21 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     return store.bookings[index];
   }
 
+  async function updateBookingSchedule(bookingId, startISO, endISO, updatedAtISO) {
+    const store = await readStore();
+    const key = normalizedText(bookingId);
+    const index = store.bookings.findIndex((booking) => normalizedText(booking?.id) === key);
+    if (index < 0) return null;
+    store.bookings[index] = {
+      ...store.bookings[index],
+      startISO,
+      endISO,
+      updatedAtISO: updatedAtISO || new Date().toISOString(),
+    };
+    await writeStore(store);
+    return store.bookings[index];
+  }
+
   async function writeUser(user) {
     const store = await readStore();
     const key = String(user?.username ?? "").trim().toLowerCase();
@@ -361,6 +376,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     writeAvailability,
     writeBooking,
     updateBookingStatus,
+    updateBookingSchedule,
     cancelBookingByManageTokenHash,
     appendOutboxEmail,
     listOutboxEmails,
@@ -386,6 +402,7 @@ export const writeService = defaultJsonStore.writeService;
 export const writeAvailability = defaultJsonStore.writeAvailability;
 export const writeBooking = defaultJsonStore.writeBooking;
 export const updateBookingStatus = defaultJsonStore.updateBookingStatus;
+export const updateBookingSchedule = defaultJsonStore.updateBookingSchedule;
 export const cancelBookingByManageTokenHash = defaultJsonStore.cancelBookingByManageTokenHash;
 export const appendOutboxEmail = defaultJsonStore.appendOutboxEmail;
 export const listOutboxEmails = defaultJsonStore.listOutboxEmails;

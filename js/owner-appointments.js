@@ -49,7 +49,6 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   const rescheduleEmptyEl = document.getElementById("reschedule-empty");
   const rescheduleStatusEl = document.getElementById("reschedule-status");
   const rescheduleConfirmBtn = document.getElementById("reschedule-confirm");
-  const rescheduleCancelBtn = document.getElementById("reschedule-cancel");
   const rescheduleCloseBtn = document.getElementById("reschedule-close");
   const walkinModalEl = document.getElementById("walkin-modal");
   const walkinBarberSelectEl = document.getElementById("walkinBarberSelect");
@@ -324,10 +323,6 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     if (rescheduleConfirmBtn && rescheduleConfirmBtn.dataset.bound !== "true") {
       rescheduleConfirmBtn.addEventListener("click", handleRescheduleConfirm);
       rescheduleConfirmBtn.dataset.bound = "true";
-    }
-    if (rescheduleCancelBtn && rescheduleCancelBtn.dataset.bound !== "true") {
-      rescheduleCancelBtn.addEventListener("click", closeRescheduleModal);
-      rescheduleCancelBtn.dataset.bound = "true";
     }
     if (rescheduleCloseBtn && rescheduleCloseBtn.dataset.bound !== "true") {
       rescheduleCloseBtn.addEventListener("click", closeRescheduleModal);
@@ -2563,23 +2558,31 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     }
 
     const previousBooking = { ...current };
-    bookings[index] = {
-      ...current,
+    const schedulePatch = {
       startISO: start.toISOString(),
       endISO: end.toISOString(),
-      startAtISO: start.toISOString(),
-      date: toYmdLocal(start),
-      time: minutesToHhmm(start.getHours() * 60 + start.getMinutes()),
-      durationMinutes,
     };
     try {
       const runtime = dataStore.getApiRuntimeState();
-      bookings[index] = await dataStore.updateBookingAsync(targetBookingId, bookings[index], {
+      const persisted = await dataStore.updateBookingAsync(targetBookingId, schedulePatch, {
         fallbackOnError: false,
         requireApi: runtime.apiEnabled,
       });
+      bookings[index] = {
+        ...current,
+        ...persisted,
+        startAtISO: persisted?.startISO ?? schedulePatch.startISO,
+        date: toYmdLocal(start),
+        time: minutesToHhmm(start.getHours() * 60 + start.getMinutes()),
+        durationMinutes,
+      };
     } catch (error) {
-      console.error("[Slotzy:owner-appointments] Could not save rescheduled appointment.", error);
+      console.error("[Slotzy:owner-appointments] Could not save rescheduled appointment.", {
+        bookingId: targetBookingId,
+        requestedStartISO,
+        apiEnabled: dataStore.getApiRuntimeState().apiEnabled,
+        error: String(error?.message ?? error),
+      });
       return { ok: false, error: "Could not save changes. Try again." };
     }
 

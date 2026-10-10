@@ -170,6 +170,34 @@ test("JSON booking status updates persist narrowly without replacing booking dat
   assert.equal(await store.updateBookingStatus("missing", "confirmed"), null);
 });
 
+test("JSON booking schedule updates persist narrowly without replacing booking data", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [], shops: [], services: [], availability: {}, emails: [],
+    bookings: [{
+      id: "booking_schedule_update",
+      shopId: "shop_one",
+      barberUsername: "barber",
+      clientName: "Preserved Client",
+      startISO: "2032-01-01T10:00:00.000Z",
+      endISO: "2032-01-01T10:30:00.000Z",
+      status: "confirmed",
+    }],
+  });
+
+  const saved = await store.updateBookingSchedule(
+    "booking_schedule_update",
+    "2032-01-02T11:00:00.000Z",
+    "2032-01-02T11:30:00.000Z",
+    "2032-01-01T00:00:00.000Z"
+  );
+  assert.equal(saved.clientName, "Preserved Client");
+  assert.equal(saved.startISO, "2032-01-02T11:00:00.000Z");
+  assert.equal(saved.endISO, "2032-01-02T11:30:00.000Z");
+  assert.equal((await store.readStore()).bookings[0].updatedAtISO, "2032-01-01T00:00:00.000Z");
+  assert.equal(await store.updateBookingSchedule("missing", "2032-01-02T11:00:00.000Z", "2032-01-02T11:30:00.000Z"), null);
+});
+
 test("Postgres snapshots map browser branding aliases to RPC logo and cover fields", () => {
   const snapshot = normalizePostgresSnapshot({
     users: [], services: [], availability: {}, bookings: [], emails: [],

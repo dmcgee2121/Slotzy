@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
@@ -1831,6 +1831,9 @@ app.post("/api/services", requireAuth, requireRouteStore, async (req, res) => {
     if (isCustomer(user)) {
       return res.status(403).json({ error: "customers cannot create services" });
     }
+    if (isBarber(user)) {
+      return res.status(403).json({ error: "services are managed by the shop owner during this beta" });
+    }
 
     const rawName = String(req.body?.name ?? req.body?.title ?? "").trim();
     if (!rawName) {
@@ -1929,6 +1932,9 @@ app.patch("/api/services/:serviceId", requireAuth, requireRouteStore, async (req
     const user = req.user;
     if (isCustomer(user)) {
       return res.status(403).json({ error: "customers cannot update services" });
+    }
+    if (isBarber(user)) {
+      return res.status(403).json({ error: "services are managed by the shop owner during this beta" });
     }
 
     const serviceId = normalizeUsername(req.params.serviceId);
@@ -2049,6 +2055,9 @@ app.delete("/api/services/:serviceId", requireAuth, requireRouteStore, async (re
     const user = req.user;
     if (isCustomer(user)) {
       return res.status(403).json({ error: "customers cannot delete services" });
+    }
+    if (isBarber(user)) {
+      return res.status(403).json({ error: "services are managed by the shop owner during this beta" });
     }
 
     const serviceId = normalizeUsername(req.params.serviceId);
@@ -2763,9 +2772,47 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
 
     const requestKeys = Object.keys(req.body || {});
     const isStatusOnlyUpdate = requestKeys.length === 1 && requestKeys[0] === "status";
-    updateStage = isStatusOnlyUpdate ? "persist status" : "persist booking";
+    const isScheduleOnlyUpdate = requestKeys.length === 2
+      && requestKeys.includes("startISO")
+      && requestKeys.includes("endISO");
+    const scheduleChanged = didBookingScheduleChange(current, next);
+    if (scheduleChanged) {
+      const requestedStart = new Date(String(next.startISO ?? ""));
+      const requestedEnd = new Date(String(next.endISO ?? ""));
+      if (!Number.isFinite(requestedStart.getTime()) || !Number.isFinite(requestedEnd.getTime()) || requestedStart >= requestedEnd) {
+        return res.status(400).json({ error: "a valid appointment time is required", code: "invalid_booking" });
+      }
+      if (!["booked", "confirmed"].includes(normalizeBookingStatus(next.status))) {
+        return res.status(409).json({ error: "only booked or confirmed appointments can be rescheduled", code: "invalid_status" });
+      }
+      if (requestedStart.getTime() <= Date.now()) {
+        return res.status(409).json({ error: "selected time is no longer available", code: "slot_unavailable" });
+      }
+      if (!isBookingAllowedByAvailability(normalizeAvailabilityEntry(db.availability?.[provider.username]), requestedStart, requestedEnd)) {
+        return res.status(409).json({ error: "selected time is no longer available", code: "slot_unavailable" });
+      }
+      const shop = findShopById(db, shopId);
+      const bufferMs = normalizeBookingPolicy(shop?.bookingPolicy).bufferMinutes * 60 * 1000;
+      const conflict = db.bookings.some((existing, existingIndex) => {
+        if (existingIndex === index || !["booked", "confirmed"].includes(normalizeBookingStatus(existing?.status))) return false;
+        if (!usernamesEqual(existing?.barberUsername ?? existing?.ownerUsername, provider.username)) return false;
+        const existingStart = getBookingStartDate(existing);
+        const existingEnd = getBookingEndDate(existing);
+        if (!existingStart || !existingEnd) return false;
+        return requestedStart.getTime() < existingEnd.getTime() + bufferMs
+          && requestedEnd.getTime() > existingStart.getTime() - bufferMs;
+      });
+      if (conflict) {
+        return res.status(409).json({ error: "selected time is no longer available", code: "booking_conflict" });
+      }
+    }
+
+    updateStage = isStatusOnlyUpdate ? "persist status" : isScheduleOnlyUpdate ? "persist schedule" : "persist booking";
     if (isStatusOnlyUpdate) {
       const persisted = await updateBookingStatus(current.id, next.status, next.updatedAtISO);
+      if (!persisted) return res.status(404).json({ error: "booking not found" });
+    } else if (isScheduleOnlyUpdate) {
+      const persisted = await updateBookingSchedule(current.id, next.startISO, next.endISO, next.updatedAtISO);
       if (!persisted) return res.status(404).json({ error: "booking not found" });
     } else {
       db.bookings[index] = next;
@@ -2797,6 +2844,11 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
       storageErrorCode: String(error?.code ?? ""),
       storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
     });
+    const code = String(error?.code ?? "").toLowerCase();
+    const message = String(error?.message ?? "").toLowerCase();
+    if (code.includes("23p01") || message.includes("booking_overlap") || message.includes("slot_unavailable")) {
+      return res.status(409).json({ error: "selected time is no longer available", code: "booking_conflict" });
+    }
     return res.status(500).json({ error: "appointment update could not be saved", code: "booking_update_failed" });
   }
 });

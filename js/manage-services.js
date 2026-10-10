@@ -27,6 +27,10 @@ import * as dataStore from "./dataStore.js";
       renderStaffOnlyState();
       return;
     }
+    if (currentRole === "barber") {
+      renderOwnerManagedState();
+      return;
+    }
 
     ensureAddErrorContainer();
     addServiceBtn?.addEventListener("click", handleAddService);
@@ -126,6 +130,23 @@ import * as dataStore from "./dataStore.js";
       addServiceInFlight = false;
       setAddButtonPending(false);
     }
+  }
+
+  function renderOwnerManagedState() {
+    const main = document.querySelector("main.owner-layout") || document.querySelector("main");
+    if (!main) return;
+    main.innerHTML = `
+      <section class="card owner-panel center-card section-stack">
+        <div class="card-head">
+          <h1>Services are managed by the shop owner</h1>
+          <p class="small">Services are managed by the shop owner during this beta. Your assigned appointments and availability remain available from the dashboard.</p>
+        </div>
+        <div class="cta-row">
+          <a href="manage-appointments.html" class="btn btn-primary">View My Appointments</a>
+          <a href="business-owner.html" class="btn btn-ghost">Go to Dashboard</a>
+        </div>
+      </section>
+    `;
   }
 
   async function handleDeleteService(serviceId) {

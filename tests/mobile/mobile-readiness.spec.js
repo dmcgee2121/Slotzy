@@ -1612,6 +1612,76 @@ test("barber can authoritatively confirm an assigned appointment", async ({ page
   expect(patchPayload).toEqual({ status: "confirmed" });
 });
 
+test("barber service editor clearly defers service management to the shop owner", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true, role: "barber" }), { includeSession: true });
+  await page.goto("/pages/manage-services.html");
+
+  await expect(page.getByRole("heading", { name: "Services are managed by the shop owner" })).toBeVisible();
+  await expect(page.getByText("Services are managed by the shop owner during this beta.")).toBeVisible();
+  await expect(page.locator("#serviceName, #servicePrice, #serviceDuration, #addServiceBtn, #serviceList")).toHaveCount(0);
+  await expectControlFits(page, page.getByRole("link", { name: "View My Appointments" }));
+  await expectNoPageOverflow(page, "barber owner-managed services state");
+});
+
+test("staff reschedule persists an authoritative schedule update without a page reload", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  const originalStart = new Date();
+  originalStart.setDate(originalStart.getDate() + 2);
+  originalStart.setHours(10, 0, 0, 0);
+  const booking = {
+    id: "booking_mobile_reschedule",
+    shopId: SHOP_ID,
+    ownerUsername: OWNER_USERNAME,
+    barberUsername: OWNER_USERNAME,
+    serviceName: "E2E Mobile Cut",
+    clientName: "Reschedule Client",
+    startISO: originalStart.toISOString(),
+    endISO: new Date(originalStart.getTime() + 30 * 60_000).toISOString(),
+    durationMinutes: 30,
+    status: "booked",
+  };
+  let persisted = { ...booking };
+  let patchPayload = null;
+  await seedStorage(page, seed, { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "synthetic-owner-reschedule-token");
+  });
+  await installCalendarToolbarStub(page);
+  await page.route("**/api/bookings**", async (route) => {
+    const request = route.request();
+    if (request.method() === "GET") {
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ bookings: [persisted] }) });
+    }
+    if (request.method() === "PATCH") {
+      patchPayload = request.postDataJSON();
+      persisted = { ...persisted, ...patchPayload };
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ booking: persisted }) });
+    }
+    return route.continue();
+  });
+
+  await page.goto("/pages/manage-appointments.html", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const card = page.locator(".appointment-row").filter({ hasText: "Reschedule Client" });
+  await card.getByRole("button", { name: "Reschedule", exact: true }).click();
+  await expect(page.locator("#reschedule-modal")).toBeVisible();
+  await expect(page.locator("#reschedule-modal").getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
+
+  const newDate = new Date(originalStart);
+  newDate.setDate(newDate.getDate() + 1);
+  await page.locator("#reschedule-date").fill(toYmd(newDate));
+  await page.locator("#reschedule-date").dispatchEvent("change");
+  await expect(page.locator("#reschedule-slot")).toBeEnabled();
+  await page.locator("#reschedule-slot").selectOption({ index: 1 });
+  await page.locator("#reschedule-confirm").click();
+
+  await expect(page.locator("#appointment-status")).toContainText("Appointment rescheduled.");
+  expect(patchPayload).toEqual({ startISO: expect.any(String), endISO: expect.any(String) });
+  expect(new Date(patchPayload.endISO).getTime() - new Date(patchPayload.startISO).getTime()).toBe(30 * 60_000);
+  await expect(card).toContainText("Reschedule Client");
+});
+
 test("desktop selected-day confirmation survives a transient refresh failure", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   const tomorrow = new Date();
