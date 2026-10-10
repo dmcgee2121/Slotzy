@@ -1831,17 +1831,10 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     .then((values) => values.map((value) => String(value).trim())).catch(() => []);
   const cancelEndpointPath = "/api/public/manage/cancel";
   const cancelNetwork = collectApiLifecycleDiagnostics(managePage, expectedApiOrigin, cancelEndpointPath);
-  // Register both waiters before either cancellation click. The first click
-  // replaces the card asynchronously, and hosted browsers can dispatch the
-  // confirm click's PATCH before a waiter registered after that render is
-  // fully subscribed. Keeping the click and observers in one Promise.all
-  // makes the captured response authoritative instead of producing a false
-  // "not initiated" failure from a listener race.
-  const cancelUpdateRequest = managePage.waitForRequest((request) => (
-    request.method() === "PATCH"
-    && new URL(request.url()).origin === expectedApiOrigin
-    && new URL(request.url()).pathname === cancelEndpointPath
-  ), { timeout: 5000 }).then((request) => ({ request }), (error) => ({ error }));
+  // A matching response proves the PATCH was sent. Do not also depend on a
+  // separate waitForRequest: Playwright's request waiter can time out even
+  // when the page-level lifecycle recorder has already observed both events.
+  // Attach the response waiter before either cancellation UI click.
   const cancelUpdateResponse = managePage.waitForResponse((response) => (
     response.request().method() === "PATCH"
     && new URL(response.url()).origin === expectedApiOrigin
@@ -1852,41 +1845,26 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   await expect(confirmCancelButton).toBeVisible();
   await Promise.all([
     confirmCancelButton.click(),
-    cancelUpdateRequest,
     cancelUpdateResponse,
   ]);
-  const cancelUpdateRequestResult = await cancelUpdateRequest;
-  if (cancelUpdateRequestResult.error) {
+  const cancelUpdateResult = await cancelUpdateResponse;
+  if (cancelUpdateResult.error) {
     const networkEvents = cancelNetwork.snapshot();
     cancelNetwork.stop();
-    throw new Error(`Cancel PATCH was not initiated: ${JSON.stringify({
+    const requestObserved = networkEvents.some((event) => event.type === "request" && event.method === "PATCH");
+    const responseObserved = networkEvents.some((event) => event.type === "response" && event.method === "PATCH");
+    throw new Error(`Cancel PATCH response was not captured: ${JSON.stringify({
       cancelButtonClicked: true,
       confirmCancelButtonClicked: true,
       cardBadgeBeforeConfirm,
       ...managedBookingIdShape,
       endpointPath: cancelEndpointPath,
       method: "PATCH",
-      runtime: await manageCancelRuntimeDiagnostics(managePage),
-      lifecycleEvents: networkEvents,
-      manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
-      browserErrors: manageBrowserErrors.map((message) => safeDiagnosticText(message)),
-      waitError: safeDiagnosticText(cancelUpdateRequestResult.error?.message),
-    })}`);
-  }
-  const cancelUpdateResult = await cancelUpdateResponse;
-  if (cancelUpdateResult.error) {
-    const networkEvents = cancelNetwork.snapshot();
-    cancelNetwork.stop();
-    throw new Error(`Cancel PATCH not observed: ${JSON.stringify({
-      cancelButtonClicked: true,
-      confirmCancelButtonClicked: true,
-      cardBadgeBeforeConfirm,
-      ...managedBookingIdShape,
-      endpointPath: "",
-      method: "",
       status: 0,
       responseKeys: [],
       bookingStatusAfterResponse: "",
+      requestObserved,
+      responseObserved,
       runtime: await manageCancelRuntimeDiagnostics(managePage),
       lifecycleEvents: networkEvents,
       manage: await managePageDiagnostics(managePage, identity.clientName, identity.serviceName, null),
