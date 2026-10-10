@@ -1087,6 +1087,24 @@
   overflow: hidden;
 }
 
+.availability-recurring-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.availability-recurring-list-head .small {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.availability-recurring-toggle {
+  width: 100%;
+  margin-top: 10px;
+}
+
 .availability-recurring-days {
   margin: 0;
   padding: 0;

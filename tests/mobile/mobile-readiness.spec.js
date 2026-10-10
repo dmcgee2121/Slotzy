@@ -2428,6 +2428,41 @@ test("owner can delete a lunch, break, or time-off block and the deletion persis
   await expect(page.getByText("No time off blocks")).toBeVisible();
 });
 
+test("recurring blocks use a compact expandable list on phones", async ({ page }) => {
+  const seed = buildSeed({ configuredOwner: true });
+  seed.local.Slotzy_availability[OWNER_USERNAME].recurringBlocks = [
+    { id: "recurring-mon", weekday: "mon", start: "12:00", end: "13:00", label: "Lunch", enabled: true },
+    { id: "recurring-tue", weekday: "tue", start: "12:00", end: "13:00", label: "Lunch", enabled: true },
+    { id: "recurring-wed", weekday: "wed", start: "15:00", end: "15:15", label: "Break", enabled: true },
+    { id: "recurring-thu", weekday: "thu", start: "12:00", end: "13:00", label: "Lunch", enabled: true },
+    { id: "recurring-fri", weekday: "fri", start: "15:00", end: "15:15", label: "Break", enabled: true },
+  ];
+  await seedStorage(page, seed, { includeSession: true });
+  await page.setViewportSize({ width: 393, height: 852 });
+
+  await page.goto("/pages/business-owner.html");
+  const list = page.locator("#availability-recurring-list");
+  await expect(list.locator(".availability-recurring-list-head")).toContainText("5 recurring blocks");
+  await expect(list.locator(".availability-recurring-item:visible")).toHaveCount(3);
+  await expect(list.locator('button[data-action="delete-recurring"]:visible')).toHaveCount(3);
+
+  const toggle = list.locator('button[data-action="toggle-recurring"]');
+  await expect(toggle).toHaveText("Show all (5)");
+  await toggle.click();
+  await expect(list.locator(".availability-recurring-item:visible")).toHaveCount(5);
+  await expect(list.locator('button[data-action="delete-recurring"]:visible')).toHaveCount(5);
+  await expect(list.locator('button[data-action="toggle-recurring"]')).toHaveText("Show fewer");
+
+  await list.locator('button[data-action="toggle-recurring"]').click();
+  await expect(list.locator(".availability-recurring-item:visible")).toHaveCount(3);
+  await expectNoPageOverflow(page, "compact recurring blocks list");
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.reload();
+  await expect(page.locator("#availability-recurring-list .availability-recurring-item:visible")).toHaveCount(5);
+  await expect(page.locator('#availability-recurring-list button[data-action="toggle-recurring"]')).toHaveCount(0);
+});
+
 test("owner recurring lunch persists, blocks public slots, and can be deleted", async ({ page }) => {
   const seed = buildSeed({ configuredOwner: true });
   const bookingDate = new Date();

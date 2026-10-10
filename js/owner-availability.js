@@ -13,6 +13,7 @@ const DAY_LABELS = {
 };
 
 let currentBarberUsername = "";
+let recurringBlocksExpanded = false;
 
 initOwnerAvailability();
 
@@ -362,11 +363,21 @@ function renderRecurringBlocks(blocks) {
     list.innerHTML = '<section class="empty-state"><span class="empty-state-icon" aria-hidden="true">S</span><h3>No recurring blocks</h3><p>Add a weekly lunch, break, or unavailable period.</p></section>';
     return;
   }
-  list.innerHTML = `<ul class="availability-timeoff-items">${blocks.map((block) => `
-    <li class="availability-timeoff-item">
+  const compactList = window.matchMedia?.("(max-width: 680px)")?.matches === true;
+  const collapsedCount = compactList && blocks.length > 3 ? blocks.length - 3 : 0;
+  const summaryLabel = `${blocks.length} recurring block${blocks.length === 1 ? "" : "s"}`;
+  list.innerHTML = `
+    <div class="availability-recurring-list-head">
+      <strong>Saved recurring blocks</strong>
+      <span class="small">${escapeHtml(summaryLabel)}</span>
+    </div>
+    <ul class="availability-timeoff-items">${blocks.map((block, index) => `
+    <li class="availability-timeoff-item availability-recurring-item${collapsedCount && !recurringBlocksExpanded && index >= 3 ? " hidden" : ""}">
       <div><strong>${escapeHtml(DAY_LABELS[block.weekday])}: ${escapeHtml(formatTimeLabel(block.start))}–${escapeHtml(formatTimeLabel(block.end))}</strong><p class="small">${escapeHtml(block.label)}</p></div>
       <button class="btn btn-danger" type="button" data-action="delete-recurring" data-id="${escapeHtml(block.id)}">Delete</button>
-    </li>`).join("")}</ul>`;
+    </li>`).join("")}</ul>
+    ${collapsedCount ? `<button class="btn btn-ghost availability-recurring-toggle" type="button" data-action="toggle-recurring" aria-expanded="${recurringBlocksExpanded ? "true" : "false"}">${recurringBlocksExpanded ? "Show fewer" : `Show all (${blocks.length})`}</button>` : ""}
+  `;
 }
 
 async function addRecurringBlocks() {
@@ -402,6 +413,13 @@ async function addRecurringBlocks() {
 }
 
 async function handleRecurringListClick(event) {
+  const toggle = event.target?.closest?.('button[data-action="toggle-recurring"]');
+  if (toggle) {
+    recurringBlocksExpanded = !recurringBlocksExpanded;
+    renderRecurringBlocks(loadAvailability().recurringBlocks);
+    document.querySelector('#availability-recurring-list button[data-action="toggle-recurring"]')?.focus();
+    return;
+  }
   const target = event.target?.closest?.('button[data-action="delete-recurring"]');
   if (!target) return;
   const id = String(target.getAttribute("data-id") ?? "");
