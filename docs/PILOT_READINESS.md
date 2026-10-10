@@ -386,3 +386,11 @@ Round 2 is a staging-only, tightly controlled extension: 1–2 trusted barbers/o
 - [x] The authoritative booking receipt tells customers to save the private manage link and provides open, copy, and share-or-copy controls.
 - [x] Hosted recovery is generic and non-enumerating. It requires the original booking email plus shop and appointment-date context, rotates the old token on a match, and never returns a token in JSON or UI.
 - [ ] Confirm `SLOTZY_APP_ORIGIN` is set to the exact staging frontend origin before enabling recovery. SMTP sends only when configured; otherwise review the `email_outbox` through the existing private operator workflow. Client accounts/history are post-beta.
+
+## Appointment Manager and recurring-block tester validation (2026-10-09)
+
+The latest trusted-tester follow-up accepted the phone-width Appointment Manager schedule, authorized barber confirmation, and recurring-block mobile cleanup. Phones now present Upcoming appointments instead of the unreliable month grid, while appointment confirmation persists and updates visibly without a manual refresh. Multiple saved recurring blocks are summarized with a noticeable count and a clear Show all/Show fewer control; expanded rows retain working Delete actions. The tester reported that the compact behavior looked cleaner and did not feel hidden or confusing.
+
+**Blocker status:** no current beta blocker is known from this feedback batch. Continue with a small trusted staging tester group within the existing closed-pilot limits and stop conditions.
+
+**Monitoring note:** a fresh desktop page load confirms appointments correctly. Continue monitoring old desktop tabs and cached frontend assets across deployments, but do not classify stale-tab/cache behavior as an active blocker unless it causes a reproducible authoritative-save discrepancy or another existing stop condition.
