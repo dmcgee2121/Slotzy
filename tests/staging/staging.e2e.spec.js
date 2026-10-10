@@ -1829,9 +1829,14 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
   };
   const cardBadgeBeforeConfirm = await managedCard.locator(".appointment-actions .badge").allTextContents()
     .then((values) => values.map((value) => String(value).trim())).catch(() => []);
-  await managedCancelButton.click();
   const cancelEndpointPath = "/api/public/manage/cancel";
   const cancelNetwork = collectApiLifecycleDiagnostics(managePage, expectedApiOrigin, cancelEndpointPath);
+  // Register both waiters before either cancellation click. The first click
+  // replaces the card asynchronously, and hosted browsers can dispatch the
+  // confirm click's PATCH before a waiter registered after that render is
+  // fully subscribed. Keeping the click and observers in one Promise.all
+  // makes the captured response authoritative instead of producing a false
+  // "not initiated" failure from a listener race.
   const cancelUpdateRequest = managePage.waitForRequest((request) => (
     request.method() === "PATCH"
     && new URL(request.url()).origin === expectedApiOrigin
@@ -1842,9 +1847,14 @@ test("synthetic staging owner-to-customer booking lifecycle", async ({ page, con
     && new URL(response.url()).origin === expectedApiOrigin
     && new URL(response.url()).pathname === cancelEndpointPath
   ), { timeout: 15000 }).then((response) => ({ response }), (error) => ({ error }));
+  await managedCancelButton.click();
   const confirmCancelButton = managedCard.getByRole("button", { name: /^Confirm Cancel$/i });
   await expect(confirmCancelButton).toBeVisible();
-  await confirmCancelButton.click();
+  await Promise.all([
+    confirmCancelButton.click(),
+    cancelUpdateRequest,
+    cancelUpdateResponse,
+  ]);
   const cancelUpdateRequestResult = await cancelUpdateRequest;
   if (cancelUpdateRequestResult.error) {
     const networkEvents = cancelNetwork.snapshot();
