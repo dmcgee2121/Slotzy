@@ -29,6 +29,8 @@
 
 Backup/restore validation should run in parallel as operational preparation where access exists, but its next implementation package should follow immediately if the restore-target app smoke remains unproven. Privacy and notification reliability remain production gates; neither is approval to expand product scope or enable payments.
 
+**Planning update:** the observability minimum is now defined in [PRODUCTION_OBSERVABILITY_MINIMUM.md](PRODUCTION_OBSERVABILITY_MINIMUM.md). Implementation, alert configuration, and production approval remain pending; Slotzy remains staging-ready for solo-founder QA, not production-ready.
+
 ## Highest-risk deferral
 
 The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.
