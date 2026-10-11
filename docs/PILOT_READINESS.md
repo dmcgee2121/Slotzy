@@ -407,3 +407,17 @@ After deployment and the guarded staging **3/3** pass at commit `cebe608`, the f
 **Blocker status:** no current beta blocker is known from this C5 founder-led validation. Staff rescheduling is supported and persists authoritatively within the existing beta scope.
 
 **Monitoring note:** continue monitoring stale desktop tabs, installed-PWA shells, and cached frontend assets after deployments. Treat cache behavior as a blocker only when it produces a reproducible authoritative-save discrepancy or another established stop condition.
+
+## C6 founder-led multi-device full-flow UAT (2026-10-10)
+
+The founder completed full-flow UAT across a Samsung Galaxy S26 Ultra, desktop PC, and iPad using Chrome, Edge, the installed PWA, and Safari. Owner, barber, and customer roles were simulated. This is founder-led multi-device validation, not external tester feedback.
+
+- Fresh owner account creation, shop setup, owner service creation, weekly availability, recurring lunch/break blocks, logo/cover upload, and booking-link open/copy passed.
+- The barber Services page correctly explains that services are owner-managed during beta and exposes no broken Add Service form.
+- Appointment Manager, mobile Upcoming appointments, staff confirmation, rescheduling, and cancellation passed. Rescheduling persisted after refresh.
+- Customer booking produced a receipt, and the private manage link opened in another browser. Customer cancellation through that link passed and remained cancelled after refresh.
+- No saved-then-disappeared result, missing owner/barber appointment, wrong manage-link appointment, cancellation/reschedule persistence problem, confusing wording or buttons, stuck state, or unacceptable phone spacing was observed.
+
+**Blocker status:** no current beta blocker is known from this C6 founder-led UAT pass.
+
+**Monitoring note:** retain stale-tab, cached-frontend-asset, and installed-PWA update monitoring after deployments. They remain non-blocking unless they reproduce an authoritative-save discrepancy or another established stop condition.
