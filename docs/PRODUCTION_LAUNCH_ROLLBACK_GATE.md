@@ -63,7 +63,7 @@ Before production approval, rehearse in staging or an approved non-customer envi
 - Named launch, backup, rollback, support, privacy, and restore authorities.
 - Approved production RPO/RTO and the restore-target application rehearsal evidence.
 - Approved alert route, dashboard/log access, and incident escalation timing.
-- Shared rate-limit control, Render source-key validation, and tested store-outage behavior.
+- Shared rate-limit control, the [P0-F5 shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md), accepted source-boundary scope, and tested store-outage behavior.
 - Notification promise, delivery reliability design, and payment-launch decision (payments default to disabled).
 
 ## Infrastructure impact

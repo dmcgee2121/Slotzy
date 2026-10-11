@@ -3,6 +3,8 @@
 **Status:** Pending approval and implementation.
 **Scope:** Production decision record for P0-B2a; this record implements no limiter.
 
+The [P0-F5 production shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md) consolidates the remaining provider/store, privacy, failure-mode, rollout, rollback, and acceptance decisions. The shared limiter remains unapproved.
+
 ## Decision summary
 
 P0-B2a's bounded in-process limiter remains appropriate for controlled, solo-founder staging QA. It is not a production control: counters are per instance, reset on deploy, and can be bypassed when traffic is distributed across instances.

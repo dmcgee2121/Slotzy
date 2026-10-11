@@ -2,6 +2,8 @@
 
 **Scope:** P0-B2a now implements the first staging-safe backend slice described by this plan. It does not add a shared store, external provider, migration, or production-complete distributed enforcement.
 
+The [P0-F5 production shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md) defines the decisions and acceptance evidence required before any production shared-limiter implementation. The current in-process limiter remains staging/solo-founder-QA scope only.
+
 **Current position:** Slotzy is staging-ready for solo-founder QA and **not production-ready**. The limits below are initial safety bounds to validate and tune; they are not production approval, an SLA, or evidence of external-tester validation.
 
 ## Current exposed surface
