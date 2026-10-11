@@ -1,6 +1,6 @@
 # Production environment separation plan
 
-**Status:** Planning only; pending implementation and approval.  
+**Status:** Planning only; pending implementation and approval.
 **Current framing:** Slotzy is staging-ready for solo-founder QA, not production-ready. This is not external-tester validation or payment-launch approval.
 
 ## Purpose and boundary

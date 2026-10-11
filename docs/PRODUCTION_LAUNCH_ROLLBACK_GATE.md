@@ -1,6 +1,6 @@
 # Production launch and rollback gate
 
-**Status:** Planning only; no launch is approved.  
+**Status:** Planning only; no launch is approved.
 **Current framing:** Slotzy remains staging-ready for solo-founder QA, not production-ready; there is no external-tester validation and payments remain disabled unless explicitly approved.
 
 ## Go/no-go rule
