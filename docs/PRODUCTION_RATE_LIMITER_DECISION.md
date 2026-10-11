@@ -9,6 +9,8 @@ The [P0-F5a options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md) recomme
 
 The [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) records the proposed staging-only adapter and rollback boundaries; the production shared limiter remains unapproved.
 
+The [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md) records category-level outage direction for future staging work only; production shared-limiter approval remains pending.
+
 ## Decision summary
 
 P0-B2a's bounded in-process limiter remains appropriate for controlled, solo-founder staging QA. It is not a production control: counters are per instance, reset on deploy, and can be bypassed when traffic is distributed across instances.

@@ -41,6 +41,8 @@ A conceptual shared key contains an environment, route/action category, privacy-
 
 Keep the existing endpoint categories and generic response contracts. The existing [production limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md) proposes stricter handling for auth, recovery, and sensitive unauthenticated writes, while lower-risk reads may use different availability behavior. This spec does not finalize a new policy: before code, approve the exact per-endpoint store-outage behavior, local-fallback bounds, and generic response envelopes.
 
+The [P0-F5c failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md) documents the proposed category direction and its remaining open decisions. Implementation remains blocked.
+
 Open policy decisions include whether any category can fail open, which categories use a bounded in-process fallback, and how to distinguish a store failure from an ordinary rate-limit decision without exposing provider detail.
 
 ## Observability
@@ -85,6 +87,7 @@ The staging implementation design direction is documented, but implementation re
 ## Related records
 
 - [Shared limiter options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md)
+- [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)

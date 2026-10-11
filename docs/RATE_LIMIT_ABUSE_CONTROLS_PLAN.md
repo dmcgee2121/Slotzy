@@ -8,6 +8,8 @@ The [P0-F5a provider/store options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REV
 
 The [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) keeps the current in-process limiter as the staging fallback/current behavior; it does not authorize implementation.
 
+The [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md) documents future shared-store outage handling direction; the current staging-safe limiter scope is unchanged.
+
 **Current position:** Slotzy is staging-ready for solo-founder QA and **not production-ready**. The limits below are initial safety bounds to validate and tune; they are not production approval, an SLA, or evidence of external-tester validation.
 
 ## Current exposed surface
