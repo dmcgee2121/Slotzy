@@ -41,6 +41,8 @@ Backup/restore validation should run in parallel as operational preparation wher
 
 **Notification reliability update:** the [NOTIFICATION_RELIABILITY_DECISION.md](NOTIFICATION_RELIABILITY_DECISION.md) now records the best-effort current framing, notification promises, delivery-failure behavior, privacy boundaries, and required reliability controls. Implementation remains pending. Production remains no-go until notification delivery behavior, provider separation, idempotency/retry, observability, privacy, and support handling are approved; Slotzy remains staging-ready for solo-founder QA, not production-ready, with no external-tester validation or payment-launch approval.
 
+**Production-gate status update:** the [PRODUCTION_GATE_STATUS.md](PRODUCTION_GATE_STATUS.md) consolidates completed staging evidence, remaining production blockers, and the next-package sequence. It does not change any gate: Slotzy remains staging-ready for solo-founder QA, not production-ready, without external-tester validation or payment-launch approval.
+
 ## Highest-risk deferral
 
 The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.
