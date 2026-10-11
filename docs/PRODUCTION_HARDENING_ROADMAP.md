@@ -17,7 +17,7 @@
 
 **Why it matters:** Account recovery must verify ownership without exposing account existence or granting access to the wrong person.
 
-**Current status:** Recovery is operator-assisted and documented for staging. Authenticated staff password change is available on staging, but self-service reset and verified recovery enrollment are not implemented.
+**Current status:** Recovery is operator-assisted and documented for staging. Owner and barber users can change their passwords in Settings → Account and profile → Account security. Self-service forgot-password/reset and verified recovery enrollment are not implemented.
 
 **Required work:** Define verified recovery factors, implement a secure reset and recovery enrollment flow, prevent enumeration, audit recovery actions, and test compromised-account handling.
 
@@ -27,9 +27,9 @@
 
 **Why it matters:** Logout and recovery must promptly remove access when a device or account is compromised.
 
-**Current status:** The account-security backend foundation is implemented on staging. The `auth_version` migration is applied in staging, and staff tokens use a stable subject plus version, issuer, and audience validation. Protected routes reload the user and enforce the current auth version and invalid-after time. A server-side logout-all action and authenticated password-change API are available. Password change increments `auth_version`, invalidating older tokens while returning a fresh token to the caller. A focused staging API smoke passed: registration and the original protected request returned 201/200, password change returned 200, the old token and old password were rejected with 401, and the fresh token and new password worked with 200. No user-facing password-change UI or self-service recovery exists yet.
+**Current status:** The password-change backend and UI are implemented on staging. The `auth_version` migration is applied in staging, and staff tokens use a stable subject plus version, issuer, and audience validation. Protected routes reload the user and enforce the current auth version and invalid-after time. A server-side logout-all action is available. Owner and barber users can change a password in Settings; a successful change keeps the current browser signed in with a fresh token and increments `auth_version` to revoke older sessions. Focused staging API smoke and founder-led UI smoke confirmed password change and subsequent login worked. Self-service forgot-password/recovery is not implemented.
 
-**Required work:** Choose the next account-security package: a user-facing password-change UI or operator-assisted recovery hardening. Then define bounded session lifetime and refresh rules, device/session visibility where appropriate, self-service recovery, and regression coverage for logout, expiry, recovery, and compromise.
+**Required work:** Harden the operator-assisted recovery process and/or design self-service recovery. Then define bounded session lifetime and refresh rules, device/session visibility where appropriate, self-service recovery, and regression coverage for logout, expiry, recovery, and compromise.
 
 **Required for:** Wider beta at minimum; production and app-store readiness required.
 
@@ -158,7 +158,7 @@
 ### P0 — must complete before production
 
 1. Production environment separation, secrets/access review, and deployment controls.
-2. Account-security UX and recovery: password-change UI or operator-assisted recovery hardening, followed by secure self-service recovery. The backend session-revocation and password-change foundation is complete on staging.
+2. Account-security recovery: operator-assisted recovery hardening and self-service recovery design. Password-change backend/UI and session revocation are complete on staging.
 3. Production privacy, retention, deletion/export, and disclosure decisions.
 4. Production backup, restore-target app smoke, recovery objectives, and a restore drill.
 5. Monitoring, alerting, incident response, security review, dependency review, and rate-limit/abuse controls.
@@ -167,7 +167,7 @@
 ### P1 — needed before wider beta
 
 1. Restore-target application smoke, including recurring-block data.
-2. Password-change UI, logout, recovery, adverse-network, duplicate-submit, expired-link, and installed-PWA update coverage.
+2. Password-change, logout, recovery, adverse-network, duplicate-submit, expired-link, and installed-PWA update coverage.
 3. Notification reliability expectations, idempotency, and monitoring if notifications are relied on.
 4. Structured, consented real-user testing when feasible, with redacted feedback and defined support.
 
