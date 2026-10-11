@@ -1366,10 +1366,19 @@ app.post("/api/auth/register", async (req, res) => {
     await writeUser(user);
     userCreated = true;
 
+    // PostgreSQL snapshot writes map source records to canonical relational IDs.
+    // Always reload before signing so JWT sub matches the ID used by protected
+    // middleware, just as the login path does.
+    registrationStage = "auth_identity_read";
+    const persistedUser = await readUserByUsername(username);
+    if (!persistedUser || persistedUser.isActive === false) {
+      throw new Error("registered user could not be reloaded for authentication");
+    }
+
     registrationStage = "token_issue";
-    const token = signToken(user);
+    const token = signToken(persistedUser);
     tokenIssued = true;
-    const authUser = buildAuthUser(user);
+    const authUser = buildAuthUser(persistedUser);
     return res.status(201).json({ token, user: authUser });
   } catch (error) {
     const storageErrorCode = String(error?.code ?? "");
@@ -1385,7 +1394,7 @@ app.post("/api/auth/register", async (req, res) => {
       storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
       duplicateUsername: duplicateUsername || uniqueConflict,
       duplicateEmail: false,
-      storageReadFailed: registrationStage === "duplicate_check" || registrationStage === "shop_validation",
+      storageReadFailed: registrationStage === "duplicate_check" || registrationStage === "shop_validation" || registrationStage === "auth_identity_read",
       storageWriteFailed: registrationStage === "user_write",
       passwordHashFailed: registrationStage === "password_hash",
       userCreated,

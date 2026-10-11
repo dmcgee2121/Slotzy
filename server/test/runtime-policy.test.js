@@ -35,3 +35,42 @@ test("staff tokens carry durable revocation claims and reject legacy claims", ()
   const legacy = jwt.sign({ username: "owner", role: "owner" }, secret, { expiresIn: "1h" });
   assert.throws(() => verifyStaffToken(legacy, secret));
 });
+
+test("registration and login tokens use the persisted user identity accepted by protected routes", () => {
+  const secret = "test-secret-only";
+  // PostgreSQL snapshot storage may map a registration source ID to a canonical
+  // users.id. Both registration and login must sign the persisted ID.
+  const persistedUser = { id: "canonical-user-id", role: "owner", authVersion: 1, isActive: true, authInvalidAfter: "" };
+  const registrationToken = issueStaffToken(persistedUser, secret);
+  const loginToken = issueStaffToken(persistedUser, secret);
+
+  for (const token of [registrationToken, loginToken]) {
+    const session = verifyStaffToken(token, secret);
+    assert.equal(session.userId, persistedUser.id);
+    assert.equal(isCurrentStaffSession(session, persistedUser), true);
+  }
+});
+
+test("staff tokens reject wrong issuer or audience and invalidated sessions", () => {
+  const secret = "test-secret-only";
+  const user = { id: "user_456", role: "owner", authVersion: 1, isActive: true, authInvalidAfter: "" };
+  const valid = issueStaffToken(user, secret);
+  const session = verifyStaffToken(valid, secret);
+  assert.equal(isCurrentStaffSession(session, { ...user, authVersion: 2 }), false);
+  assert.equal(isCurrentStaffSession({ ...session, issuedAt: 1 }, { ...user, authInvalidAfter: new Date(10_000).toISOString() }), false);
+
+  const wrongIssuer = jwt.sign({ ver: 1 }, secret, {
+    subject: user.id,
+    issuer: "other-api",
+    audience: STAFF_JWT_AUDIENCE,
+    expiresIn: "1h",
+  });
+  const wrongAudience = jwt.sign({ ver: 1 }, secret, {
+    subject: user.id,
+    issuer: STAFF_JWT_ISSUER,
+    audience: "other-audience",
+    expiresIn: "1h",
+  });
+  assert.throws(() => verifyStaffToken(wrongIssuer, secret));
+  assert.throws(() => verifyStaffToken(wrongAudience, secret));
+});
