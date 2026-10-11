@@ -394,3 +394,16 @@ The latest trusted-tester follow-up accepted the phone-width Appointment Manager
 **Blocker status:** no current beta blocker is known from this feedback batch. Continue with a small trusted staging tester group within the existing closed-pilot limits and stop conditions.
 
 **Monitoring note:** a fresh desktop page load confirms appointments correctly. Continue monitoring old desktop tabs and cached frontend assets across deployments, but do not classify stale-tab/cache behavior as an active blocker unless it causes a reproducible authoritative-save discrepancy or another existing stop condition.
+
+## C5 founder-led multi-device UAT (2026-10-10)
+
+After deployment and the guarded staging **3/3** pass at commit `cebe608`, the founder completed multi-device UAT for the C5 service-permission and appointment-reschedule changes. This is founder-led validation, not external tester feedback.
+
+- Barber login and the Services / Manage Services page passed. During this beta, service management is owner-only: the barber-facing page clearly states that services are managed by the shop owner, and it does not expose a broken Add Service form.
+- Owner and barber appointment login, Appointment Manager access, opening Reschedule, selecting a valid new time, and saving passed.
+- The appointment card updated to the selected time without a manual refresh; a refresh confirmed the authoritative persisted time.
+- The reschedule modal no longer presents the confusing Cancel and Close controls together.
+
+**Blocker status:** no current beta blocker is known from this C5 founder-led validation. Staff rescheduling is supported and persists authoritatively within the existing beta scope.
+
+**Monitoring note:** continue monitoring stale desktop tabs, installed-PWA shells, and cached frontend assets after deployments. Treat cache behavior as a blocker only when it produces a reproducible authoritative-save discrepancy or another established stop condition.
