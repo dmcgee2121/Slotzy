@@ -55,11 +55,12 @@ The present direct-socket limiter remains the required behavior for solo-founder
 
 ## Safest next step
 
-Seek separate approval for the smallest staging-only source-boundary diagnostic package above. First review its privacy contract, access boundary, fixed synthetic test cases, safe labels, and removal/disable plan; only after it is implemented and locally tested may the existing staging validation plan be executed against Render. This review itself requires no Netlify work, no Render change, and no Supabase migration.
+Seek separate approval for the [P0-F4b protected diagnostic design](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md). First review its privacy contract, owner-only staging access boundary, fixed synthetic test cases, safe labels, and removal/disable plan; only after it is implemented and locally tested may the existing staging validation plan be executed against Render. Implementation remains pending. This review itself requires no Netlify work, no Render change, and no Supabase migration.
 
 ## Related records
 
 - [Staging proxy/source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md)
+- [P0-F4b protected source-boundary diagnostic design](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)
