@@ -24,7 +24,7 @@ This is a blocked/failed attempt, not source-boundary evidence. No source-bounda
 
 ## Test coverage assessment
 
-`server/test/source-boundary-diagnostic-api.test.js` covers owner-only access, disabled/production refusal, each fixed case sent through `X-Slotzy-Source-Boundary-Case`, category-only results, and redaction. It does **not** cover the same JSON-body request shape used in the hosted PowerShell attempt.
+`server/test/source-boundary-diagnostic-api.test.js` covers owner-only access, disabled/production refusal, each fixed case sent through `X-Slotzy-Source-Boundary-Case`, category-only results, and redaction. P0-F4g now also locks the request contract: a known `caseLabel` in a JSON body receives the safe `400`, while the same supported label in the required header with no body receives category-only `200`.
 
 The focused local suite passed 9/9 on this review. That verifies the implemented header-only contract, not the incorrect hosted body contract.
 
@@ -32,12 +32,12 @@ The focused local suite passed 9/9 on this review. That verifies the implemented
 
 - **Code fix:** Not recommended from the present evidence. Rejecting a body is an intentional protection in the implemented contract.
 - **Runbook/script correction:** Recommended. Any later approved invocation must send no body and must use the exact allowlisted case label in `X-Slotzy-Source-Boundary-Case`; it must continue to use owner authentication and category-only evidence rules.
-- **Local test expansion:** Recommended in a separately approved test-only/code package: assert that a known case label in a JSON body returns the safe `400`, and that the same label in the required header with no body returns category-only `200`. This locks the runbook contract against regression.
-- **Hosted retry:** Blocked until the runbook correction and the proposed local coverage are reviewed/approved. Do not enable the flag or retry as part of this review.
+- **Local test expansion:** Completed in P0-F4g; the two request-shape assertions now lock the runbook contract against regression.
+- **Hosted retry:** Still blocked pending separate approval. Do not enable the flag or retry as part of this local correction.
 
 ## Safest next step
 
-Approve a minimal local test/runbook-correction package only. It should add the two contract assertions above and update the controlled execution instructions to state “empty body; case label header.” After that package passes locally, require a separate approval before another temporary staging enablement and retry.
+The local test/runbook correction is complete. Require a separate approval before another temporary staging enablement and retry; the correction does not itself authorize hosted execution.
 
 ## Infrastructure impact
 

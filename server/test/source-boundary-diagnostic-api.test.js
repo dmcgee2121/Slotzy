@@ -103,6 +103,20 @@ test("source-boundary diagnostic is owner-only, category-only, and redacted", as
   assert.equal((await request(server.baseUrl, "/api/internal/source-boundary-diagnostic", {
     method: "POST", token: customer.body.token, headers: { "X-Slotzy-Source-Boundary-Case": "missing-forwarded" },
   })).status, 404);
+  const bodyCase = await request(server.baseUrl, "/api/internal/source-boundary-diagnostic", {
+    method: "POST", token: ownerToken, body: { caseLabel: "missing-forwarded" },
+  });
+  assert.equal(bodyCase.status, 400);
+  assert.deepEqual(bodyCase.body, { ok: false, caseLabel: "unknown" });
+  const headerCase = await request(server.baseUrl, "/api/internal/source-boundary-diagnostic", {
+    method: "POST", token: ownerToken, headers: { "X-Slotzy-Source-Boundary-Case": "missing-forwarded" },
+  });
+  assert.equal(headerCase.status, 200);
+  assert.deepEqual(Object.keys(headerCase.body).sort(), ["caseLabel", "diagnosticEnabled", "directSocketSource", "environment", "forwardedHandling", "forwardedInput", "ok", "service", "sourceKeyDecision"].sort());
+  assert.equal(headerCase.body.caseLabel, "missing-forwarded");
+  assert.equal(headerCase.body.forwardedInput, "none");
+  assert.equal(headerCase.body.forwardedHandling, "not-trusted");
+  assert.equal(headerCase.body.sourceKeyDecision, "direct-socket-current");
   const publicV4 = dotted(198, 51, 100, 17);
   const privateV4 = dotted(10, 0, 0, 7);
   const publicV6 = ["2001", "db8", "", "17"].join(":");

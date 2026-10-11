@@ -44,7 +44,7 @@ Before starting, obtain explicit approval for the bounded staging window, tempor
 
 ### 4. Owner-authenticated synthetic diagnostic calls
 
-Use one paced call per approved fixed case label, with the owner session and no request body/customer context:
+Use one paced call per approved fixed case label, with the owner session and no request body/customer context. Send the exact case label only in the `X-Slotzy-Source-Boundary-Case` header. Send **no JSON body** and no other body; any nonempty body is invalid and returns the safe bad-request response.
 
 - `missing-forwarded`
 - `single-forwarded`
@@ -56,6 +56,8 @@ Use one paced call per approved fixed case label, with the owner session and no 
 - `mixed-forwarded`
 
 Classification is observation only. Do not infer a trusted proxy boundary, change limiter behavior, or enable forwarding-derived keys during this phase.
+
+Hosted retry remains blocked until separately approved, even though the corrected request contract is now covered locally.
 
 ### 5. Category-only evidence recording
 
