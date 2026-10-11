@@ -4,6 +4,12 @@
 
 **Current position:** Slotzy is staging-ready for solo-founder QA and **not production-ready**. This plan does not imply external-tester validation or approve payments.
 
+## Staging rollout status
+
+The backend structured safe-event foundation is implemented and deployed on staging. Render staging logs show safe structured health events with request IDs, storage mode, route, method, status, release, and dependency status. The guarded staging suite passed **3/3** after deployment.
+
+This validates the backend foundation in the controlled staging environment only. No monitoring SDK or external alert provider is configured, alert routing and production thresholds remain pending, and frontend deploy/runtime visibility is still the next observability package. Slotzy remains staging-ready for solo-founder QA, not production-ready.
+
 ## Minimum signal set
 
 | Signal | Why it matters | Log or count (safe minimum) | Never log | Suggested alert threshold | First implementation idea |
@@ -45,7 +51,7 @@ Trigger rollback or a write freeze when a new release is plausibly tied to an in
 ## Rollout phases
 
 1. **Phase 1 — docs and event taxonomy:** approve safe event names, allowlisted fields, error classes, correlation-ID handling, thresholds, and ownership. This document completes only this phase.
-2. **Phase 2 — backend structured safe events:** implemented for the current server: allowlisted API, auth, authoritative booking-mutation, notification-outcome, health, and storage-mode events; bounded request IDs; and focused redaction tests. Alert routing and production configuration remain pending.
+2. **Phase 2 — backend structured safe events:** implemented, deployed, and validated on staging. The current server emits allowlisted API, auth, authoritative booking-mutation, notification-outcome, health, and storage-mode events with bounded request IDs; focused redaction tests pass, safe health events are visible in Render logs, and guarded staging passed 3/3. Alert routing and production configuration remain pending.
 3. **Phase 3 — frontend error and deploy visibility:** add non-secret version visibility plus redacted client runtime/cache events and test release identification.
 4. **Phase 4 — external alert provider or platform-native alerts:** choose configured platform-native alerts or a provider, set recipients/escalation, and rehearse at least one alert without customer data.
 5. **Phase 5 — production dashboards:** create role-limited dashboards for health, failures, integrity, auth, notifications, versions, and alert history; document retention and access review.
