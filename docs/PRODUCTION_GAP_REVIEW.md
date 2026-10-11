@@ -1,0 +1,46 @@
+# Production gap review and next-package decision
+
+**Decision context:** Slotzy is **staging-ready for solo-founder QA**, following guarded staging checks. It is **not production-ready**. This review does not imply external-tester validation, approve a payment launch, or authorize production changes.
+
+## Completed account-security baseline
+
+- **JWT revocation foundation:** staging has durable per-user JWT invalidation through the current auth-version/invalid-after checks, including a server-side logout-all path.
+- **Password change:** owner and barber password-change backend and UI are implemented and validated on staging; a successful change refreshes the current session and revokes older sessions.
+- **Operator-assisted recovery:** the recovery runbook is hardened for controlled staging operation.
+- **Still future work:** secure self-service recovery/reset and verified recovery-factor enrollment. Operator assistance is not a production substitute.
+
+## Remaining lanes
+
+| Lane | Why it matters / known status | Risk if deferred | Setup needed | Suggested first small package |
+| --- | --- | --- | --- | --- |
+| Rate limiting and abuse prevention | Public booking, authentication, recovery, and manage-link paths can be brute-forced, enumerated, spammed, or exhausted. Production decisions are still deferred. | Account compromise attempts, spam bookings, availability loss, and avoidable provider cost. | **Code:** yes. **Docs:** yes. **Supabase:** no migration expected. **Render:** likely, for edge/app policy and environment configuration. **Netlify:** possibly, if frontend/WAF controls are used. **External provider:** optional. | Inventory exposed routes; set route-specific limits, generic rejection behavior, and privacy-safe abuse logs for auth, recovery, booking creation, and manage actions; add focused tests. |
+| Monitoring, logging, and alerting | Production incidents must be detected and diagnosed without leaking credentials, tokens, or customer data. Safe staging diagnostics exist; approved production observability does not. | Silent booking failures, delayed incident response, and unsafe troubleshooting. | **Code:** likely for structured signals/redaction. **Docs:** yes. **Supabase:** no migration expected. **Render:** yes for service logs/health alerts. **Netlify:** yes for deploy/frontend error visibility. **External provider:** likely for error tracking/alerts. | Define a minimal signal set (health, 5xx, booking persistence, auth failures, notification failures), redaction rules, alert owner, and one alert test. |
+| Backup and restore validation | Booking data and configuration must be recoverable after corruption, deletion, or a bad release. An isolated staging restore rehearsal passed, but restore-target application smoke and production rehearsal remain open. | Irrecoverable or prolonged booking-data loss. | **Code:** no for the first package. **Docs:** yes. **Supabase:** yes for backup/PITR configuration and restore target. **Render:** no. **Netlify:** no. **External provider:** no expected. | Complete a staging restore-target app smoke with a written RPO/RTO and evidence checklist; then schedule a production-equivalent rehearsal before launch. |
+| Privacy and data retention | Production requires clear collection, retention, deletion/export, consent, and disclosures. Existing support guidance is not a completed privacy program. | Regulatory/support exposure and excess retention of personal data. | **Code:** likely later for deletion/export automation. **Docs:** yes. **Supabase:** likely later for retention/deletion execution. **Render/Netlify:** no initial need. **External provider:** legal/privacy review may be needed. | Publish a data inventory and retention/deletion decision record covering app data, logs, emails, and backups; assign an owner and support workflow. |
+| Notification reliability | Booking/cancellation messages are initiated after authoritative writes but remain best-effort; durable delivery, idempotency, and monitoring are incomplete. | Customers receive duplicate, missing, or misleading confirmations. | **Code:** yes. **Docs:** yes. **Supabase:** possibly for an outbox/idempotency record. **Render:** yes for provider secrets/runtime. **Netlify:** no expected. **External provider:** yes, transactional email/SMS as applicable. | Define the promised channels and failure behavior; add delivery outcome logging and an idempotency/retry design for the currently supported channel. |
+| Production environment separation | Test data, credentials, origins, and deploys must not cross into customer production. Staging is separate; production projects, access review, and controls are not approved. | Cross-environment data exposure or a staging action impacting live customers. | **Code:** minimal/no initial code. **Docs:** yes. **Supabase:** yes, separate production project/access. **Render:** yes, separate service/secrets/access. **Netlify:** yes, separate site/environment configuration. **External provider:** yes for separate provider credentials/senders. | Create a production-environment separation checklist: account/project boundaries, secret inventory, origin allowlists, least privilege, and promotion-access owners. |
+| Launch gates and rollback plan | Launch needs explicit evidence, stop criteria, ownership, and safe rollback. Guarded staging checks exist; no approved production go/no-go or rollback rehearsal exists. | A harmful release continues too long or recovery discards bookings. | **Code:** no first package. **Docs:** yes. **Supabase:** no migration expected, but restore procedure is in scope. **Render:** yes for deploy rollback mechanics. **Netlify:** yes for frontend rollback mechanics. **External provider:** no expected. | Write a one-page production go/no-go and rollback runbook with health checks, write-freeze authority, forward-fix/restore rule, customer communication owner, and rehearsal checklist. |
+
+## Recommended next packages
+
+1. **P0-B1: Production observability minimum.** Establish redacted signals, alert ownership, health/deploy checks, and a tested alert path across the API and frontend. This is the fastest way to shorten time-to-detection for real production failures.
+2. **P0-B2: Rate limits and abuse controls for exposed routes.** Keep scope tight: endpoint inventory, route-specific limits, safe error semantics, and regression tests for legitimate use and blocked abuse.
+3. **P0-B3: Production environment separation and launch/rollback gate.** Produce the separation checklist and executable go/no-go/rollback runbook, then rehearse deployment rollback without production customer data.
+
+Backup/restore validation should run in parallel as operational preparation where access exists, but its next implementation package should follow immediately if the restore-target app smoke remains unproven. Privacy and notification reliability remain production gates; neither is approval to expand product scope or enable payments.
+
+## Highest-risk deferral
+
+The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.
+
+## Infrastructure decision summary
+
+| Question | Answer for the recommended three packages |
+| --- | --- |
+| Netlify required? | **Yes** for frontend error/deploy visibility and rollback/separation review; no frontend feature work is implied. |
+| Render required? | **Yes** for API observability, runtime configuration, rate-limit deployment, and rollback/separation review. |
+| Supabase migration required? | **No.** None of the recommended first three packages requires a database migration. Supabase project/access and restore configuration review are separate operational work. |
+
+## Boundary
+
+Continue guarded staging-only solo-founder QA. Do not claim external tester validation, enable payments, or call Slotzy production-ready until the relevant production gates—including privacy, backup/restore, notification reliability, environment separation, monitoring, abuse controls, and launch rehearsal—are completed and explicitly approved.
