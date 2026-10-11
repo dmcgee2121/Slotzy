@@ -1,6 +1,6 @@
 # Staging proxy/source-boundary validation plan — P0-F4
 
-**Status:** Planning only; validation pending. This record changes no code, limiter threshold, proxy trust setting, infrastructure, environment variable, secret, or provider configuration.
+**Status:** Planning only; validation pending and currently **blocked by evidence capability**. This record changes no code, limiter threshold, proxy trust setting, infrastructure, environment variable, secret, or provider configuration.
 
 **Scope:** Define a safe staging-only manual/API validation of the request-source boundary used by the current backend rate limiter. The purpose is to determine whether any forwarded source signal can ever be trusted and what evidence is needed before a production source-key decision. It does not approve a shared limiter, production launch, or broader beta.
 
@@ -9,6 +9,8 @@
 The staging-safe limiter uses privacy-safe HMAC-derived keys and currently takes its source input from the direct socket. Forwarded headers such as `X-Forwarded-For` and `Forwarded` are deliberately not trusted: their mere presence does not prove that an upstream proxy overwrites, strips, or otherwise protects client-supplied values. Trusting an unverified header could let a client choose its own source identity and evade source-based limits, or could misclassify unrelated clients.
 
 Validation must establish the actual Render request path, trusted proxy boundary, and source-signal behavior before any forwarded value may replace the current direct-socket input. Until then, retain current behavior; do not add an ad-hoc proxy trust setting or change the limiter source key.
+
+The [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md) found that current safe events, logs, and tests cannot yield the category-only proof required here. Therefore, do not execute hosted validation yet. A later, separately approved staging-only diagnostic package is required before this plan can be executed.
 
 ## Staging-only boundary and safe test approach
 
