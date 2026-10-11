@@ -1,6 +1,6 @@
 # Protected staging source-boundary diagnostic design — P0-F4b
 
-**Status:** Implemented locally as P0-F4c; Render deployment and controlled staging validation remain pending. The implementation authorizes no proxy trust change, limiter source-key change, production enablement, or hosted validation by itself.
+**Status:** Deployed to staging as P0-F4c and guarded staging validation passed with the diagnostic disabled. Diagnostic execution and source-boundary validation remain pending. The implementation authorizes no proxy trust change, limiter source-key change, production enablement, or hosted diagnostic validation by itself.
 
 **Purpose:** Define the smallest future diagnostic that can supply category-only evidence for the [staging proxy/source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md). It must determine whether a forwarded source signal is ignored, overwritten, preserved, ambiguous, rejected, or unsafe without revealing raw network values or changing the current direct-socket limiter.
 
@@ -100,6 +100,10 @@ Local tests can prove the diagnostic's classification contract and redaction beh
 5. Retain only the category-only response/event facts authorized by the validation plan; do not retain raw logs, headers, screenshots, traces, or full URLs.
 6. Disable and preferably remove the route after validation. Keeping it behind a disabled-by-default flag requires a separate expiry, owner, and periodic-review decision.
 7. Interpret `preserved`, `ambiguous`, `unsafe`, direct-path uncertainty, or topology variation as a stop: retain direct-socket behavior and do not trust forwarded inputs.
+
+## Rollout update
+
+The protected route was deployed in commit `7cb0502`. The guarded synthetic staging suite passed 3/3 with `SLOTZY_SOURCE_BOUNDARY_DIAGNOSTIC_ENABLED` disabled; the endpoint was not exercised. This confirms only that the disabled diagnostic did not disturb the covered staging flows. See the [P0-F4c rollout result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ROLLOUT.md). Forwarded-source trust remains unapproved.
 
 ## Hard stops
 
