@@ -1,6 +1,6 @@
 # Staging alert routing and rehearsal runbook
 
-**Status:** Planning runbook only. No staging alert destination is configured and no rehearsal has been performed.
+**Status:** The planning runbook is complete. Configuration verification and a tabletop rehearsal are recorded in [P0-F2a's result record](STAGING_ALERT_ROUTING_REHEARSAL_RESULT.md); a full delivered-alert rehearsal remains pending.
 
 **Current framing:** Slotzy is staging-ready for solo-founder QA and **not production-ready**. This runbook does not authorize Render, Netlify, provider, dashboard, secret, code, schema, migration, or production-alert changes. It does not establish external-tester validation or payment-launch approval.
 
@@ -67,6 +67,8 @@ Alerts must never contain raw logs, event bodies, stack traces, request/response
 Use allowlisted route names, low-cardinality categories, aggregate counts, release/build IDs, and approved correlation/request IDs only. Do not encode private data into an alert title, label, fingerprint, URL, or identifier. If an unsafe value appears in a candidate alert, do not route it; stop, restrict access, and follow the privacy/incident path.
 
 ## Safe rehearsal plan
+
+**P0-F2a result boundary:** the staging failure-notification configuration and tabletop health/readiness path were reviewed without inducing a failure. No safe built-in test notification was observed and no actual delivered alert was verified. Follow this runbook for the remaining delivered-alert rehearsal; do not treat the tabletop result as delivery evidence.
 
 ### Preconditions
 

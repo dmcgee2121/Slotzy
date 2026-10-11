@@ -45,6 +45,8 @@ Backup/restore validation should run in parallel as operational preparation wher
 
 **Alert-routing update:** the [STAGING_ALERT_ROUTING_REHEARSAL.md](STAGING_ALERT_ROUTING_REHEARSAL.md) defines the first staging-only, redacted alert-routing rehearsal. Configuration and rehearsal remain pending; it does not approve production alerts. Slotzy remains staging-ready for solo-founder QA, not production-ready, without external-tester validation or payment-launch approval.
 
+**P0-F2a alert-routing result:** [STAGING_ALERT_ROUTING_REHEARSAL_RESULT.md](STAGING_ALERT_ROUTING_REHEARSAL_RESULT.md) records passed staging configuration verification and tabletop review for the existing failure-notification route. No safe built-in test notification was observed, no failure was induced, and no delivered alert was verified; the full delivered-alert rehearsal and production alerting remain pending. Slotzy remains staging-ready for solo-founder QA, not production-ready, without external-tester validation or payment-launch approval.
+
 ## Highest-risk deferral
 
 The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.
