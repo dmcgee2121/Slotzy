@@ -1,6 +1,6 @@
 # Controlled source-boundary diagnostic execution plan — P0-F4d
 
-**Execution status:** **Not executed.** This is an approval-gated staging-only plan. It does not authorize enabling the flag, sending hosted diagnostic requests, changing source-key behavior, trusting forwarded headers, or making production changes.
+**Execution status:** Attempted and **blocked/failed**; see the [P0-F4e attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md). This plan does not authorize a retry, flag enablement, source-key change, forwarded-header trust, or production change.
 
 ## Target and non-negotiable boundary
 
@@ -132,6 +132,7 @@ Execution may be recorded as passed only when all of these hold:
 
 ## Related records
 
+- [P0-F4e blocked diagnostic attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md)
 - [P0-F4c diagnostic rollout](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ROLLOUT.md)
 - [Protected diagnostic specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md)
 - [Source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md)
