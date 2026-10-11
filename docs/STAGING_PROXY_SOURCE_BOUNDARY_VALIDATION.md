@@ -10,7 +10,7 @@ The staging-safe limiter uses privacy-safe HMAC-derived keys and currently takes
 
 Validation must establish the actual Render request path, trusted proxy boundary, and source-signal behavior before any forwarded value may replace the current direct-socket input. Until then, retain current behavior; do not add an ad-hoc proxy trust setting or change the limiter source key.
 
-The [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md) found that current safe events, logs, and tests cannot yield the category-only proof required here. Therefore, do not execute hosted validation yet. The [P0-F4b protected diagnostic design](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md) is the likely next implementation prerequisite, but it remains unimplemented and separately approval-gated.
+The [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md) found that current safe events, logs, and tests cannot yield the category-only proof required here. The [P0-F4c protected diagnostic implementation/specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md) now exists locally, but it is disabled by default and Render deployment plus controlled validation remain separately approval-gated. Therefore, do not execute hosted validation yet.
 
 ## Staging-only boundary and safe test approach
 

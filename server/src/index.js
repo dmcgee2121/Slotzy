@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
+import { isIP } from "node:net";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
 import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, changeUserPassword, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
@@ -30,6 +31,10 @@ const RATE_LIMIT_POLICIES = getRateLimitPolicies({
   useTestProfile: RUNTIME_ENVIRONMENT === "test" && process.env.SLOTZY_RATE_LIMIT_TEST_PROFILE === "tight",
 });
 const RATE_LIMITER = createInMemoryRateLimiter({ maxKeys: 10_000 });
+const SOURCE_BOUNDARY_DIAGNOSTIC_ENABLED = (
+  (RUNTIME_ENVIRONMENT === "staging" || RUNTIME_ENVIRONMENT === "test")
+  && String(process.env.SLOTZY_SOURCE_BOUNDARY_DIAGNOSTIC_ENABLED ?? "").trim().toLowerCase() === "true"
+);
 
 const ROLE_OWNER = "owner";
 const ROLE_BARBER = "barber";
@@ -95,6 +100,58 @@ function coarseRequestSource(req) {
   // X-Forwarded-For until Render proxy trust boundaries receive a dedicated
   // review. The value is HMACed immediately and is never logged or retained.
   return String(req.socket?.remoteAddress ?? "unknown-source");
+}
+
+const SOURCE_BOUNDARY_DIAGNOSTIC_CASES = new Set([
+  "missing-forwarded",
+  "single-forwarded",
+  "multiple-forwarded",
+  "malformed-forwarded",
+  "private-looking-forwarded",
+  "ipv4-looking-forwarded",
+  "ipv6-looking-forwarded",
+  "mixed-forwarded",
+]);
+
+function isPrivateLookingSource(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (isIP(normalized) === 4) {
+    const [first, second] = normalized.split(".").map(Number);
+    return first === 10 || first === 127 || first === 0 || (first === 169 && second === 254) || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168);
+  }
+  if (isIP(normalized) === 6) return normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80:");
+  return false;
+}
+
+function classifyForwardedInput(req) {
+  const raw = String(req.get("X-Forwarded-For") ?? "").trim();
+  if (!raw) return { forwardedInput: "none", forwardedHandling: "not-trusted" };
+  const entries = raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+  if (!entries.length || entries.length !== raw.split(",").length) return { forwardedInput: "malformed", forwardedHandling: "rejected" };
+  const families = new Set(entries.map((entry) => isIP(entry)));
+  if (families.has(0)) return { forwardedInput: "malformed", forwardedHandling: "rejected" };
+  if (entries.some(isPrivateLookingSource)) return { forwardedInput: "private-looking", forwardedHandling: "observed-only" };
+  if (entries.length > 1) return { forwardedInput: families.size > 1 ? "mixed" : "multiple", forwardedHandling: "ambiguous" };
+  return { forwardedInput: families.has(4) ? "ipv4-looking" : "ipv6-looking", forwardedHandling: "observed-only" };
+}
+
+function sourceBoundaryDiagnosticNotFound(res) {
+  return res.status(404).json({ error: "not found" });
+}
+
+async function requireSourceBoundaryDiagnosticOwner(req, res, next) {
+  if (!SOURCE_BOUNDARY_DIAGNOSTIC_ENABLED) return sourceBoundaryDiagnosticNotFound(res);
+  try {
+    const token = getBearerToken(req);
+    if (!token) return sourceBoundaryDiagnosticNotFound(res);
+    const session = verifyStaffToken(token, JWT_SECRET);
+    const user = await readUserById(session.userId);
+    if (!isCurrentStaffSession(session, user) || !isOwner(user)) return sourceBoundaryDiagnosticNotFound(res);
+    req.user = normalizedAuthenticatedUser(user);
+    return next();
+  } catch {
+    return sourceBoundaryDiagnosticNotFound(res);
+  }
 }
 
 function enforceRateLimit(req, res, { category, route, errorCode, errorMessage, keyInputs, responseBody = null }) {
@@ -1177,6 +1234,34 @@ async function requireAuth(req, res, next) {
     return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
   }
 }
+
+app.post("/api/internal/source-boundary-diagnostic", requireSourceBoundaryDiagnosticOwner, (req, res) => {
+  const bodyPresent = Number(req.get("content-length") ?? 0) > 0
+    || Boolean(req.get("transfer-encoding"))
+    || Object.keys(req.body ?? {}).length > 0;
+  const diagnosticCase = String(req.get("X-Slotzy-Source-Boundary-Case") ?? "").trim().toLowerCase();
+  if (bodyPresent || !SOURCE_BOUNDARY_DIAGNOSTIC_CASES.has(diagnosticCase)) {
+    return res.status(400).json({ ok: false, caseLabel: "unknown" });
+  }
+
+  const classification = classifyForwardedInput(req);
+  const directSocketSource = req.socket?.remoteAddress ? "present" : "absent";
+  const response = {
+    ok: true, environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", diagnosticEnabled: true,
+    directSocketSource, caseLabel: diagnosticCase, forwardedInput: classification.forwardedInput,
+    forwardedHandling: classification.forwardedHandling, sourceKeyDecision: "direct-socket-current",
+  };
+  emitSafeEvent({
+    event: "security.source_boundary_checked", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api",
+    storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId,
+    route: "/api/internal/source-boundary-diagnostic", method: "POST", status: 200,
+    operation: "source_boundary_diagnostic", outcome: "succeeded", diagnosticCase, diagnosticState: "enabled",
+    directSocketSource, forwardedInput: classification.forwardedInput, forwardedHandling: classification.forwardedHandling,
+    sourceKeyDecision: "direct-socket-current",
+    diagnosticResult: classification.forwardedHandling === "ambiguous" ? "ambiguous" : "pass",
+  });
+  return res.json(response);
+});
 
 async function requireRouteStore(req, res, next) {
   try {

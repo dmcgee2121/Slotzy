@@ -1,16 +1,16 @@
 # Protected staging source-boundary diagnostic design — P0-F4b
 
-**Status:** Design only; **not implemented**. This record authorizes no route, event, environment/configuration change, runtime behavior, proxy trust change, limiter source-key change, deployment, or hosted validation.
+**Status:** Implemented locally as P0-F4c; Render deployment and controlled staging validation remain pending. The implementation authorizes no proxy trust change, limiter source-key change, production enablement, or hosted validation by itself.
 
 **Purpose:** Define the smallest future diagnostic that can supply category-only evidence for the [staging proxy/source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md). It must determine whether a forwarded source signal is ignored, overwritten, preserved, ambiguous, rejected, or unsafe without revealing raw network values or changing the current direct-socket limiter.
 
-The current direct-socket source behavior remains required. This diagnostic would only observe and classify the boundary; it must not make a forwarded source eligible for rate-limit keys. A separate acceptance decision is still required before any trust or limiter change.
+The current direct-socket source behavior remains required. The diagnostic only observes and classifies the boundary; it does not make a forwarded source eligible for rate-limit keys. A separate acceptance decision is still required before any trust or limiter change.
 
 ## Recommended access model
 
 Use all of the following gates:
 
-1. **Staging runtime only.** Non-staging and production-like runtimes must not register the route or emit this diagnostic event, even if any diagnostic flag is set.
+1. **Staging runtime only.** The deployed route may operate only in `staging`; the local `test` runtime is permitted solely for automated coverage. Non-staging deployed runtimes and production must not register the route or emit this diagnostic event, even if any diagnostic flag is set.
 2. **Disabled by default.** Registration requires one explicit staging-only environment flag, with a documented short expiry and named owner.
 3. **Authenticated owner only.** Require the existing authenticated owner authorization path and an active owner role; do not accept customer, public, or anonymous requests.
 4. **Fixed, synthetic test cases only.** The owner may select only a small allowlisted case label. No user-provided source/header value, URL, body, or free-text label is accepted.
@@ -21,9 +21,9 @@ The diagnostic is never public, is not for normal beta traffic, and has no produ
 
 ## Proposed protected endpoint
 
-**Suggested path:** `POST /api/internal/source-boundary-diagnostic`
+**Implemented path:** `POST /api/internal/source-boundary-diagnostic`
 
-The endpoint exists only while all runtime gates above are satisfied. A route is preferred over event-only instrumentation because the validation needs a deliberately authorized request that travels through the exact staging ingress path; the event is the audit output, not the trigger.
+The endpoint exists only while all runtime gates above are satisfied. It requires `SLOTZY_SOURCE_BOUNDARY_DIAGNOSTIC_ENABLED=true`; this flag is disabled by default and production refuses enablement. A route is preferred over event-only instrumentation because the validation needs a deliberately authorized request that travels through the exact staging ingress path; the event is the audit output, not the trigger.
 
 | Element | Proposed contract |
 | --- | --- |
@@ -59,7 +59,7 @@ Return a fixed JSON schema containing only the following labels:
 
 **Suggested event name:** `security.source_boundary_checked`
 
-Existing safe-event allowlisting does not currently support the diagnostic fields below. A future implementation must extend it with fixed enum validation for each new field—never generic `safeText` or caller-selected values.
+Safe-event allowlisting implements the diagnostic fields below with fixed enum validation; it does not accept generic text or caller-selected values.
 
 Allowed event fields:
 
@@ -93,7 +93,7 @@ Local tests can prove the diagnostic's classification contract and redaction beh
 
 ## Later staging workflow
 
-1. Obtain separate approval for implementation, exact access configuration, tests, and a short diagnostic expiry/removal decision.
+1. Obtain separate approval for Render deployment, exact access configuration, a short diagnostic expiry/removal decision, and this controlled validation.
 2. Deploy only to the positively identified staging service; verify it remains disabled until the approved window.
 3. Enable it only for that window, using the explicit staging flag and authenticated owner access.
 4. Send the minimum paced synthetic requests needed for each approved case. Do not use production/customer traffic, customer accounts, customer data, or normal beta traffic.
@@ -130,7 +130,7 @@ Record only a safe blocker category. Do not work around a hard stop by recording
 
 | Question | Answer |
 | --- | --- |
-| Backend implementation authorized now? | **No.** This is a design specification only; implementation and all staging traffic require separate approval. |
+| Backend implementation authorized now? | **Implemented locally.** Render deployment and all staging traffic still require separate approval. |
 | Netlify required? | **No.** Only relevant later if a Netlify/CDN path is explicitly included in the topology under validation. |
 | Render required? | **Yes later.** A separately approved implementation would be deployed and exercised only on the actual Render staging path. No Render change is authorized here. |
 | Supabase migration required? | **No.** The diagnostic requires no persistence or schema change. |

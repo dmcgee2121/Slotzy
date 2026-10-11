@@ -5,7 +5,8 @@ const EVENT_FIELDS = new Set([
   "event", "environment", "service", "storageMode", "requestId", "route", "method",
   "status", "errorCode", "errorClass", "durationMs", "durationBucket", "release",
   "outcome", "operation", "dependencyStatus", "notificationMode",
-  "category", "keyType",
+  "category", "keyType", "diagnosticCase", "diagnosticState", "directSocketSource",
+  "forwardedInput", "forwardedHandling", "sourceKeyDecision", "diagnosticResult",
 ]);
 
 function safeText(value, max = 120) {
@@ -64,6 +65,13 @@ export function buildSafeEvent(input = {}) {
     notificationMode: safeEnum(input.notificationMode, /^[a-z][a-z0-9_.-]{0,31}$/),
     category: safeEnum(input.category, /^[a-z][a-z0-9_.-]{0,79}$/),
     keyType: safeEnum(input.keyType, /^(account|coarse_source|shop|manage|contact)$/),
+    diagnosticCase: safeEnum(input.diagnosticCase, /^(missing-forwarded|single-forwarded|multiple-forwarded|malformed-forwarded|private-looking-forwarded|ipv4-looking-forwarded|ipv6-looking-forwarded|mixed-forwarded)$/),
+    diagnosticState: safeEnum(input.diagnosticState, /^enabled$/),
+    directSocketSource: safeEnum(input.directSocketSource, /^(present|absent|unknown)$/),
+    forwardedInput: safeEnum(input.forwardedInput, /^(none|single|multiple|malformed|private-looking|ipv4-looking|ipv6-looking|mixed|unknown)$/),
+    forwardedHandling: safeEnum(input.forwardedHandling, /^(not-trusted|observed-only|ambiguous|rejected)$/),
+    sourceKeyDecision: safeEnum(input.sourceKeyDecision, /^(direct-socket-current|future-forwarded-not-approved)$/),
+    diagnosticResult: safeEnum(input.diagnosticResult, /^(pass|fail|blocked|ambiguous)$/),
   };
   if (values.durationMs !== undefined) values.durationBucket = durationBucket(values.durationMs);
   for (const [key, value] of Object.entries(values)) {

@@ -55,7 +55,7 @@ The present direct-socket limiter remains the required behavior for solo-founder
 
 ## Safest next step
 
-Seek separate approval for the [P0-F4b protected diagnostic design](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md). First review its privacy contract, owner-only staging access boundary, fixed synthetic test cases, safe labels, and removal/disable plan; only after it is implemented and locally tested may the existing staging validation plan be executed against Render. Implementation remains pending. This review itself requires no Netlify work, no Render change, and no Supabase migration.
+The [P0-F4c implementation](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md) now provides the protected, category-only diagnostic locally: it is disabled by default, staging-only (with a local-test exception), production-refusing, and authenticated-owner-only. Review its privacy contract, fixed synthetic test cases, safe labels, and removal/disable plan before separately approving a Render deployment and controlled validation. Forwarded-source trust remains unapproved. This review requires no Netlify work, no Render change, and no Supabase migration.
 
 ## Related records
 
