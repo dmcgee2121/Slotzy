@@ -8,7 +8,7 @@
 - Shared limiter decision gate created.
 - Provider/store options reviewed.
 - Managed Redis-compatible store category recommended for future staging only.
-- Staging implementation design spec created.
+- Staging implementation design spec created; providerless local adapter foundation completed and staging-smoked.
 - Endpoint failure-mode policy created.
 - Route-to-category map created.
 
@@ -19,7 +19,7 @@
 | Source-boundary evidence | Complete | [Accepted diagnostic result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md) | Direct-socket behavior only; forwarded headers remain untrusted. |
 | Provider/store category | Complete | [Options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md) | Redis-compatible category recommended for future staging only. |
 | Final provider/vendor selection | Blocked | [Decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md) | No vendor, account, cost, or access decision. |
-| Limiter-store abstraction design | Complete | [Implementation spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) | Adapter boundary and in-process rollback are specified. |
+| Limiter-store abstraction design | Complete | [P0-F5g foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADAPTER_FOUNDATION_RESULT.md) | Providerless local adapter foundation is complete; full shared-provider integration remains blocked. |
 | Privacy-safe key design | Open review | [Implementation spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) | Concept is defined; HMAC ownership/rotation remains unresolved. |
 | HMAC/key ownership and rotation plan | Blocked | [Decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md) | Needs owner, access boundary, and rotation procedure. |
 | Route-to-category mapping | Complete | [Route map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md) | Several routes still require final implementation choices. |

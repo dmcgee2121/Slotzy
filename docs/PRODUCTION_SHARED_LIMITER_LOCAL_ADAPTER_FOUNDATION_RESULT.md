@@ -21,9 +21,25 @@ The fake adapter reports only the bounded `store_unavailable` failure category w
 - `node --test test/rate-limiter.test.js test/rate-limit-api.test.js` — passed.
 - `node --test test/observability.test.js test/rate-limiter.test.js test/rate-limit-api.test.js test/source-boundary-diagnostic-api.test.js` — passed.
 
+## Rollout and staging validation
+
+| Item | Result |
+| --- | --- |
+| Commit | `eacf9fe` — providerless local limiter adapter foundation |
+| Backend source changed | Yes — `server/src/rateLimiter.js` |
+| Active runtime adapter | Existing in-process/current default |
+| External provider | None |
+| Dependencies | None added |
+| Environment variables | None added |
+| Forwarded-source trust | Not approved |
+| Supabase migration | None |
+| Guarded staging result | **3/3 passed** in about 2.2 minutes |
+
+The guarded staging result covered the focused staging owner setup API chain, synthetic staging owner-to-customer booking lifecycle, and synthetic-context negative checks. This records a pass after the backend-source commit was pushed. It does not claim additional Render dashboard evidence, enable a real shared provider, or approve production.
+
 ## Gate status
 
-The production shared limiter remains **not approved**. Real provider selection, shared adapter integration, environment configuration, final policy decisions, staging validation, and production acceptance remain blocked. Production launch remains **no-go**.
+The production shared limiter remains **not approved**. Real provider selection, shared adapter integration, HMAC ownership/rotation, TTL/window values, response/failure decisions, staging validation plan, operations ownership, and production acceptance remain blocked. Production launch remains **no-go**.
 
 ## Infrastructure impact
 
