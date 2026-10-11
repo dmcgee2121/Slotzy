@@ -27,9 +27,9 @@
 
 **Why it matters:** Logout and recovery must promptly remove access when a device or account is compromised.
 
-**Current status:** Existing JWTs can survive a password change for up to seven days; per-user session revocation is unavailable.
+**Current status:** The durable per-user JWT revocation foundation is implemented on staging. The `auth_version` migration is applied in staging, and staff tokens use a stable subject plus version, issuer, and audience validation. Protected routes reload the user and enforce the current auth version and invalid-after time. A server-side logout-all action is available. Password-change UI/API and self-service recovery are not implemented, so password changes cannot yet invalidate existing sessions through a supported user flow.
 
-**Required work:** Add server-enforced session/token revocation, bounded session lifetime and refresh rules, device/session visibility where appropriate, and regression coverage for logout, expiry, recovery, and compromise.
+**Required work:** Implement password change with invalidation of existing sessions as the next account-security package. Then define bounded session lifetime and refresh rules, device/session visibility where appropriate, self-service recovery, and regression coverage for logout, expiry, recovery, and compromise.
 
 **Required for:** Wider beta at minimum; production and app-store readiness required.
 
@@ -158,7 +158,7 @@
 ### P0 — must complete before production
 
 1. Production environment separation, secrets/access review, and deployment controls.
-2. Session revocation and secure self-service recovery.
+2. Password-change invalidation and secure self-service recovery, building on the completed staging session-revocation foundation.
 3. Production privacy, retention, deletion/export, and disclosure decisions.
 4. Production backup, restore-target app smoke, recovery objectives, and a restore drill.
 5. Monitoring, alerting, incident response, security review, dependency review, and rate-limit/abuse controls.
@@ -167,7 +167,7 @@
 ### P1 — needed before wider beta
 
 1. Restore-target application smoke, including recurring-block data.
-2. Session/logout, recovery, adverse-network, duplicate-submit, expired-link, and installed-PWA update coverage.
+2. Password-change/session invalidation, logout, recovery, adverse-network, duplicate-submit, expired-link, and installed-PWA update coverage.
 3. Notification reliability expectations, idempotency, and monitoring if notifications are relied on.
 4. Structured, consented real-user testing when feasible, with redacted feedback and defined support.
 
