@@ -1,6 +1,6 @@
 # Privacy and data retention inventory decision record
 
-**Status:** Planning record; production privacy, legal, retention, deletion/export, and support-workflow decisions remain pending.  
+**Status:** Planning record; production privacy, legal, retention, deletion/export, and support-workflow decisions remain pending.
 **Current framing:** Slotzy is staging-ready for solo-founder QA, not production-ready. This record authorizes neither data deletion nor any implementation, provider, configuration, or production change.
 
 ## Decision summary and principles
