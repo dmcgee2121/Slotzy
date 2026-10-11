@@ -10,7 +10,7 @@ The staging-safe limiter uses privacy-safe HMAC-derived keys and currently takes
 
 Validation must establish the actual Render request path, trusted proxy boundary, and source-signal behavior before any forwarded value may replace the current direct-socket input. Until then, retain current behavior; do not add an ad-hoc proxy trust setting or change the limiter source key.
 
-The [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md) found that current safe events, logs, and tests cannot yield the category-only proof required here. The [P0-F4c protected diagnostic implementation/specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md) is deployed to staging. A controlled attempt is recorded as [P0-F4e blocked/failed](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md): owner-authenticated calls returned the bad-request category and produced no category-only evidence. P0-F4g corrects and locally locks the empty-body/header-case request contract, but hosted validation remains pending separate approval and successful execution. No source-boundary proof was accepted; retain direct-socket behavior.
+The [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md) found that current safe events, logs, and tests cannot yield the category-only proof required here. The [P0-F4c protected diagnostic implementation/specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md) is deployed to staging. The initial [P0-F4e attempt](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md) returned bad-request responses. The corrected hosted [P0-F4h retry](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_RETRY_RESULT.md) reached the endpoint for all eight cases with `ok=True`, but printed blank required category fields. Its evidence is therefore incomplete and not accepted. Validation remains pending; retain direct-socket behavior and do not trust forwarded headers.
 
 ## Staging-only boundary and safe test approach
 
@@ -102,6 +102,7 @@ Conduct a docs-approved, staging-only manual/API smoke later using synthetic req
 - [P0-F4c protected source-boundary diagnostic rollout](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ROLLOUT.md)
 - [P0-F4d controlled diagnostic execution plan](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_EXECUTION_PLAN.md)
 - [P0-F4e blocked diagnostic attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md)
+- [P0-F4h corrected hosted retry result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_RETRY_RESULT.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)
 - [Production gap review](PRODUCTION_GAP_REVIEW.md)

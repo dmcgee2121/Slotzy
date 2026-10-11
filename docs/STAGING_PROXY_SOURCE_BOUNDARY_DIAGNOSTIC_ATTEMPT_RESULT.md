@@ -43,6 +43,7 @@ The diagnostic request contract did not produce its required category-only outpu
 
 ## Related records
 
+- [P0-F4h corrected hosted retry result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_RETRY_RESULT.md)
 - [P0-F4d controlled execution plan](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_EXECUTION_PLAN.md)
 - [P0-F4f diagnostic 400 review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_400_REVIEW.md)
 - [P0-F4c diagnostic rollout](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ROLLOUT.md)
