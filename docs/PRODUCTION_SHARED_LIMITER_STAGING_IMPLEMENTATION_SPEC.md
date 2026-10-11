@@ -20,6 +20,8 @@ Introduce a limiter-store abstraction with a small adapter contract for an atomi
 
 This separation permits local adapter tests, a fake shared-store implementation, and a flag-based return to the current in-process adapter without changing route policy or source-boundary behavior.
 
+The [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md) is the planning input for route policy wiring; unresolved entries require implementation review before code.
+
 ## Environment and configuration design
 
 These are proposed names only; no variables are created or configured by this document.
@@ -88,6 +90,7 @@ The staging implementation design direction is documented, but implementation re
 
 - [Shared limiter options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md)
 - [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
+- [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)

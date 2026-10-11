@@ -11,6 +11,8 @@ The [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGIN
 
 The [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md) records category-level outage direction for future staging work only; production shared-limiter approval remains pending.
 
+The [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md) maps current backend routes for future staging planning only; it grants no production approval.
+
 ## Decision summary
 
 P0-B2a's bounded in-process limiter remains appropriate for controlled, solo-founder staging QA. It is not a production control: counters are per instance, reset on deploy, and can be bypassed when traffic is distributed across instances.

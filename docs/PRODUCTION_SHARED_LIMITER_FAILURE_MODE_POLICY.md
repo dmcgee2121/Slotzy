@@ -6,6 +6,8 @@
 
 This policy applies to shared-store outage and error behavior in a future staging implementation. It does not change the current in-process limiter or approve production. It retains the accepted `direct-socket-current` source behavior; forwarded headers remain untrusted.
 
+The [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md) applies these policy families to current source routes and marks unresolved enforcement choices as open review. Implementation remains blocked.
+
 ## Endpoint categories and proposed behavior
 
 | Endpoint category | Normal limiter behavior when store is available | Shared-store failure behavior | User-facing response style | Allowed observability category | Rationale |
@@ -65,5 +67,6 @@ Failure-mode direction is documented for a future staging implementation. Implem
 ## Related records
 
 - [Staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
+- [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
