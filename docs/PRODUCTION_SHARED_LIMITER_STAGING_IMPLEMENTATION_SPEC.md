@@ -78,6 +78,8 @@ Implement disabled by default, deploy to staging only, and enable only in a sepa
 
 The staging implementation design direction is documented, but implementation remains blocked pending the open decisions. The production shared limiter remains **not approved** and production launch remains **no-go**.
 
+The [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md) concludes that a full implementation is not yet ready to start.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -91,6 +93,7 @@ The staging implementation design direction is documented, but implementation re
 - [Shared limiter options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md)
 - [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md)
+- [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)

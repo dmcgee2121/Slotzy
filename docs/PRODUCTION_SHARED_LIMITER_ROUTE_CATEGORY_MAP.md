@@ -89,6 +89,8 @@ This planning map is based on the current Express route definitions in `server/s
 
 The route mapping is documented for future staging implementation only. Implementation remains blocked, the production shared limiter remains **not approved**, and production launch remains **no-go**.
 
+See the [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md) for the remaining prerequisites before code.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -102,3 +104,4 @@ The route mapping is documented for future staging implementation only. Implemen
 - [Shared limiter failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [Staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
+- [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
