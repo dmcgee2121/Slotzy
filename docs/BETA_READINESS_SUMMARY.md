@@ -33,6 +33,16 @@ The guarded staging suite passed after the latest application and test-harness f
 - Stale browser tabs, cached frontend assets, and installed-PWA update behavior remain monitoring items.
 - External real-user testing is still needed before any app-store readiness decision.
 
+## Solo-founder QA mode
+
+External tester recruitment is deferred for now and is not a beta blocker by itself. Founder-led UAT remains distinct from external tester feedback. Until real testers are feasible, use this repeatable staging QA routine:
+
+- Complete a founder-led smoke pass weekly and after each deployment.
+- Run the guarded staging suite after deployments.
+- Run the mobile automation and perform mobile/PWA spot checks on the supported devices and browsers.
+- Document only repeatable blockers or meaningful workflow friction; keep notes redacted and free of private links or tester data.
+- Defer ad hoc or uncommitted testers. Revisit a small, structured real-tester round later, before app-store or production readiness decisions.
+
 ## Immediate stop conditions
 
 Pause the affected workflow and new invitations, then investigate, if any of these occur:
@@ -47,11 +57,11 @@ Pause the affected workflow and new invitations, then investigate, if any of the
 
 1. Hold feature/code changes briefly and preserve this stable staging checkpoint.
 2. Continue founder-led spot checks after deployments, especially booking, manage-link, cancellation, reschedule, and refresh persistence.
-3. When practical, recruit two or three trusted real testers for the controlled staging cohort.
+3. Revisit a structured, trusted real-tester round only when it is feasible; it remains recommended before app-store or production readiness.
 4. Keep feedback structured, redacted, and separate from founder-led UAT notes.
 5. Prioritize production hardening before any public launch: recovery/session controls, privacy and retention, observability, rate limiting, production backup/restore, and broader adverse-network coverage.
 6. Keep later roadmap work separate from beta reliability: client accounts, barber reviews/photos, richer profiles, notifications, payments, and app packaging.
 
 ## Monitoring
 
-Treat stale-tab/cache and installed-PWA behavior as non-blocking monitoring items unless they reproduce an authoritative-save discrepancy or another stop condition. Re-run the guarded staging suite after deployments before expanding tester access.
+Treat stale-tab/cache and installed-PWA behavior as non-blocking monitoring items unless they reproduce an authoritative-save discrepancy or another stop condition. Re-run the guarded staging suite after deployments.
