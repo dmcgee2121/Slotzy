@@ -1,6 +1,6 @@
 # Controlled source-boundary diagnostic execution plan — P0-F4d
 
-**Execution status:** Attempted and **blocked/failed**; see the [P0-F4e attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md). This plan does not authorize a retry, flag enablement, source-key change, forwarded-header trust, or production change.
+**Execution status:** Attempted and **blocked/failed**; see the [P0-F4e attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md) and [P0-F4f source/local review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_400_REVIEW.md). Retry remains blocked pending separately approved local test/runbook correction. This plan does not authorize a retry, flag enablement, source-key change, forwarded-header trust, or production change.
 
 ## Target and non-negotiable boundary
 
@@ -133,6 +133,7 @@ Execution may be recorded as passed only when all of these hold:
 ## Related records
 
 - [P0-F4e blocked diagnostic attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md)
+- [P0-F4f diagnostic 400 review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_400_REVIEW.md)
 - [P0-F4c diagnostic rollout](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ROLLOUT.md)
 - [Protected diagnostic specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md)
 - [Source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md)

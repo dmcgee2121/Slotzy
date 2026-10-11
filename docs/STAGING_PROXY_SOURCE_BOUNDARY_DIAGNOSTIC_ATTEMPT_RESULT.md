@@ -25,6 +25,8 @@ The post-attempt guarded suite covered the focused synthetic owner setup API cha
 
 Treat this attempt as **blocked/failed**, not partial success. Do not retry the diagnostic until the root cause of the `400` responses is inspected locally and in source, then corrected and locally validated in a separately approved package. Do not infer anything from the blank output table.
 
+The [P0-F4f source/local review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_400_REVIEW.md) identifies the likely request-contract mismatch: a nonempty JSON body is rejected, while the fixed case label must be sent through the required header. The result remains blocked/failed pending separately approved local test/runbook work.
+
 Keep the limiter direct-socket based. Keep forwarded headers untrusted. Forwarded-source trust remains unapproved, and the production shared limiter remains no-go.
 
 ## Remaining blocker
@@ -42,6 +44,7 @@ The diagnostic request contract did not produce its required category-only outpu
 ## Related records
 
 - [P0-F4d controlled execution plan](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_EXECUTION_PLAN.md)
+- [P0-F4f diagnostic 400 review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_400_REVIEW.md)
 - [P0-F4c diagnostic rollout](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ROLLOUT.md)
 - [Protected diagnostic specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md)
 - [Source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md)
