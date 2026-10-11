@@ -2147,6 +2147,60 @@ test("hosted account settings separate identity, public shop fields, profile edi
   await expectNoPageOverflow(page, "hosted owner account settings");
 });
 
+test("staff password change validates locally, refreshes the bearer token, and keeps errors safe", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.addInitScript(() => {
+    localStorage.setItem("Slotzy_api_mode", "1");
+    localStorage.setItem("Slotzy_auth_token", "test-stale-token");
+  });
+  let passwordChangeRequests = 0;
+  let respondWithFailure = false;
+  await page.route("**/api/auth/change-password", async (route) => {
+    passwordChangeRequests += 1;
+    await route.fulfill({
+      status: respondWithFailure ? 401 : 200,
+      contentType: "application/json",
+      body: JSON.stringify(respondWithFailure
+        ? { error: "current password is incorrect" }
+        : { ok: true, token: "test-fresh-token", user: { username: OWNER_USERNAME, role: "owner", displayName: "E2E Mobile Owner", shopId: SHOP_ID } }),
+    });
+  });
+
+  await page.goto("/pages/settings.html");
+  await expect(page.getByRole("heading", { name: "Change password" })).toBeVisible();
+  const form = page.locator("#changePasswordForm");
+  await form.getByRole("button", { name: "Change Password" }).click();
+  await expect(page.locator("#changePasswordStatus")).toContainText("Enter your current password");
+  await page.fill("#currentPasswordInput", "current-test-password");
+  await page.fill("#newPasswordInput", "short");
+  await page.fill("#confirmNewPasswordInput", "short");
+  await form.getByRole("button", { name: "Change Password" }).click();
+  await expect(page.locator("#changePasswordStatus")).toContainText("at least 6 characters");
+  await page.fill("#newPasswordInput", "new-test-password");
+  await page.fill("#confirmNewPasswordInput", "different-password");
+  await form.getByRole("button", { name: "Change Password" }).click();
+  await expect(page.locator("#changePasswordStatus")).toContainText("must match");
+  expect(passwordChangeRequests).toBe(0);
+
+  await page.fill("#confirmNewPasswordInput", "new-test-password");
+  await form.getByRole("button", { name: "Change Password" }).click();
+  await expect(page.locator("#changePasswordStatus")).toContainText("Other browsers and devices have been signed out");
+  await expect(page.locator("#currentPasswordInput")).toHaveValue("");
+  await expect(page.locator("#newPasswordInput")).toHaveValue("");
+  await expect(page.locator("#confirmNewPasswordInput")).toHaveValue("");
+  expect(passwordChangeRequests).toBe(1);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("Slotzy_auth_token") === "test-fresh-token")).toBe(true);
+
+  respondWithFailure = true;
+  await page.fill("#currentPasswordInput", "current-test-password");
+  await page.fill("#newPasswordInput", "another-test-password");
+  await page.fill("#confirmNewPasswordInput", "another-test-password");
+  await form.getByRole("button", { name: "Change Password" }).click();
+  await expect(page.locator("#changePasswordStatus")).toHaveText("Password could not be changed. Check your current password and try again.");
+  expect(passwordChangeRequests).toBe(2);
+  await expectNoPageOverflow(page, "hosted staff password settings");
+});
+
 test("owner login recovery help is generic and performs no account lookup", async ({ page }) => {
   let recoveryRequests = 0;
   page.on("request", (request) => {

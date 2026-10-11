@@ -15,6 +15,12 @@ import { wireLogoutButton } from "./logout.js";
   const missingFields = document.getElementById("missingFields");
   const saveProfileBtn = document.getElementById("saveProfileBtn");
   const profileStatus = document.getElementById("profileStatus");
+  const changePasswordForm = document.getElementById("changePasswordForm");
+  const currentPasswordInput = document.getElementById("currentPasswordInput");
+  const newPasswordInput = document.getElementById("newPasswordInput");
+  const confirmNewPasswordInput = document.getElementById("confirmNewPasswordInput");
+  const changePasswordBtn = document.getElementById("changePasswordBtn");
+  const changePasswordStatus = document.getElementById("changePasswordStatus");
 
   const shopSettingsCard = document.getElementById("shopSettingsCard");
   const businessNameInput = document.getElementById("businessNameInput");
@@ -125,6 +131,7 @@ import { wireLogoutButton } from "./logout.js";
     loadProfile();
     if (accountUsernameInput) accountUsernameInput.value = currentUsername;
     ownerRecoveryHelpBtn?.addEventListener("click", toggleOwnerRecoveryHelp);
+    changePasswordForm?.addEventListener("submit", handlePasswordChange);
     bindCompletenessEvents();
     updateProfileCompleteness();
     configureProfileEditing();
@@ -191,6 +198,54 @@ import { wireLogoutButton } from "./logout.js";
     const willShow = ownerRecoveryHelpMessage.classList.contains("hidden");
     ownerRecoveryHelpMessage.classList.toggle("hidden", !willShow);
     ownerRecoveryHelpBtn.setAttribute("aria-expanded", willShow ? "true" : "false");
+  }
+
+  function setPasswordChangeStatus(message, success = false) {
+    if (!changePasswordStatus) return;
+    changePasswordStatus.textContent = String(message ?? "");
+    changePasswordStatus.classList.toggle("success", Boolean(success));
+    changePasswordStatus.classList.toggle("error", !success && Boolean(message));
+  }
+
+  async function handlePasswordChange(event) {
+    event.preventDefault();
+    const currentPassword = String(currentPasswordInput?.value ?? "");
+    const newPassword = String(newPasswordInput?.value ?? "");
+    const confirmation = String(confirmNewPasswordInput?.value ?? "");
+    setPasswordChangeStatus("");
+
+    if (!currentPassword || !newPassword || !confirmation) {
+      setPasswordChangeStatus("Enter your current password, a new password, and confirmation.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordChangeStatus("New password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmation) {
+      setPasswordChangeStatus("New password and confirmation must match.");
+      return;
+    }
+
+    const originalButtonText = changePasswordBtn?.textContent ?? "Change Password";
+    if (changePasswordBtn) {
+      changePasswordBtn.disabled = true;
+      changePasswordBtn.textContent = "Changing password...";
+    }
+    try {
+      await dataStore.changePasswordAsync({ currentPassword, newPassword });
+      [currentPasswordInput, newPasswordInput, confirmNewPasswordInput].forEach((input) => {
+        if (input) input.value = "";
+      });
+      setPasswordChangeStatus("Password changed. Other browsers and devices have been signed out.", true);
+    } catch {
+      setPasswordChangeStatus("Password could not be changed. Check your current password and try again.");
+    } finally {
+      if (changePasswordBtn) {
+        changePasswordBtn.disabled = false;
+        changePasswordBtn.textContent = originalButtonText;
+      }
+    }
   }
 
   async function handleSaveProfile() {

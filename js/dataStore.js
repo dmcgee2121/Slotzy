@@ -339,6 +339,32 @@ export async function getPublicBookingContextAsync({ shopSlug = "", shopId = "" 
   return apiRequest(`/public/booking-context${suffix}`, { requireAuth: false });
 }
 
+export async function changePasswordAsync({ currentPassword = "", newPassword = "" } = {}) {
+  if (!isApiModeEnabled()) {
+    throw createApiRequestError("Password changes require a secure server connection", {
+      code: "api_unavailable",
+      requestAttempted: false,
+      endpointPath: "/api/auth/change-password",
+    });
+  }
+  const payload = await apiRequest("/auth/change-password", {
+    method: "POST",
+    body: { currentPassword: String(currentPassword ?? ""), newPassword: String(newPassword ?? "") },
+  });
+  const token = String(payload?.token ?? "").trim();
+  const sessionUser = normalizeApiAuthUser(payload?.user);
+  if (!token || !sessionUser) {
+    throw createApiRequestError("Invalid password change response", {
+      code: "invalid_password_change_response",
+      requestAttempted: true,
+      endpointPath: "/api/auth/change-password",
+    });
+  }
+  setAuthToken(token);
+  syncApiAuthUserToLocalState(sessionUser);
+  return sessionUser;
+}
+
 export async function createPublicBookingAsync(booking) {
   const payload = await apiRequest("/bookings", {
     method: "POST",

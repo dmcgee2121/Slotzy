@@ -411,7 +411,7 @@
 
     <section class="card owner-panel settings-card section-stack" id="ownerAccountCard">
       <div class="card-head">
-        <h2>Owner account and profile</h2>
+        <h2>Account and profile</h2>
         <p>Account access, personal profile details, and public shop information are handled separately during beta.</p>
       </div>
       <section class="settings-subcard section-stack" aria-labelledby="accountIdentityHeading">
@@ -424,9 +424,37 @@
           <input id="accountUsernameInput" type="text" readonly aria-readonly="true" />
           <p class="small settings-field-help">Your username identifies your account and provider schedule, so it cannot be changed during beta.</p>
         </div>
-        <p class="small">Password changes and self-service password reset are not available yet.</p>
-        <button id="ownerRecoveryHelpBtn" class="btn btn-ghost owner-action-btn" type="button" aria-expanded="false" aria-controls="ownerRecoveryHelpMessage">Need help accessing your owner account?</button>
-        <p id="ownerRecoveryHelpMessage" class="small hidden" role="status" aria-live="polite">Owner recovery is operator-assisted during beta. Contact the private pilot support channel. Never send a password, sign-in token, or customer information.</p>
+        <button id="ownerRecoveryHelpBtn" class="btn btn-ghost owner-action-btn" type="button" aria-expanded="false" aria-controls="ownerRecoveryHelpMessage">Need help accessing your account?</button>
+        <p id="ownerRecoveryHelpMessage" class="small hidden" role="status" aria-live="polite">Account recovery is operator-assisted during beta. Contact the private pilot support channel. Never send a password, sign-in token, or customer information.</p>
+      </section>
+
+      <section class="settings-subcard section-stack" aria-labelledby="changePasswordHeading">
+        <div>
+          <p class="settings-kicker">Account security</p>
+          <h3 id="changePasswordHeading">Change password</h3>
+          <p class="small">Changing your password signs out other browsers and devices. This browser stays signed in after a successful change.</p>
+        </div>
+        <form id="changePasswordForm" class="section-stack" novalidate>
+          <div class="field">
+            <label for="currentPasswordInput">Current password</label>
+            <input id="currentPasswordInput" type="password" autocomplete="current-password" required />
+          </div>
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="newPasswordInput">New password</label>
+              <input id="newPasswordInput" type="password" autocomplete="new-password" minlength="6" required />
+              <p class="small settings-field-help">Use at least 6 characters.</p>
+            </div>
+            <div class="field">
+              <label for="confirmNewPasswordInput">Confirm new password</label>
+              <input id="confirmNewPasswordInput" type="password" autocomplete="new-password" minlength="6" required />
+            </div>
+          </div>
+          <div class="cta-row">
+            <button id="changePasswordBtn" class="btn btn-primary" type="submit">Change Password</button>
+          </div>
+          <p id="changePasswordStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        </form>
       </section>
 
       <section class="settings-subcard section-stack" aria-labelledby="personalProfileHeading">
