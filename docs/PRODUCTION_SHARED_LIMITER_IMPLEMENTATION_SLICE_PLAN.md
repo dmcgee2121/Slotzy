@@ -81,6 +81,8 @@ After this plan is committed, approve only a future narrow, local, providerless 
 
 The implementation-slice plan is documented. The full shared limiter remains blocked. A first future code slice may be considered only if it remains local, providerless, default-preserving, and test-backed. The production shared limiter remains **not approved** and production launch remains **no-go**.
 
+The [P0-F5g local adapter foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADAPTER_FOUNDATION_RESULT.md) records completion of that providerless, default-preserving local slice. Real shared-provider work remains blocked.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -95,3 +97,4 @@ The implementation-slice plan is documented. The full shared limiter remains blo
 - [Staging implementation spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
 - [Route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md)
 - [Failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
+- [P0-F5g local adapter foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADAPTER_FOUNDATION_RESULT.md)

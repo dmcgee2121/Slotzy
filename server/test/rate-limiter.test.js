@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits } from "../src/rateLimiter.js";
+import { LIMITER_STORE_FAILURE_CATEGORY, RATE_LIMIT_CATEGORIES, createFakeSharedLimiterStore, createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits } from "../src/rateLimiter.js";
 
 test("fixed windows expire and cleanup removes stale counters", () => {
   let currentTime = 1_000;
@@ -47,4 +47,31 @@ test("limiter keys and decisions never retain raw sensitive material", () => {
   const denied = evaluateRateLimits({ limiter, policies, category: "login", buildKey, keyInputs: [{ keyType: "account", values: [sensitive] }] });
   assert.deepEqual(Object.keys(denied).sort(), ["allowed", "keyType", "remaining", "retryAfterSeconds"].sort());
   assert.equal(JSON.stringify(denied).includes(sensitive), false);
+});
+
+test("fake shared-store adapter provides local atomic-window semantics and expiry", () => {
+  let currentTime = 1_000;
+  const store = createFakeSharedLimiterStore({ now: () => currentTime });
+  assert.equal(store.consume({ key: "local-test-key", limit: 2, windowMs: 1_000 }).allowed, true);
+  assert.equal(store.consume({ key: "local-test-key", limit: 2, windowMs: 1_000 }).allowed, true);
+  assert.equal(store.consume({ key: "local-test-key", limit: 2, windowMs: 1_000 }).allowed, false);
+  currentTime = 2_001;
+  assert.equal(store.consume({ key: "local-test-key", limit: 2, windowMs: 1_000 }).allowed, true);
+});
+
+test("fake shared-store failure is bounded and category-only", () => {
+  const result = createFakeSharedLimiterStore({ fail: true }).consume({ key: "local-test-key", limit: 1, windowMs: 1_000 });
+  assert.deepEqual(result, {
+    allowed: false,
+    remaining: 0,
+    retryAfterSeconds: 0,
+    failureCategory: LIMITER_STORE_FAILURE_CATEGORY,
+  });
+  assert.equal(JSON.stringify(result).includes("local-test-key"), false);
+});
+
+test("enforced rate-limit category constants remain a small fixed set", () => {
+  assert.deepEqual(Object.values(RATE_LIMIT_CATEGORIES).sort(), [
+    "booking_create", "login", "manage_cancel", "manage_lookup", "manage_recovery",
+  ]);
 });
