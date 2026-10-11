@@ -43,6 +43,8 @@ Backup/restore validation should run in parallel as operational preparation wher
 
 **Production-gate status update:** the [PRODUCTION_GATE_STATUS.md](PRODUCTION_GATE_STATUS.md) consolidates completed staging evidence, remaining production blockers, and the next-package sequence. It does not change any gate: Slotzy remains staging-ready for solo-founder QA, not production-ready, without external-tester validation or payment-launch approval.
 
+**Alert-routing update:** the [STAGING_ALERT_ROUTING_REHEARSAL.md](STAGING_ALERT_ROUTING_REHEARSAL.md) defines the first staging-only, redacted alert-routing rehearsal. Configuration and rehearsal remain pending; it does not approve production alerts. Slotzy remains staging-ready for solo-founder QA, not production-ready, without external-tester validation or payment-launch approval.
+
 ## Highest-risk deferral
 
 The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.
