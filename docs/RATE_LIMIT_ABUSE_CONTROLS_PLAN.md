@@ -12,7 +12,7 @@ The current Express surface includes public authentication, booking-context, boo
 
 The reusable bounded in-process limiter, privacy-safe HMAC keys, generic `429` responses, bounded `Retry-After`, and allowlisted `abuse.rate_limited` events are implemented for login, anonymous booking creation, public manage lookup, public cancellation, and manage-link recovery. Focused tests cover legitimate requests, limit boundaries, expiry and cleanup, bounded counter storage, route isolation, response non-enumeration, and event redaction.
 
-This package is ready for a Render staging deploy and guarded validation; that deployment is not recorded as complete here. Source keys currently derive from the direct socket address and intentionally do not trust forwarded headers until Render proxy behavior is explicitly validated. Counters remain instance-local and reset on deploy, so P0-B2a reduces staging risk but is not a production control. No monitoring provider or external rate-limit store was added.
+This package was deployed to Render staging and validated through guarded staging checks (3/3 passed). A controlled hosted login-limiter smoke confirmed the intended boundary: attempts 1–30 returned generic invalid-credentials `401` responses, while attempts 31–32 returned `429` with `auth_temporarily_limited`. Render logs showed safe `abuse.rate_limited` events with request IDs, route/method/status, category `login`, and key type `account`; the reviewed event output contained no raw username, password, raw IP, JWT, authorization header, token, contact, raw body, or full URL. Source keys currently derive from the direct socket address and intentionally do not trust forwarded headers until Render proxy behavior is explicitly validated. Counters remain instance-local and reset on deploy, so P0-B2a reduces staging risk but is not a production control. No monitoring provider or external rate-limit store was added.
 
 ## Key and failure-mode rules
 
@@ -81,7 +81,7 @@ Never log passwords, password hashes, JWTs, `jti` values, authorization headers,
 
 ## Recommended first implementation package
 
-**P0-B2a is implemented locally and awaits Render staging deployment/validation.** It covers login, anonymous booking creation, and public manage actions (`GET /api/public/manage`, `PATCH /api/public/manage/cancel`, and `POST /api/public/manage/recover`) with the common limiter and safety contract. Registration can reuse the helper afterward; password change and authenticated staff routes should follow only after the staging thresholds and source derivation are validated.
+**P0-B2a is implemented, deployed to Render staging, and smoke-validated.** It covers login, anonymous booking creation, and public manage actions (`GET /api/public/manage`, `PATCH /api/public/manage/cancel`, and `POST /api/public/manage/recover`) with the common limiter and safety contract. Guarded staging passed 3/3, and the controlled hosted login smoke verified generic `401` responses through the login threshold followed by generic `429` responses with `auth_temporarily_limited`. Registration can reuse the helper afterward; password change and authenticated staff routes should follow only after staging thresholds and source derivation are further validated.
 
 This is the smallest package covering the highest-risk combination: credential attacks, unauthenticated write spam, private manage-link probing, cancellation abuse, and recovery-message amplification. In-memory limits are acceptable for controlled single-instance staging because they reduce immediate abuse risk without new infrastructure. They are not production-complete: deploys reset counters, multiple instances do not share state, memory pressure requires bounds/cleanup, and a determined attacker can distribute requests. Production requires the Phase 2 shared-store/privacy decision and tested fallback behavior.
 
@@ -92,5 +92,5 @@ Public manage-token and manage-link recovery routes carry the highest confidenti
 ## Platform implications
 
 - **Netlify:** not required for the first backend package. Static/PWA volumetric controls remain a later provider-native decision if measured abuse warrants them.
-- **Render:** required to deploy and validate backend limits, confirm proxy/source-key handling, and observe safe limiter events. Production topology affects the shared-store decision.
+- **Render:** was required to deploy and validate the staging backend limits; guarded staging passed 3/3 and safe limiter events were observed. It remains required for future backend releases, proxy/source-key confirmation, and production-topology/shared-store validation.
 - **Supabase:** no migration is required for the plan or the recommended in-process staging package. Do not use application tables for production rate limiting without a separately reviewed design.
