@@ -109,6 +109,22 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     await writeStore(store);
   }
 
+  function authUserRecord(user) {
+    if (!user) return null;
+    const authVersion = Number(user.authVersion);
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      role: user.role,
+      shopId: user.shopId ?? null,
+      createdAt: user.createdAt,
+      isActive: user.isActive !== false,
+      authVersion: Number.isInteger(authVersion) && authVersion >= 1 ? authVersion : 1,
+      authInvalidAfter: user.authInvalidAfter ?? "",
+    };
+  }
+
   async function readStore() {
     try {
       const raw = await fs.readFile(filePath, "utf-8");
@@ -128,14 +144,27 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     const store = await readStore();
     const user = store.users.find((candidate) => String(candidate?.username ?? "").trim().toLowerCase() === key);
     if (!user) return null;
-    return {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      shopId: user.shopId ?? null,
-      createdAt: user.createdAt,
-    };
+    return authUserRecord(user);
+  }
+
+  async function readUserById(userId) {
+    const key = String(userId ?? "").trim();
+    if (!key) return null;
+    const store = await readStore();
+    return authUserRecord(store.users.find((candidate) => String(candidate?.id ?? "").trim() === key));
+  }
+
+  async function incrementUserAuthVersion(userId) {
+    const key = String(userId ?? "").trim();
+    if (!key) return null;
+    const store = await readStore();
+    const index = store.users.findIndex((candidate) => String(candidate?.id ?? "").trim() === key);
+    if (index < 0 || store.users[index]?.isActive === false) return null;
+    const current = Number(store.users[index].authVersion);
+    const authVersion = (Number.isInteger(current) && current >= 1 ? current : 1) + 1;
+    store.users[index] = { ...store.users[index], authVersion, authInvalidAfter: new Date().toISOString() };
+    await writeStore(store);
+    return authUserRecord(store.users[index]);
   }
 
   async function readLoginCredentialByUsername(username) {
@@ -152,6 +181,9 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
       shopId: user.shopId ?? null,
       createdAt: user.createdAt,
       passwordHash: user.passwordHash,
+      authVersion: authUserRecord(user).authVersion,
+      isActive: user.isActive !== false,
+      authInvalidAfter: user.authInvalidAfter ?? "",
     };
   }
 
@@ -363,6 +395,8 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
   return {
     readStore,
     readUserByUsername,
+    readUserById,
+    incrementUserAuthVersion,
     readLoginCredentialByUsername,
     readPublicBookingStore,
     listServicesForAuthenticatedUser,
@@ -389,6 +423,8 @@ const defaultJsonStore = createJsonStore();
 
 export const readStore = defaultJsonStore.readStore;
 export const readUserByUsername = defaultJsonStore.readUserByUsername;
+export const readUserById = defaultJsonStore.readUserById;
+export const incrementUserAuthVersion = defaultJsonStore.incrementUserAuthVersion;
 export const readLoginCredentialByUsername = defaultJsonStore.readLoginCredentialByUsername;
 export const readPublicBookingStore = defaultJsonStore.readPublicBookingStore;
 export const listServicesForAuthenticatedUser = defaultJsonStore.listServicesForAuthenticatedUser;

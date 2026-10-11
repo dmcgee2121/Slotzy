@@ -307,7 +307,7 @@ export function createPostgresStore(env = process.env) {
     if (!key) return null;
 
     const { data: row, error: userError } = await client.from("users")
-      .select("id,username,display_name,role,created_at")
+      .select("id,username,display_name,role,is_active,auth_version,auth_invalid_after,created_at")
       .eq("username", key)
       .is("deleted_at", null)
       .maybeSingle();
@@ -353,7 +353,52 @@ export function createPostgresStore(env = process.env) {
       role: row.role,
       shopId,
       createdAt: iso(row.created_at),
+      isActive: row.is_active !== false,
+      authVersion: Number(row.auth_version ?? 1),
+      authInvalidAfter: iso(row.auth_invalid_after),
     };
+  }
+
+  async function readUserById(userId) {
+    beginOperation();
+    const key = safeText(userId);
+    if (!isUuid(key)) return null;
+    const { data: row, error } = await client.from("users")
+      .select("username")
+      .eq("id", key)
+      .is("deleted_at", null)
+      .maybeSingle();
+    fail(error, "read auth user by id", networkFailures);
+    return row?.username ? readUserByUsername(row.username) : null;
+  }
+
+  async function incrementUserAuthVersion(userId) {
+    beginOperation();
+    const key = safeText(userId);
+    if (!isUuid(key)) return null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const { data: current, error: readError } = await client.from("users")
+        .select("auth_version,is_active")
+        .eq("id", key)
+        .is("deleted_at", null)
+        .maybeSingle();
+      fail(readError, "read auth version", networkFailures);
+      if (!current || current.is_active === false) return null;
+      const currentVersion = Number(current.auth_version ?? 1);
+      const nextVersion = (Number.isInteger(currentVersion) && currentVersion >= 1 ? currentVersion : 1) + 1;
+      const { data: updated, error: updateError } = await client.from("users")
+        .update({ auth_version: nextVersion, auth_invalid_after: new Date().toISOString() })
+        .eq("id", key)
+        .eq("auth_version", currentVersion)
+        .is("deleted_at", null)
+        .select("id")
+        .maybeSingle();
+      fail(updateError, "increment auth version", networkFailures);
+      if (updated) return readUserById(key);
+    }
+    const conflict = new Error("Could not update auth version due to concurrent changes");
+    conflict.code = "auth_version_conflict";
+    throw conflict;
   }
 
   async function readCanonicalSourceIds(entityType, targetIds, operation) {
@@ -481,7 +526,7 @@ export function createPostgresStore(env = process.env) {
     if (!key) return null;
 
     const { data: row, error } = await client.from("users")
-      .select("id,username,display_name,password_hash,role,created_at")
+      .select("id,username,display_name,password_hash,role,is_active,auth_version,auth_invalid_after,created_at")
       .eq("username", key)
       .is("deleted_at", null)
       .maybeSingle();
@@ -528,6 +573,9 @@ export function createPostgresStore(env = process.env) {
       role: row.role,
       shopId,
       createdAt: iso(row.created_at),
+      isActive: row.is_active !== false,
+      authVersion: Number(row.auth_version ?? 1),
+      authInvalidAfter: iso(row.auth_invalid_after),
     };
   }
 
@@ -947,11 +995,13 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, updateBookingSchedule, cancelBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, readUserById, incrementUserAuthVersion, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, updateBookingSchedule, cancelBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
 export const readUserByUsername = async (username) => createPostgresStore().readUserByUsername(username);
+export const readUserById = async (userId) => createPostgresStore().readUserById(userId);
+export const incrementUserAuthVersion = async (userId) => createPostgresStore().incrementUserAuthVersion(userId);
 export const readLoginCredentialByUsername = async (username) => createPostgresStore().readLoginCredentialByUsername(username);
 export const readPublicBookingStore = async (options) => createPostgresStore().readPublicBookingStore(options);
 export const listServicesForAuthenticatedUser = async (user) => createPostgresStore().listServicesForAuthenticatedUser(user);

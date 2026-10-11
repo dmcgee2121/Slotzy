@@ -6,8 +6,9 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
+import { isCurrentStaffSession, issueStaffToken, verifyStaffToken } from "./authTokens.js";
 import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
@@ -289,11 +290,7 @@ function buildAuthUser(user) {
 }
 
 function signToken(user) {
-  return jwt.sign(
-    { username: normalizeUsername(user.username), role: normalizeRole(user.role) },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+  return issueStaffToken(user, JWT_SECRET);
 }
 
 function signAdminToken() {
@@ -1062,7 +1059,7 @@ async function handleBookingNotifyRequest(req, res, type) {
   }
 }
 
-function verifyBearerUsername(req, res) {
+function verifyBearerSession(req, res) {
   const token = getBearerToken(req);
   if (!token) {
     res.status(401).json({ error: "missing bearer token" });
@@ -1070,16 +1067,10 @@ function verifyBearerUsername(req, res) {
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    const username = normalizeUsername(payload?.username);
-    if (!username) {
-      res.status(401).json({ error: "invalid token payload" });
-      return "";
-    }
-    return username;
+    return verifyStaffToken(token, JWT_SECRET);
   } catch {
     res.status(401).json({ error: "invalid or expired token" });
-    return "";
+    return null;
   }
 }
 
@@ -1109,11 +1100,11 @@ function normalizedAuthenticatedUser(user) {
 }
 
 async function requireSessionAuth(req, res, next) {
-  const username = verifyBearerUsername(req, res);
-  if (!username) return;
+  const session = verifyBearerSession(req, res);
+  if (!session) return;
   try {
-    const user = await readUserByUsername(username);
-    if (!user) return res.status(401).json({ error: "user not found for token" });
+    const user = await readUserById(session.userId);
+    if (!isCurrentStaffSession(session, user)) return res.status(401).json({ error: "invalid or revoked token" });
     req.user = normalizedAuthenticatedUser(user);
     return next();
   } catch (error) {
@@ -1121,18 +1112,18 @@ async function requireSessionAuth(req, res, next) {
       operation: "read auth user",
       authHeaderPresent: true,
       jwtVerified: true,
-      usernamePresent: true,
+      usernamePresent: false,
     });
     return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
   }
 }
 
 async function requireAuth(req, res, next) {
-  const username = verifyBearerUsername(req, res);
-  if (!username) return;
+  const session = verifyBearerSession(req, res);
+  if (!session) return;
   try {
-    const user = await readUserByUsername(username);
-    if (!user) return res.status(401).json({ error: "user not found for token" });
+    const user = await readUserById(session.userId);
+    if (!isCurrentStaffSession(session, user)) return res.status(401).json({ error: "invalid or revoked token" });
     req.user = normalizedAuthenticatedUser(user);
     return next();
   } catch (error) {
@@ -1140,7 +1131,7 @@ async function requireAuth(req, res, next) {
       operation: "read authenticated identity",
       authHeaderPresent: true,
       jwtVerified: true,
-      usernamePresent: true,
+      usernamePresent: false,
     });
     return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
   }
@@ -1419,7 +1410,7 @@ app.post("/api/auth/login", async (req, res) => {
     operation = "credential_lookup";
     const user = await readLoginCredentialByUsername(username);
     userFound = Boolean(user);
-    if (!user) {
+    if (!user || user.isActive === false) {
       return res.status(401).json({ error: "invalid credentials" });
     }
 
@@ -1553,6 +1544,24 @@ app.get("/api/public/booking-context", async (req, res) => {
 
 app.get("/api/auth/me", requireSessionAuth, (req, res) => {
   return res.json({ user: buildAuthUser(req.user) });
+});
+
+// This intentionally revokes all existing account JWTs for the current user.
+// It does not affect opaque booking manage credentials, which are separate.
+app.post("/api/auth/logout-all", requireSessionAuth, async (req, res) => {
+  try {
+    const updated = await incrementUserAuthVersion(req.user.id);
+    if (!updated) return res.status(401).json({ error: "invalid or revoked token" });
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("[Slotzy:auth] POST /api/auth/logout-all failed", {
+      storage: STORAGE_ADAPTER,
+      operation: "increment auth version",
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+    });
+    return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
+  }
 });
 
 app.get("/api/shops", requireAuth, async (req, res) => {

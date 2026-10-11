@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const migrationUrl = new URL("../../docs/SUPABASE_RECURRING_BLOCKS_MIGRATION.sql", import.meta.url);
 const manageCancelMigrationUrl = new URL("../../docs/SUPABASE_MANAGE_CANCEL_MIGRATION.sql", import.meta.url);
+const authRevocationMigrationUrl = new URL("../../docs/SUPABASE_AUTH_REVOCATION_MIGRATION.sql", import.meta.url);
 const schemaUrl = new URL("../../docs/SUPABASE_SCHEMA.sql", import.meta.url);
 
 function functionDefinition(sql, name) {
@@ -44,6 +45,13 @@ test("manage cancellation migration is additive and service-role-only", async ()
   assert.match(migration, /revoke all on function public\.slotzy_cancel_booking_by_manage_token_hash\(text\) from public;/i);
   assert.match(migration, /grant execute on function public\.slotzy_cancel_booking_by_manage_token_hash\(text\) to service_role;/i);
   assert.doesNotMatch(migration, /\bgrant\b[^;]*\bto\s+(anon|authenticated)\b/i);
+});
+
+test("auth revocation migration is additive and preserves existing users", async () => {
+  const migration = await readFile(authRevocationMigrationUrl, "utf8");
+  assert.match(migration, /add column if not exists auth_version integer not null default 1/i);
+  assert.match(migration, /add column if not exists auth_invalid_after timestamptz not null default now\(\)/i);
+  assert.doesNotMatch(migration, /\b(drop|truncate|delete\s+from)\b/i);
 });
 
 test("manage cancellation RPC locks token and booking and records the cancellation event", async () => {

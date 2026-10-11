@@ -41,14 +41,31 @@ test("JSON storage round-trips users, shops, services, availability, and booking
   assert.deepEqual(await store.readStore(), state);
   assert.deepEqual(await store.readUserByUsername(" OWNER "), {
     id: "user_1", username: "owner", displayName: undefined, role: "owner", shopId: null, createdAt: undefined,
+    isActive: true, authVersion: 1, authInvalidAfter: "",
   });
   assert.equal("passwordHash" in await store.readUserByUsername("owner"), false);
   assert.deepEqual(await store.readLoginCredentialByUsername(" OWNER "), {
     id: "user_1", username: "owner", displayName: undefined, role: "owner", shopId: null,
-    createdAt: undefined, passwordHash: undefined,
+    createdAt: undefined, passwordHash: undefined, authVersion: 1, isActive: true, authInvalidAfter: "",
   });
   assert.equal(await store.readUserByUsername("missing-owner"), null);
   assert.equal(await store.readLoginCredentialByUsername("missing-owner"), null);
+});
+
+test("JSON auth-version increment is narrow and invalidates only the targeted user", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [
+      { id: "user_auth_one", username: "auth-one", role: "owner", authVersion: 3 },
+      { id: "user_auth_two", username: "auth-two", role: "barber", authVersion: 7 },
+    ], shops: [], services: [], availability: {}, bookings: [], emails: [],
+  });
+  const updated = await store.incrementUserAuthVersion("user_auth_one");
+  assert.equal(updated.authVersion, 4);
+  assert.ok(Date.parse(updated.authInvalidAfter));
+  assert.equal((await store.readUserById("user_auth_one")).authVersion, 4);
+  assert.equal((await store.readUserById("user_auth_two")).authVersion, 7);
+  assert.equal(await store.incrementUserAuthVersion("missing"), null);
 });
 
 test("JSON login credential lookup is the only identity read that exposes the password hash", async () => {
