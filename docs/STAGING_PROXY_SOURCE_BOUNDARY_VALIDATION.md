@@ -1,6 +1,6 @@
 # Staging proxy/source-boundary validation plan — P0-F4
 
-**Status:** Planning only; validation pending and currently **blocked by evidence capability**. This record changes no code, limiter threshold, proxy trust setting, infrastructure, environment variable, secret, or provider configuration.
+**Status:** Current staging direct-socket behavior is validated by accepted category evidence; forwarded-source trust and the production shared-limiter decision remain pending. This record changes no code, limiter threshold, proxy trust setting, infrastructure, environment variable, secret, or provider configuration.
 
 **Scope:** Define a safe staging-only manual/API validation of the request-source boundary used by the current backend rate limiter. The purpose is to determine whether any forwarded source signal can ever be trusted and what evidence is needed before a production source-key decision. It does not approve a shared limiter, production launch, or broader beta.
 
@@ -10,7 +10,7 @@ The staging-safe limiter uses privacy-safe HMAC-derived keys and currently takes
 
 Validation must establish the actual Render request path, trusted proxy boundary, and source-signal behavior before any forwarded value may replace the current direct-socket input. Until then, retain current behavior; do not add an ad-hoc proxy trust setting or change the limiter source key.
 
-The [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md) found that current safe events, logs, and tests cannot yield the category-only proof required here. The [P0-F4c protected diagnostic implementation/specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md) is deployed to staging. The initial [P0-F4e attempt](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md) returned bad-request responses. The corrected hosted [P0-F4h retry](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_RETRY_RESULT.md) reached the endpoint for all eight cases with `ok=True`, but printed blank required category fields. The [P0-F4i source/local review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md) identifies a runbook output-field mismatch, but accepted category evidence is still missing. Validation remains pending; retain direct-socket behavior and do not trust forwarded headers.
+The [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md) found that current safe events, logs, and tests could not yield the category-only proof required here. The [P0-F4c protected diagnostic implementation/specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md) is deployed to staging. The initial P0-F4e attempt and P0-F4h retry remain historical incomplete records; P0-F4i identified the output-field mismatch. The final [P0-F4j controlled retry](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md) used the corrected contract and field mapping and supplies accepted category evidence that the current staging source-key decision is `direct-socket-current`. Forwarded headers remain untrusted, and no production shared-limiter decision is implied.
 
 ## Staging-only boundary and safe test approach
 
@@ -77,7 +77,7 @@ Production and broader beta remain **no-go** while any source boundary is unprov
 
 ## Recommended next execution mode
 
-Conduct a docs-approved, staging-only manual/API smoke later using synthetic requests and safe category evidence only. Keep current direct-socket behavior until the validation is complete. Make no code change unless this plan identifies a separately approved need for a minimal safe diagnostic endpoint/event. The production shared limiter remains blocked until both source-boundary and shared-store decisions are accepted.
+No further staging diagnostic is needed for the accepted current direct-socket conclusion unless separately approved. Keep current direct-socket behavior. Any future examination of forwarded-source trust requires a separate approved validation scope; no code change is implied here. The production shared limiter remains blocked until the separate shared-store/provider decision and its implementation, failure-mode, privacy, ownership, and test gates are accepted.
 
 ## Remaining open decisions
 
@@ -104,6 +104,7 @@ Conduct a docs-approved, staging-only manual/API smoke later using synthetic req
 - [P0-F4e blocked diagnostic attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md)
 - [P0-F4h corrected hosted retry result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_RETRY_RESULT.md)
 - [P0-F4i blank-fields review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md)
+- [P0-F4j accepted final retry result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)
 - [Production gap review](PRODUCTION_GAP_REVIEW.md)

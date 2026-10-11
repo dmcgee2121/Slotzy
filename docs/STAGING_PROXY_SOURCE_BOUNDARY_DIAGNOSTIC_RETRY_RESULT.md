@@ -30,9 +30,11 @@ Treat the retry as successful reachability but incomplete evidence. Do not retry
 
 The [P0-F4i blank-fields review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md) identifies a hosted output-field mismatch: the endpoint returned safe top-level categories under different names. This retry result remains incomplete evidence; it does not accept source-boundary proof.
 
+The later [P0-F4j final controlled retry](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md) used the corrected response-field mapping and has accepted category evidence for current staging direct-socket behavior. This P0-F4h record remains the historical incomplete-evidence result.
+
 ## Remaining blocker
 
-The corrected hosted requests did not emit usable category-only values for every required source-boundary classification. Source/local review must explain the blank fields before any further retry can be considered. No inference about proxy trust, forwarded sources, or a shared limiter may be made from this result.
+The corrected hosted requests did not emit usable category-only values for every required source-boundary classification. P0-F4i identified the output-field mismatch and P0-F4j later produced accepted evidence; nevertheless, no inference about proxy trust, forwarded sources, or a shared limiter may be made from this historical P0-F4h result.
 
 ## Infrastructure impact
 
@@ -46,6 +48,7 @@ The corrected hosted requests did not emit usable category-only values for every
 
 - [P0-F4e initial blocked attempt](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md)
 - [P0-F4i blank-fields review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md)
+- [P0-F4j accepted final retry result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md)
 - [P0-F4d execution plan](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_EXECUTION_PLAN.md)
 - [Source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)

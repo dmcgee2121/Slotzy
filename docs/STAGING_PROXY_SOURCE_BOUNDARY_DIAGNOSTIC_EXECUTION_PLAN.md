@@ -1,6 +1,6 @@
 # Controlled source-boundary diagnostic execution plan — P0-F4d
 
-**Execution status:** The initial attempt was blocked/failed; the corrected hosted retry completed reachability but produced blank required category fields. The [P0-F4i local review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md) identifies a hosted output-field mapping mismatch. Source-boundary validation remains pending; another retry remains blocked until the actual response-field mapping is incorporated into a separately approved runbook. This plan does not authorize a retry, flag enablement, source-key change, forwarded-header trust, or production change.
+**Execution status:** The [P0-F4j final corrected retry](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md) completed successfully with accepted category evidence for current staging direct-socket behavior. It does not approve forwarded-source trust or a production shared limiter. Any future rerun requires separate approval; this plan does not itself authorize a retry, flag enablement, source-key change, forwarded-header trust, or production change.
 
 ## Target and non-negotiable boundary
 
@@ -137,6 +137,7 @@ Execution may be recorded as passed only when all of these hold:
 - [P0-F4e blocked diagnostic attempt result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md)
 - [P0-F4h corrected hosted retry result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_RETRY_RESULT.md)
 - [P0-F4i blank-fields review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md)
+- [P0-F4j accepted final retry result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md)
 - [P0-F4f diagnostic 400 review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_400_REVIEW.md)
 - [P0-F4c diagnostic rollout](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ROLLOUT.md)
 - [Protected diagnostic specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md)
