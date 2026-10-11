@@ -23,6 +23,8 @@ The guarded suite confirms that deploying the protected diagnostic code with its
 
 Source-boundary proof remains pending. Before any diagnostic request is made on staging, separately approve a controlled execution window, explicit temporary flag enablement, authenticated owner access, fixed synthetic cases, category-only evidence retention, and disable/remove/expiry handling. Until then, retain direct-socket limiter behavior and do not trust forwarded source headers.
 
+The [P0-F4d controlled execution plan](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_EXECUTION_PLAN.md) records those required phases and remains unexecuted.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -34,6 +36,7 @@ Source-boundary proof remains pending. Before any diagnostic request is made on 
 ## Related records
 
 - [Protected source-boundary diagnostic specification](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_SPEC.md)
+- [P0-F4d controlled diagnostic execution plan](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_EXECUTION_PLAN.md)
 - [Staging proxy/source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md)
 - [P0-F4a evidence capability review](STAGING_PROXY_SOURCE_BOUNDARY_EVIDENCE_CAPABILITY.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)
