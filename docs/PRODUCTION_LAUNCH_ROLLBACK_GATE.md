@@ -13,7 +13,7 @@ Production launch requires an explicit documented **go** decision by the assigne
 | --- | --- |
 | Guarded staging | Current guarded staging checks pass for the proposed revision, with known failures resolved or explicitly accepted. |
 | Environment separation | The approved separation checklist is complete: separate production projects/services/site or context, origins, secrets, storage, access, and sender/provider boundaries. |
-| Backup and restore | Backup/PITR readiness, a restore owner, recovery targets (RPO/RTO), and a restore-target application smoke/rehearsal are documented and accepted. |
+| Backup and restore | Backup/PITR readiness, a restore owner, recovery targets (RPO/RTO), and the [staging restore-target application smoke plan](STAGING_RESTORE_TARGET_APP_SMOKE_PLAN.md) plus a production-equivalent rehearsal are documented and accepted. |
 | Observability and alerts | Redacted backend/frontend signals, production deploy/runtime visibility, alert routing, dashboard/log access, and a tested alert response path are ready. |
 | Rate limits | The shared-store/provider and source-key decision is approved and tested before broader beta or production; P0-B2a in-process limits alone are insufficient. |
 | Privacy and retention | Data inventory, retention/deletion posture, log redaction, provider retention/access, and support handling are approved. |
