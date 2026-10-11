@@ -16,7 +16,7 @@ Production launch requires an explicit documented **go** decision by the assigne
 | Backup and restore | Backup/PITR readiness, a restore owner, recovery targets (RPO/RTO), and the [staging restore-target application smoke plan](STAGING_RESTORE_TARGET_APP_SMOKE_PLAN.md) plus a production-equivalent rehearsal are documented and accepted. |
 | Observability and alerts | Redacted backend/frontend signals, production deploy/runtime visibility, alert routing, dashboard/log access, and a tested alert response path are ready. |
 | Rate limits | The shared-store/provider and source-key decision is approved and tested before broader beta or production; P0-B2a in-process limits alone are insufficient. |
-| Privacy and retention | Data inventory, retention/deletion posture, log redaction, provider retention/access, and support handling are approved. |
+| Privacy and retention | The [privacy and data retention inventory](PRIVACY_DATA_RETENTION_INVENTORY.md), retention/deletion posture, log redaction, provider retention/access, and support handling are approved. |
 | Notification reliability | Promised channels, sender/provider configuration, authoritative-write behavior, delivery failure handling, and observability are approved and tested. |
 | Payments | Payments remain disabled unless a separate explicit payment-launch decision approves them. |
 | Change record | Release revision, scope, known risks, owners, rollout window, stop conditions, rollback target, and communication plan are recorded. |

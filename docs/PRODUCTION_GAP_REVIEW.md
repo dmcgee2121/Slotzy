@@ -37,6 +37,8 @@ Backup/restore validation should run in parallel as operational preparation wher
 
 **Restore validation update:** the [STAGING_RESTORE_TARGET_APP_SMOKE_PLAN.md](STAGING_RESTORE_TARGET_APP_SMOKE_PLAN.md) now defines the isolated, synthetic-only application smoke needed after a staging restore. Implementation and rehearsal remain pending. Production remains no-go until the restore-target app smoke and a production-equivalent restore rehearsal are accepted; Slotzy remains staging-ready for solo-founder QA, not production-ready.
 
+**Privacy and retention update:** the [PRIVACY_DATA_RETENTION_INVENTORY.md](PRIVACY_DATA_RETENTION_INVENTORY.md) records known data categories and proposed privacy/retention controls. Implementation and legal/privacy review remain pending. Production remains no-go until retention, deletion, export, and verified support-request workflow decisions are approved; Slotzy remains staging-ready for solo-founder QA, not production-ready.
+
 ## Highest-risk deferral
 
 The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.
