@@ -12,6 +12,7 @@ import { isCurrentStaffSession, issueStaffToken, verifyStaffToken } from "./auth
 import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
+import { attachRequestContext, emitSafeEvent } from "./observability.js";
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ const RUNTIME_ENVIRONMENT = normalizeRuntimeEnvironment(process.env.NODE_ENV);
 const IS_PRODUCTION_LIKE = isProductionLikeEnvironment(RUNTIME_ENVIRONMENT);
 const DEV_JWT_FALLBACK = "dev-secret-change-me";
 const JWT_SECRET = resolveJwtSecret();
+const OBSERVABILITY_RELEASE = String(process.env.SLOTZY_RELEASE ?? process.env.RENDER_GIT_COMMIT ?? "").trim();
 
 const ROLE_OWNER = "owner";
 const ROLE_BARBER = "barber";
@@ -190,8 +192,10 @@ async function logStagingSupabaseDnsProbe() {
 // owner profile save.
 app.use(express.json({ limit: "15mb" }));
 app.use(cors(getCorsOptions()));
+app.use(attachRequestContext({ environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE }));
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", (req, res) => {
+  emitSafeEvent({ event: "api.health_checked", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/health", method: "GET", status: 200, dependencyStatus: "available" });
   res.json({ ok: true, service: "slotzy-api", storage: STORAGE_ADAPTER, environment: RUNTIME_ENVIRONMENT });
 });
 
@@ -994,15 +998,12 @@ async function dispatchBookingEmails(emails, { suppressErrors = true } = {}) {
     try {
       results.push(await sendEmail(email));
     } catch (error) {
-      const message = String(error?.message ?? error ?? "email_send_failed");
       errors.push({
-        to: email?.to ?? "",
-        subject: email?.subject ?? "",
-        message,
+        code: "email_send_failed",
       });
-      console.warn("[Slotzy:email] Could not dispatch notification.", { error: message });
+      emitSafeEvent({ event: "notification.send_failed", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: randomUUID(), errorClass: String(error?.name ?? "NotificationError"), errorCode: "email_send_failed", outcome: "failed", notificationMode: getEmailMode() });
       if (!suppressErrors) {
-        throw new Error(message);
+        throw new Error("email_send_failed");
       }
     }
   }
@@ -1062,6 +1063,7 @@ async function handleBookingNotifyRequest(req, res, type) {
 function verifyBearerSession(req, res) {
   const token = getBearerToken(req);
   if (!token) {
+    emitSafeEvent({ event: "auth.session_rejected", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: req.route?.path, method: req.method, status: 401, errorCode: "missing_bearer_token", outcome: "rejected" });
     res.status(401).json({ error: "missing bearer token" });
     return "";
   }
@@ -1069,6 +1071,7 @@ function verifyBearerSession(req, res) {
   try {
     return verifyStaffToken(token, JWT_SECRET);
   } catch {
+    emitSafeEvent({ event: "auth.session_rejected", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: req.route?.path, method: req.method, status: 401, errorCode: "invalid_or_expired_token", outcome: "rejected" });
     res.status(401).json({ error: "invalid or expired token" });
     return null;
   }
@@ -1104,7 +1107,10 @@ async function requireSessionAuth(req, res, next) {
   if (!session) return;
   try {
     const user = await readUserById(session.userId);
-    if (!isCurrentStaffSession(session, user)) return res.status(401).json({ error: "invalid or revoked token" });
+    if (!isCurrentStaffSession(session, user)) {
+      emitSafeEvent({ event: "auth.session_rejected", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: req.route?.path, method: req.method, status: 401, errorCode: "revoked_session", outcome: "rejected" });
+      return res.status(401).json({ error: "invalid or revoked token" });
+    }
     req.user = normalizedAuthenticatedUser(user);
     return next();
   } catch (error) {
@@ -1123,7 +1129,10 @@ async function requireAuth(req, res, next) {
   if (!session) return;
   try {
     const user = await readUserById(session.userId);
-    if (!isCurrentStaffSession(session, user)) return res.status(401).json({ error: "invalid or revoked token" });
+    if (!isCurrentStaffSession(session, user)) {
+      emitSafeEvent({ event: "auth.session_rejected", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: req.route?.path, method: req.method, status: 401, errorCode: "revoked_session", outcome: "rejected" });
+      return res.status(401).json({ error: "invalid or revoked token" });
+    }
     req.user = normalizedAuthenticatedUser(user);
     return next();
   } catch (error) {
@@ -1413,6 +1422,7 @@ app.post("/api/auth/login", async (req, res) => {
     const password = String(req.body?.password ?? "");
 
     if (!username || !password) {
+      emitSafeEvent({ event: "auth.login", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/auth/login", method: "POST", status: 400, errorCode: "missing_credentials", outcome: "rejected" });
       return res.status(400).json({ error: "username and password are required" });
     }
 
@@ -1420,17 +1430,20 @@ app.post("/api/auth/login", async (req, res) => {
     const user = await readLoginCredentialByUsername(username);
     userFound = Boolean(user);
     if (!user || user.isActive === false) {
+      emitSafeEvent({ event: "auth.login", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/auth/login", method: "POST", status: 401, errorCode: "invalid_credentials", outcome: "rejected" });
       return res.status(401).json({ error: "invalid credentials" });
     }
 
     operation = "password_compare";
     const ok = await bcrypt.compare(password, String(user.passwordHash ?? ""));
     if (!ok) {
+      emitSafeEvent({ event: "auth.login", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/auth/login", method: "POST", status: 401, errorCode: "invalid_credentials", outcome: "rejected" });
       return res.status(401).json({ error: "invalid credentials" });
     }
 
     operation = "token_issue";
     const token = signToken(user);
+    emitSafeEvent({ event: "auth.login", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/auth/login", method: "POST", status: 200, outcome: "succeeded" });
     return res.json({ token, user: buildAuthUser(user) });
   } catch (error) {
     const storageFailure = operation === "credential_lookup";
@@ -1444,6 +1457,7 @@ app.post("/api/auth/login", async (req, res) => {
       membershipPresent: false,
       shopPresent: false,
     });
+    emitSafeEvent({ event: "auth.login", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/auth/login", method: "POST", status: storageFailure ? 503 : 500, errorClass: String(error?.name ?? "AuthError"), errorCode: storageFailure ? "auth_storage_unavailable" : "login_failed", outcome: "failed" });
     if (storageFailure) {
       return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
     }
@@ -2384,7 +2398,10 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
       ...result,
       booking: publicManageBooking(result?.booking),
     });
-    if (httpResult.status !== 200) return res.status(httpResult.status).json(httpResult.body);
+    if (httpResult.status !== 200) {
+      emitSafeEvent({ event: "booking.cancel", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/public/manage/cancel", method: "PATCH", status: httpResult.status, errorCode: String(httpResult.body?.code ?? "cancellation_unavailable"), outcome: "rejected", operation });
+      return res.status(httpResult.status).json(httpResult.body);
+    }
 
     operation = "notification_dispatch";
     try {
@@ -2401,6 +2418,7 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
       // deliberately best-effort and must not turn a saved cancellation into
       // an error response.
     }
+    emitSafeEvent({ event: "booking.cancel", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/public/manage/cancel", method: "PATCH", status: httpResult.status, outcome: "persisted", operation });
     return res.status(httpResult.status).json(httpResult.body);
   } catch (error) {
     console.error("[Slotzy:manage] PATCH /api/public/manage/cancel failed", {
@@ -2414,6 +2432,7 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
       statusAfter,
       eventCreated,
     });
+    emitSafeEvent({ event: "booking.cancel", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/public/manage/cancel", method: "PATCH", status: 500, errorClass: String(error?.name ?? "CancellationError"), errorCode: "manage_cancel_failed", outcome: "failed", operation });
     return res.status(500).json({ error: "Could not cancel this appointment. Please try again.", code: "manage_cancel_failed" });
   }
 });
@@ -2678,6 +2697,8 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
 
     // The token is returned once and is never included in logs, owner reads, or
     // subsequent booking responses. The browser turns it into the receipt URL.
+    emitSafeEvent({ event: "booking.create", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/bookings", method: "POST", status: 201, outcome: "persisted", operation: bookingStage });
+    emitSafeEvent({ event: "notification.send", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/bookings", method: "POST", status: 201, outcome: notificationResult.errors.length ? "partial_failure" : "succeeded", notificationMode: getEmailMode() });
     return res.status(201).json({ booking: publicManageBooking(booking), manageToken });
   } catch (error) {
     const code = String(error?.code ?? "").toLowerCase();
@@ -2695,6 +2716,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
       bookingCreated,
       emailOutboxCreatedCount,
     });
+    emitSafeEvent({ event: "booking.create", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/bookings", method: "POST", status: 500, errorClass: String(error?.name ?? "BookingError"), errorCode: "booking_save_failed", outcome: "failed", operation: bookingStage });
     if (code.includes("23p01") || message.includes("booking_overlap")) {
       return res.status(409).json({ error: "selected time is no longer available", code: "booking_conflict" });
     }
@@ -2885,6 +2907,8 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
       });
     }
 
+    const updateEvent = currentStatus !== "cancelled" && nextStatus === "cancelled" ? "booking.cancel" : (didBookingScheduleChange(current, next) ? "booking.reschedule" : "booking.status_update");
+    emitSafeEvent({ event: updateEvent, environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/bookings/:bookingId", method: "PATCH", status: 200, outcome: "persisted", operation: updateStage });
     return res.json({ booking: next });
   } catch (error) {
     console.error("[Slotzy:bookings] PATCH /api/bookings/:bookingId failed", {
@@ -2894,6 +2918,7 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
       storageErrorCode: String(error?.code ?? ""),
       storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
     });
+    emitSafeEvent({ event: "booking.status_update", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/bookings/:bookingId", method: "PATCH", status: 500, errorClass: String(error?.name ?? "BookingError"), errorCode: "booking_update_failed", outcome: "failed", operation: updateStage });
     const code = String(error?.code ?? "").toLowerCase();
     const message = String(error?.message ?? "").toLowerCase();
     if (code.includes("23p01") || message.includes("booking_overlap") || message.includes("slot_unavailable")) {

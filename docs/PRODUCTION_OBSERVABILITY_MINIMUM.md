@@ -45,14 +45,14 @@ Trigger rollback or a write freeze when a new release is plausibly tied to an in
 ## Rollout phases
 
 1. **Phase 1 — docs and event taxonomy:** approve safe event names, allowlisted fields, error classes, correlation-ID handling, thresholds, and ownership. This document completes only this phase.
-2. **Phase 2 — backend structured safe events:** implement allowlisted server events for API, auth, authoritative booking mutations, notification outcomes, health, and storage mode; add focused tests that prove sensitive values are absent.
+2. **Phase 2 — backend structured safe events:** implemented for the current server: allowlisted API, auth, authoritative booking-mutation, notification-outcome, health, and storage-mode events; bounded request IDs; and focused redaction tests. Alert routing and production configuration remain pending.
 3. **Phase 3 — frontend error and deploy visibility:** add non-secret version visibility plus redacted client runtime/cache events and test release identification.
 4. **Phase 4 — external alert provider or platform-native alerts:** choose configured platform-native alerts or a provider, set recipients/escalation, and rehearse at least one alert without customer data.
 5. **Phase 5 — production dashboards:** create role-limited dashboards for health, failures, integrity, auth, notifications, versions, and alert history; document retention and access review.
 
 ## Next implementation package
 
-The next implementation package should be **P0-B1a: backend structured safe observability events**. Keep it constrained to event taxonomy, allowlisted server fields, correlation IDs, health/storage-mode events, authoritative mutation outcomes, and tests that ensure redaction. It must not add customer analytics, raw-body capture, or a monitoring SDK until the alert destination decision is separately approved.
+The next implementation package is **P0-B1b: frontend error and deploy/version visibility**. Keep it constrained to a non-secret release identifier, redacted runtime/cache event taxonomy, and tests for release identification. It must not add customer analytics, raw-body capture, or a monitoring SDK until the alert destination decision is separately approved.
 
 ## Platform implications
 
