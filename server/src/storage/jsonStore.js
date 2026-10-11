@@ -167,6 +167,26 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     return authUserRecord(store.users[index]);
   }
 
+  async function changeUserPassword(userId, passwordHash) {
+    const key = String(userId ?? "").trim();
+    if (!key || !String(passwordHash ?? "")) return null;
+    const store = await readStore();
+    const index = store.users.findIndex((candidate) => String(candidate?.id ?? "").trim() === key);
+    if (index < 0 || store.users[index]?.isActive === false) return null;
+    const current = Number(store.users[index].authVersion);
+    const authVersion = (Number.isInteger(current) && current >= 1 ? current : 1) + 1;
+    const now = new Date().toISOString();
+    store.users[index] = {
+      ...store.users[index],
+      passwordHash,
+      authVersion,
+      authInvalidAfter: now,
+      passwordChangedAt: now,
+    };
+    await writeStore(store);
+    return authUserRecord(store.users[index]);
+  }
+
   async function readLoginCredentialByUsername(username) {
     const key = String(username ?? "").trim().toLowerCase();
     if (!key) return null;
@@ -397,6 +417,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     readUserByUsername,
     readUserById,
     incrementUserAuthVersion,
+    changeUserPassword,
     readLoginCredentialByUsername,
     readPublicBookingStore,
     listServicesForAuthenticatedUser,
@@ -425,6 +446,7 @@ export const readStore = defaultJsonStore.readStore;
 export const readUserByUsername = defaultJsonStore.readUserByUsername;
 export const readUserById = defaultJsonStore.readUserById;
 export const incrementUserAuthVersion = defaultJsonStore.incrementUserAuthVersion;
+export const changeUserPassword = defaultJsonStore.changeUserPassword;
 export const readLoginCredentialByUsername = defaultJsonStore.readLoginCredentialByUsername;
 export const readPublicBookingStore = defaultJsonStore.readPublicBookingStore;
 export const listServicesForAuthenticatedUser = defaultJsonStore.listServicesForAuthenticatedUser;

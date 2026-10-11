@@ -68,6 +68,26 @@ test("JSON auth-version increment is narrow and invalidates only the targeted us
   assert.equal(await store.incrementUserAuthVersion("missing"), null);
 });
 
+test("JSON password change updates only the target credential and revokes prior sessions", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [
+      { id: "user_password_one", username: "password-one", passwordHash: "old-hash", role: "owner", authVersion: 3 },
+      { id: "user_password_two", username: "password-two", passwordHash: "other-hash", role: "barber", authVersion: 7 },
+    ], shops: [], services: [], availability: {}, bookings: [], emails: [],
+  });
+  const updated = await store.changeUserPassword("user_password_one", "new-hash");
+  assert.equal(updated.authVersion, 4);
+  assert.ok(Date.parse(updated.authInvalidAfter));
+  const changedCredential = await store.readLoginCredentialByUsername("password-one");
+  const untouchedCredential = await store.readLoginCredentialByUsername("password-two");
+  assert.equal(changedCredential.passwordHash, "new-hash");
+  assert.equal(untouchedCredential.passwordHash, "other-hash");
+  assert.equal(untouchedCredential.authVersion, 7);
+  assert.equal(await store.changeUserPassword("missing", "new-hash"), null);
+  assert.equal(await store.changeUserPassword("user_password_one", ""), null);
+});
+
 test("JSON login credential lookup is the only identity read that exposes the password hash", async () => {
   const store = await createTestStore();
   await store.writeStore({

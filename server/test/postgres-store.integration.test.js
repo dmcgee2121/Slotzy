@@ -146,6 +146,19 @@ postgresTest("Postgres login credential lookup returns only one credential and c
   assert.equal(await store.readLoginCredentialByUsername("missing-owner"), null);
 });
 
+postgresTest("Postgres password change updates only credentials and revokes prior sessions", async () => {
+  await seedBase();
+  const user = await store.readLoginCredentialByUsername("fixture-owner");
+  const updated = await store.changeUserPassword(user.id, "replacement-password-hash");
+  assert.equal(updated.authVersion, 2);
+  assert.ok(Date.parse(updated.authInvalidAfter));
+  const credential = await store.readLoginCredentialByUsername("fixture-owner");
+  assert.equal(credential.passwordHash, "replacement-password-hash");
+  const { data, error } = await client.from("users").select("password_changed_at").eq("id", user.id).single();
+  assert.ifError(error);
+  assert.ok(Date.parse(data.password_changed_at));
+});
+
 postgresTest("Postgres shop create/read/update contract", async () => {
   const { state } = await seedBase(); state.shops[0].name = "Fixture Cuts Updated"; state.shops[0].bookingPolicy.bufferMinutes = 10;
   await store.writeStore(state); const shop = (await store.readStore()).shops[0];

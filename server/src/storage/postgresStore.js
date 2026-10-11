@@ -401,6 +401,40 @@ export function createPostgresStore(env = process.env) {
     throw conflict;
   }
 
+  async function changeUserPassword(userId, passwordHash) {
+    beginOperation();
+    const key = safeText(userId);
+    const nextPasswordHash = String(passwordHash ?? "");
+    if (!isUuid(key) || !nextPasswordHash) return null;
+    const { data: current, error: readError } = await client.from("users")
+      .select("auth_version,is_active")
+      .eq("id", key)
+      .is("deleted_at", null)
+      .maybeSingle();
+    fail(readError, "read password change state", networkFailures);
+    if (!current || current.is_active === false) return null;
+    const currentVersion = Number(current.auth_version ?? 1);
+    const nextVersion = (Number.isInteger(currentVersion) && currentVersion >= 1 ? currentVersion : 1) + 1;
+    const now = new Date().toISOString();
+    const { data: updated, error: updateError } = await client.from("users")
+      .update({
+        password_hash: nextPasswordHash,
+        auth_version: nextVersion,
+        auth_invalid_after: now,
+        password_changed_at: now,
+      })
+      .eq("id", key)
+      .eq("auth_version", currentVersion)
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
+    fail(updateError, "change password and increment auth version", networkFailures);
+    if (updated) return readUserById(key);
+    const conflict = new Error("Could not change password due to concurrent changes");
+    conflict.code = "auth_version_conflict";
+    throw conflict;
+  }
+
   async function readCanonicalSourceIds(entityType, targetIds, operation) {
     const ids = [...new Set((targetIds ?? []).map((id) => safeText(id)).filter(Boolean))];
     if (ids.length === 0) return new Map();
@@ -995,13 +1029,14 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, readUserById, incrementUserAuthVersion, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, updateBookingSchedule, cancelBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, readUserById, incrementUserAuthVersion, changeUserPassword, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, updateBookingSchedule, cancelBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
 export const readUserByUsername = async (username) => createPostgresStore().readUserByUsername(username);
 export const readUserById = async (userId) => createPostgresStore().readUserById(userId);
 export const incrementUserAuthVersion = async (userId) => createPostgresStore().incrementUserAuthVersion(userId);
+export const changeUserPassword = async (userId, passwordHash) => createPostgresStore().changeUserPassword(userId, passwordHash);
 export const readLoginCredentialByUsername = async (username) => createPostgresStore().readLoginCredentialByUsername(username);
 export const readPublicBookingStore = async (options) => createPostgresStore().readPublicBookingStore(options);
 export const listServicesForAuthenticatedUser = async (user) => createPostgresStore().listServicesForAuthenticatedUser(user);

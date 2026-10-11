@@ -20,6 +20,7 @@ export const readStore = activeStore.readStore;
 export const readUserByUsername = activeStore.readUserByUsername;
 export const readUserById = activeStore.readUserById;
 export const incrementUserAuthVersion = activeStore.incrementUserAuthVersion;
+export const changeUserPassword = activeStore.changeUserPassword;
 export const readLoginCredentialByUsername = activeStore.readLoginCredentialByUsername;
 export const readPublicBookingStore = activeStore.readPublicBookingStore;
 export const listServicesForAuthenticatedUser = activeStore.listServicesForAuthenticatedUser;

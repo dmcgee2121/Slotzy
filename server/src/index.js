@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, changeUserPassword, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { isCurrentStaffSession, issueStaffToken, verifyStaffToken } from "./authTokens.js";
 import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
@@ -1566,6 +1566,38 @@ app.post("/api/auth/logout-all", requireSessionAuth, async (req, res) => {
     console.error("[Slotzy:auth] POST /api/auth/logout-all failed", {
       storage: STORAGE_ADAPTER,
       operation: "increment auth version",
+      storageErrorCode: String(error?.code ?? ""),
+      storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
+    });
+    return res.status(503).json({ error: "authentication service temporarily unavailable", code: "auth_storage_unavailable" });
+  }
+});
+
+app.post("/api/auth/change-password", requireSessionAuth, async (req, res) => {
+  try {
+    if (!isOwner(req.user) && !isBarber(req.user)) {
+      return res.status(403).json({ error: "only staff accounts can change passwords here" });
+    }
+    const currentPassword = String(req.body?.currentPassword ?? "");
+    const newPassword = String(req.body?.newPassword ?? "");
+    if (!currentPassword) return res.status(400).json({ error: "current password is required" });
+    if (newPassword.length < 6) return res.status(400).json({ error: "new password must be at least 6 characters" });
+
+    const credential = await readLoginCredentialByUsername(req.user.username);
+    if (!credential || credential.id !== req.user.id || credential.isActive === false) {
+      return res.status(401).json({ error: "invalid or revoked token" });
+    }
+    const currentPasswordValid = await bcrypt.compare(currentPassword, String(credential.passwordHash ?? ""));
+    if (!currentPasswordValid) return res.status(401).json({ error: "current password is incorrect" });
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const updatedUser = await changeUserPassword(req.user.id, passwordHash);
+    if (!updatedUser) return res.status(401).json({ error: "invalid or revoked token" });
+    return res.json({ ok: true, token: signToken(updatedUser), user: buildAuthUser(updatedUser) });
+  } catch (error) {
+    console.error("[Slotzy:auth] POST /api/auth/change-password failed", {
+      storage: STORAGE_ADAPTER,
+      operation: "change password",
       storageErrorCode: String(error?.code ?? ""),
       storageOperation: String(error?.storageDiagnostic?.operation ?? ""),
     });
