@@ -1,6 +1,8 @@
 // Bump whenever a cache-first shell asset changes so installed phones/PWAs do
 // not keep an older stylesheet or script after a deploy.
-const SHELL_CACHE_NAME = "slotzy-shell-v5";
+importScripts("/js/frontend-version.js");
+
+const SHELL_CACHE_NAME = self.SLOTZY_BUILD_INFO.cacheVersion;
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -15,6 +17,8 @@ const SHELL_ASSETS = [
   "/js/dataStore.js",
   "/js/api-config.js",
   "/js/public-config.js",
+  "/js/frontend-version.js",
+  "/js/frontend-observability.js",
   "/js/public-book.js",
   "/js/booking-engine.js",
   "/js/nav.js",

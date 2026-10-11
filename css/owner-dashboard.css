@@ -958,6 +958,36 @@
   grid-column: 1 / -1;
 }
 
+.owner-page .settings-support-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.owner-page .settings-support-details > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.owner-page .settings-support-details dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.owner-page .settings-support-details dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+}
+
 .owner-page .settings-action-row {
   align-items: stretch;
 }
@@ -3065,6 +3095,10 @@
   .owner-page .owner-layout {
     padding: 14px;
     gap: 16px;
+  }
+
+  .owner-page .settings-support-details {
+    grid-template-columns: 1fr;
   }
 
   .owner-brand-copy p {

@@ -400,12 +400,18 @@
     <section id="supportToolsCard" class="card owner-panel hidden section-stack">
       <div class="card-head">
         <h2>Support Tools</h2>
-        <p class="small">Copy support details before reporting a pilot issue.</p>
+        <p class="small">Use these non-secret deployment details to identify the frontend and PWA cache active on this device.</p>
       </div>
+      <dl class="settings-support-details">
+        <div><dt>Frontend version</dt><dd id="frontendVersionValue">Loading...</dd></div>
+        <div><dt>Build</dt><dd id="frontendBuildValue">Loading...</dd></div>
+        <div><dt>Expected PWA cache</dt><dd id="frontendCacheVersionValue">Loading...</dd></div>
+        <div><dt>API mode</dt><dd id="frontendApiModeValue">Loading...</dd></div>
+      </dl>
       <div class="public-booking-qr-actions">
         <button id="reportProblemBtn" class="btn btn-ghost" type="button">Report a problem</button>
       </div>
-      <p class="small">Copies app version, demo mode, current shop ID, and browser info to your clipboard.</p>
+      <p class="small">Copies only the deployment identifiers above, the current page name, and a browser-family bucket. It excludes account, shop, customer, URL, and stored-data values.</p>
       <p id="supportStatus" class="small booking-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
 

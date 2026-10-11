@@ -1,6 +1,7 @@
 import * as dataStore from "./dataStore.js";
 import { doLogout } from "./logout.js";
 import { showToast as showToastBase } from "./toast.js";
+import "./frontend-observability.js";
 
 (function () {
   let escapeHandler = null;

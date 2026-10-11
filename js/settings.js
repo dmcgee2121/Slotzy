@@ -1,5 +1,6 @@
 import * as dataStore from "./dataStore.js";
 import { wireLogoutButton } from "./logout.js";
+import "./frontend-version.js";
 
 (function () {
   const settingsMain = document.getElementById("settingsMain");
@@ -79,6 +80,10 @@ import { wireLogoutButton } from "./logout.js";
   const supportToolsCard = document.getElementById("supportToolsCard");
   const reportProblemBtn = document.getElementById("reportProblemBtn");
   const supportStatus = document.getElementById("supportStatus");
+  const frontendVersionValue = document.getElementById("frontendVersionValue");
+  const frontendBuildValue = document.getElementById("frontendBuildValue");
+  const frontendCacheVersionValue = document.getElementById("frontendCacheVersionValue");
+  const frontendApiModeValue = document.getElementById("frontendApiModeValue");
 
   const barberDisplayNameInput = document.getElementById("barberDisplayNameInput");
   const barberUsernameInput = document.getElementById("barberUsernameInput");
@@ -89,7 +94,6 @@ import { wireLogoutButton } from "./logout.js";
   const barberUsersList = document.getElementById("barberUsersList");
 
   const showToast = window.showToast;
-  const APP_VERSION = "0.1.0-beta";
   const DEFAULT_SHOP_LOGO_URL = new URL("../assets/images/slotzy-logo.png", import.meta.url).href;
   // Branding is currently persisted inside the legacy whole-store Postgres
   // snapshot. Keep each shop comfortably below the hosted RPC's practical
@@ -483,9 +487,22 @@ import { wireLogoutButton } from "./logout.js";
     }
 
     supportToolsCard.classList.remove("hidden");
+    renderSupportBuildInfo();
     if (reportProblemBtn && reportProblemBtn.dataset.bound !== "true") {
       reportProblemBtn.addEventListener("click", handleReportProblemClick);
       reportProblemBtn.dataset.bound = "true";
+    }
+  }
+
+  function renderSupportBuildInfo() {
+    const diagnostics = globalThis.SlotzyDiagnostics;
+    const info = diagnostics?.getBuildInfo?.() || globalThis.SLOTZY_BUILD_INFO || {};
+    if (frontendVersionValue) frontendVersionValue.textContent = String(info.appVersion || "unknown");
+    if (frontendBuildValue) frontendBuildValue.textContent = String(info.buildId || "unknown");
+    if (frontendCacheVersionValue) frontendCacheVersionValue.textContent = String(info.cacheVersion || "unknown");
+    if (frontendApiModeValue) {
+      const mode = String(diagnostics?.getApiMode?.() || "unknown");
+      frontendApiModeValue.textContent = mode.replace(/_/g, " ");
     }
   }
 
@@ -638,13 +655,17 @@ import { wireLogoutButton } from "./logout.js";
 
   async function handleReportProblemClick() {
     clearSupportStatus();
+    const diagnostics = globalThis.SlotzyDiagnostics;
+    const info = diagnostics?.getBuildInfo?.() || globalThis.SLOTZY_BUILD_INFO || {};
     const systemInfo = [
       "Slotzy support report",
-      `App version: ${APP_VERSION}`,
+      `Frontend version: ${String(info.appVersion || "unknown")}`,
+      `Build: ${String(info.buildId || "unknown")}`,
+      `Expected PWA cache: ${String(info.cacheVersion || "unknown")}`,
+      `API mode: ${String(diagnostics?.getApiMode?.() || "unknown")}`,
       `Demo mode: ${dataStore.isDemoMode() ? "ON" : "OFF"}`,
-      `Current shopId: ${getCurrentShopId() || "none"}`,
-      `Current user: ${currentUsername || "unknown"}`,
-      `Browser: ${navigator.userAgent}`,
+      `Page: ${String(diagnostics?.getSafePageName?.() || "settings")}`,
+      `Browser family: ${String(diagnostics?.getBrowserFamily?.() || "other")}`,
     ].join("\n");
 
     try {

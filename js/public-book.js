@@ -1,9 +1,10 @@
 import { initBookingEngine } from "./booking-engine.js";
 import * as dataStore from "./dataStore.js";
+import "./frontend-version.js";
 
 const rootEl = document.querySelector("main.owner-layout");
 const params = new URLSearchParams(window.location.search);
-const PUBLIC_BOOKING_BUILD = "slotzy-shell-v5";
+const PUBLIC_BOOKING_BUILD = globalThis.SLOTZY_BUILD_INFO.cacheVersion;
 
 document.documentElement.dataset.publicBookingBuild = PUBLIC_BOOKING_BUILD;
 

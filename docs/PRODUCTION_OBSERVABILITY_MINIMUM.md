@@ -8,7 +8,9 @@
 
 The backend structured safe-event foundation is implemented and deployed on staging. Render staging logs show safe structured health events with request IDs, storage mode, route, method, status, release, and dependency status. The guarded staging suite passed **3/3** after deployment.
 
-This validates the backend foundation in the controlled staging environment only. No monitoring SDK or external alert provider is configured, alert routing and production thresholds remain pending, and frontend deploy/runtime visibility is still the next observability package. Slotzy remains staging-ready for solo-founder QA, not production-ready.
+This validates the backend foundation in the controlled staging environment only. No monitoring SDK or external alert provider is configured, alert routing and production thresholds remain pending, and the newly implemented frontend deploy/runtime visibility still requires staging rollout validation. Slotzy remains staging-ready for solo-founder QA, not production-ready.
+
+**Frontend implementation status:** the P0-B1b frontend foundation is implemented locally. Settings now shows non-secret frontend version, build, expected PWA cache, and API-mode classification values. A browser-only allowlisted diagnostic helper captures safe runtime, rejected-promise, resource-load, service-worker-update, and cache-version-mismatch categories to the local console without sending events over the network. Staging deployment validation remains pending.
 
 ## Minimum signal set
 
@@ -52,13 +54,13 @@ Trigger rollback or a write freeze when a new release is plausibly tied to an in
 
 1. **Phase 1 — docs and event taxonomy:** approve safe event names, allowlisted fields, error classes, correlation-ID handling, thresholds, and ownership. This document completes only this phase.
 2. **Phase 2 — backend structured safe events:** implemented, deployed, and validated on staging. The current server emits allowlisted API, auth, authoritative booking-mutation, notification-outcome, health, and storage-mode events with bounded request IDs; focused redaction tests pass, safe health events are visible in Render logs, and guarded staging passed 3/3. Alert routing and production configuration remain pending.
-3. **Phase 3 — frontend error and deploy visibility:** add non-secret version visibility plus redacted client runtime/cache events and test release identification.
+3. **Phase 3 — frontend error and deploy visibility:** implemented locally with non-secret Settings version/build/cache visibility and redacted browser-console runtime/cache events. Staging deployment and stale-cache verification remain pending.
 4. **Phase 4 — external alert provider or platform-native alerts:** choose configured platform-native alerts or a provider, set recipients/escalation, and rehearse at least one alert without customer data.
 5. **Phase 5 — production dashboards:** create role-limited dashboards for health, failures, integrity, auth, notifications, versions, and alert history; document retention and access review.
 
 ## Next implementation package
 
-The next implementation package is **P0-B1b: frontend error and deploy/version visibility**. Keep it constrained to a non-secret release identifier, redacted runtime/cache event taxonomy, and tests for release identification. It must not add customer analytics, raw-body capture, or a monitoring SDK until the alert destination decision is separately approved.
+The next observability rollout step is to deploy P0-B1b to staging, verify the displayed build/cache identifiers and safe diagnostics, and exercise a controlled stale-cache symptom. After that, configure and rehearse platform-native or separately approved alert routing. No customer analytics, raw-body capture, monitoring SDK, or external alert provider is configured.
 
 ## Platform implications
 

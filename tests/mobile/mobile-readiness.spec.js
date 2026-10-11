@@ -621,7 +621,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
   await page.goto(bookingLink);
   await expect(page.locator("#publicShopName")).toHaveText("E2E Mobile Pilot Shop");
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
-  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("slotzy-shell-v5"))).toBe(true);
+  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("slotzy-shell-v6"))).toBe(true);
 
   await page.locator("#serviceSelect").selectOption(SERVICE_ID);
   const bookingDate = new Date();
@@ -690,7 +690,7 @@ test("dashboard public link creates an authoritative anonymous booking under ser
     selectedTimePresent: true,
     selectedSlotShape: "iso-utc",
     serviceWorkerControlled: true,
-    frontendCacheVersion: "slotzy-shell-v5",
+    frontendCacheVersion: "slotzy-shell-v6",
   }));
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("E2E Diagnostic Client");
   expect(JSON.stringify(safeFailureDiagnostic)).not.toContain("diagnostic-client@example.test");
@@ -2145,6 +2145,69 @@ test("hosted account settings separate identity, public shop fields, profile edi
   await expect(recoveryMessage).toContainText("operator-assisted during beta");
   await expect(recoveryMessage).not.toContainText(/token=|jwt|internal id/i);
   await expectNoPageOverflow(page, "hosted owner account settings");
+});
+
+test("settings exposes safe frontend build and PWA cache identifiers", async ({ page }) => {
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/settings.html");
+
+  await expect(page.locator("#frontendVersionValue")).toHaveText("0.1.0-beta");
+  await expect(page.locator("#frontendBuildValue")).toHaveText("2026.10.10-p0-b1b");
+  await expect(page.locator("#frontendCacheVersionValue")).toHaveText("slotzy-shell-v6");
+  await expect(page.locator("#frontendApiModeValue")).toHaveText("staging configured");
+  await expectNoPageOverflow(page, "frontend support build details");
+});
+
+test("frontend diagnostics allowlist fields and strip private URL and error material", async ({ page }) => {
+  const diagnosticLines = [];
+  page.on("console", (message) => {
+    if (message.text().includes("[Slotzy:diagnostic]")) diagnosticLines.push(message.text());
+  });
+  await seedStorage(page, buildSeed({ configuredOwner: true }), { includeSession: true });
+  await page.goto("/pages/settings.html?token=private-manage-token#customer@example.test");
+
+  const result = await page.evaluate(() => {
+    const sensitive = {
+      password: "private-password",
+      jwt: "eyJhbGciOiJIUzI1NiJ9.private-token",
+      manageToken: "private-manage-token",
+      privateLink: "https://example.test/manage?token=private#secret",
+      email: "customer@example.test",
+      phone: "+15551234567",
+      localStorage: "must-not-appear",
+      rawUrl: window.location.href,
+    };
+    const built = window.SlotzyDiagnostics.buildSafeDiagnostic({
+      event: "frontend.runtime_error",
+      category: "runtime_exception",
+      route: window.location.href,
+      errorClass: "TypeError",
+      ...sensitive,
+    });
+    const emitted = [];
+    window.SlotzyDiagnostics.emitSafeDiagnostic({
+      event: "frontend.runtime_error",
+      category: "runtime_exception",
+      route: window.location.href,
+      errorClass: "TypeError",
+      ...sensitive,
+    }, (...parts) => emitted.push(parts.join(" ")));
+    window.dispatchEvent(new ErrorEvent("error", {
+      message: "private-password customer@example.test +15551234567 token=private-manage-token",
+      error: new TypeError("private-password customer@example.test"),
+    }));
+    return { built, emitted };
+  });
+
+  expect(result.built.page).toBe("settings");
+  expect(Object.keys(result.built).sort()).toEqual([
+    "apiMode", "browserFamily", "buildId", "cacheVersion", "category", "errorClass",
+    "event", "fingerprint", "frontendVersion", "page", "timestamp",
+  ].sort());
+  const serialized = JSON.stringify(result);
+  expect(serialized).not.toMatch(/private-password|private-manage-token|customer@example\.test|15551234567|token=|localStorage|rawUrl/);
+  await expect.poll(() => diagnosticLines.length).toBeGreaterThan(0);
+  expect(diagnosticLines.join("\n")).not.toMatch(/private-password|private-manage-token|customer@example\.test|15551234567|token=/);
 });
 
 test("staff password change validates locally, refreshes the bearer token, and keeps errors safe", async ({ page }) => {
