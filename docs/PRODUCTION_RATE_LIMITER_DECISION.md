@@ -1,6 +1,6 @@
 # Production rate limiter shared-store and source-key decision
 
-**Status:** Pending approval and implementation.  
+**Status:** Pending approval and implementation.
 **Scope:** Production decision record for P0-B2a; this record implements no limiter.
 
 ## Decision summary
