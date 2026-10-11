@@ -33,6 +33,8 @@ Backup/restore validation should run in parallel as operational preparation wher
 
 **Abuse-controls update:** P0-B2a is implemented, deployed to Render staging, and validated by guarded staging (3/3 passed). A controlled hosted login smoke returned generic invalid-credentials `401` responses for attempts 1–30 and `429 auth_temporarily_limited` for attempts 31–32. Safe `abuse.rate_limited` events were visible in Render logs with request IDs, route/method/status, category, and key type; the reviewed output contained no raw credentials, raw IP, JWT/authorization data, tokens, contacts, raw body, or full URL. The P0-B2b decision record is now available at [PRODUCTION_RATE_LIMITER_DECISION.md](PRODUCTION_RATE_LIMITER_DECISION.md); implementation remains pending until shared-store/provider, source-key, privacy, ownership, and fallback decisions are approved. Slotzy remains staging-ready for solo-founder QA, not production-ready.
 
+**Environment and launch update:** P0-B3 planning records are available at [PRODUCTION_ENVIRONMENT_SEPARATION.md](PRODUCTION_ENVIRONMENT_SEPARATION.md) and [PRODUCTION_LAUNCH_ROLLBACK_GATE.md](PRODUCTION_LAUNCH_ROLLBACK_GATE.md). Production configuration, access review, launch evidence, and rollback rehearsal remain pending. Slotzy remains staging-ready for solo-founder QA, not production-ready; no external-tester validation or payment-launch approval exists.
+
 ## Highest-risk deferral
 
 The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.
