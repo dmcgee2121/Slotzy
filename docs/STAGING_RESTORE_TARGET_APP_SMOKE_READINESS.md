@@ -1,8 +1,10 @@
 # Isolated staging restore-target application smoke readiness — P0-F3
 
-**Status:** Preflight/readiness only; **not executed yet**. This checklist authorizes no restore, resource creation, migration, configuration change, secret/environment-variable change, provider send, or production access.
+**Status:** Preflight complete; **execution blocked until an isolated restore-target API exists**. No restore or application smoke has been executed. This checklist authorizes no restore, resource creation, migration, configuration change, secret/environment-variable change, provider send, or production access.
 
 **Purpose:** Make the entry criteria for the isolated staging restore-target application smoke explicit before an authorized operator performs the separate restore procedure in [the smoke plan](STAGING_RESTORE_TARGET_APP_SMOKE_PLAN.md). This is operational preparation for solo-founder staging QA, not production approval. Production remains **no-go** until this smoke and a separately accepted production-equivalent restore rehearsal are complete.
+
+**Current preflight result:** [P0-F3a preflight result](STAGING_RESTORE_TARGET_APP_SMOKE_PREFLIGHT_RESULT.md) found a possible disposable database label but no isolated Render restore-target API, no isolated frontend context, and no approved notification-safe mode. Do not repoint normal staging API; the app smoke is blocked.
 
 ## Non-negotiable boundary
 
@@ -80,7 +82,7 @@ Use this template in restricted evidence after authorization. Keep the Git recor
 
 | Field | Result |
 | --- | --- |
-| Execution status | Not executed yet / blocked / executed |
+| Execution status | Blocked pending isolated restore-target API / executed |
 | Environment identity | `[Redacted safe label and verification result]` |
 | Restore target label | `[Safe label]` |
 | API target label | `[Safe label or not applicable]` |
@@ -111,6 +113,7 @@ Use this template in restricted evidence after authorization. Keep the Git recor
 ## Related records
 
 - [Staging restore-target application smoke plan](STAGING_RESTORE_TARGET_APP_SMOKE_PLAN.md)
+- [Staging restore-target application smoke preflight result](STAGING_RESTORE_TARGET_APP_SMOKE_PREFLIGHT_RESULT.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)
 - [Production gap review](PRODUCTION_GAP_REVIEW.md)
 - [Production launch and rollback gate](PRODUCTION_LAUNCH_ROLLBACK_GATE.md)
