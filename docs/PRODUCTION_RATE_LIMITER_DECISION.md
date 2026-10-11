@@ -5,6 +5,8 @@
 
 The [P0-F5 production shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md) consolidates the remaining provider/store, privacy, failure-mode, rollout, rollback, and acceptance decisions. The shared limiter remains unapproved.
 
+The [P0-F5a options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md) recommends a managed Redis-compatible store category for later staging implementation only; it selects no vendor and grants no production approval.
+
 ## Decision summary
 
 P0-B2a's bounded in-process limiter remains appropriate for controlled, solo-founder staging QA. It is not a production control: counters are per instance, reset on deploy, and can be bypassed when traffic is distributed across instances.
