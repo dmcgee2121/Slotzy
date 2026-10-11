@@ -79,6 +79,8 @@ Never log passwords, password hashes, JWTs, `jti` values, authorization headers,
 4. **Phase 4 — alert thresholds and tuning:** begin with counts/daily review in staging, establish wider-beta baselines, alert on sustained auth/manage/booking limits or service-impacting attack patterns, and prevent high-cardinality labels.
 5. **Phase 5 — production/privacy review:** approve source-key derivation and retention, shared-store access, thresholds, fail modes, incident response, support copy, and false-positive recovery before production.
 
+The P0-B2b decision record is available at [PRODUCTION_RATE_LIMITER_DECISION.md](PRODUCTION_RATE_LIMITER_DECISION.md). Production shared-store implementation remains pending until the source-key trust boundary, provider/store choice, privacy posture, operational owner, and fallback behavior are approved.
+
 ## Recommended first implementation package
 
 **P0-B2a is implemented, deployed to Render staging, and smoke-validated.** It covers login, anonymous booking creation, and public manage actions (`GET /api/public/manage`, `PATCH /api/public/manage/cancel`, and `POST /api/public/manage/recover`) with the common limiter and safety contract. Guarded staging passed 3/3, and the controlled hosted login smoke verified generic `401` responses through the login threshold followed by generic `429` responses with `auth_temporarily_limited`. Registration can reuse the helper afterward; password change and authenticated staff routes should follow only after staging thresholds and source derivation are further validated.
