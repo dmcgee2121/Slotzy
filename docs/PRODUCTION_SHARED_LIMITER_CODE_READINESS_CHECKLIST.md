@@ -41,7 +41,7 @@
 
 ## Smallest safe next package
 
-Recommend **P0-F5f — shared limiter implementation slice plan** as a docs-only package. It should narrow the first future code slice to an adapter interface, in-memory adapter contract tests, fake shared-store adapter tests, and no external provider, Render, environment, or production work. It should also resolve the precise constants, test matrix, and staging hard stops needed before any code authorization.
+The [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md) now narrows the first future code slice to an adapter interface, in-memory adapter contract tests, fake shared-store adapter tests, and no external provider, Render, environment, or production work. A narrow local-code slice may be considered only after this plan; full implementation remains blocked.
 
 ## Open decisions before code
 
@@ -83,3 +83,4 @@ Code readiness is **blocked for full implementation** and only narrowly ready fo
 - [Failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [Staging implementation spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
+- [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md)

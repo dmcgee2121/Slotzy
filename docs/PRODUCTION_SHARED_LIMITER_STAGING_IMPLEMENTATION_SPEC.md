@@ -80,6 +80,8 @@ The staging implementation design direction is documented, but implementation re
 
 The [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md) concludes that a full implementation is not yet ready to start.
 
+The [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md) permits consideration only of a narrow local/providerless groundwork slice; real shared-provider implementation remains blocked.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -94,6 +96,7 @@ The [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_C
 - [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md)
 - [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
+- [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
