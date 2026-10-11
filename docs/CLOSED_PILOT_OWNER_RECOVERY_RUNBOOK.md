@@ -1,43 +1,61 @@
-# Closed-pilot owner account recovery
+# Closed-pilot operator-assisted recovery runbook
 
-This is the temporary, operator-mediated recovery process for a named Slotzy closed-pilot owner or barber. It applies to the staging/closed-pilot environment only. It is not a self-service password-reset feature and must not be used for production.
+## Scope and policy
 
-## Why recovery is manual for this pilot
+This is the temporary recovery process for a named Slotzy owner or barber in **solo-founder staging QA**. It is operator-assisted only. It does not authorize production access, a browser-facing account lookup, self-service reset links, email/SMS reset delivery, or any recovery code change.
 
-Owner registration currently uses a username and password; it does not collect or verify a recovery email. Hosted passwords are bcrypt hashes, while local/demo browser storage is not an account-recovery system. There is no password-reset token endpoint, mail-delivery flow, single-use token store, or per-user session revocation.
+Use the same generic public guidance for every requester. Do not confirm whether an account exists until the requester has been verified through the approved private channel. The login and Settings recovery-help controls are informational only and must not perform account lookup or issue credentials.
 
-The Supabase schema reserves a unique active-user email field, but the current hosted registration flow does not populate it. Do not assume a profile or shop email is verified ownership proof.
+Never put passwords, password hashes, JWTs, `jti` values, private manage links, customer data, reset tokens, raw database rows, or secret values in support notes, tickets, screenshots, chat, source control, or logs. Do not use public shop information, booking links, a phone number, or a newly supplied email address as proof of ownership by itself.
 
-The login modal and authenticated Settings page now expose “Need help accessing your owner account?” guidance. This is an informational entry point only: it performs no account lookup, sends no email/SMS, creates no reset token, and must use the same generic wording regardless of whether an account exists. The requester must contact the approved private pilot support channel and complete the verification steps below.
+## Identity verification
 
-Hosted Settings intentionally keeps username, personal display name, personal email, and personal phone read-only. Public shop phone/email remain editable business-profile fields, not verified account-recovery factors.
+Start a restricted, redacted recovery record with: date/time, staging environment, operator, requester role, a minimal account reference, reason category, verification outcome, action outcome, and follow-up needed. The record must not contain any secret or customer/private data.
 
-Beta staging verification completed on 2026-10-04: Netlify was deployed, guarded staging passed **3/3**, and manual UAT confirmed the help entry point, read-only hosted profile boundary, editable public Shop settings, and absence of email/text delivery claims. Recovery remains operator-assisted; no Render deploy, Supabase migration, or production change was required.
+Before discussing an account or taking action, verify the requester through a contact method recorded before the recovery request and obtain at least one additional pilot-specific fact already known to the operator. Appropriate evidence can include a pre-established out-of-band contact plus a previously recorded owner/barber relationship, shop context, or other non-public pilot fact. Require two independent factors when the request is unexpected, the prior contact record is weak, or an account compromise is suspected.
 
-## Before changing anything
+The following are not sufficient evidence, alone or together without a pre-existing verified channel: a username, public shop name or details, public booking URL or QR code, booking confirmation details, caller-provided phone number, a newly supplied email address, social-media profile, or urgency claim.
 
-1. Open an incident record with the date/time, requesting username, affected environment, operator, and a short reason. Do not include passwords, JWTs, reset values, raw database rows, or customer data.
-2. Confirm this is the dedicated staging/closed-pilot environment, never production.
-3. Verify the requester out of band using the contact method recorded before the incident and at least one second pilot-specific fact known to the operator. Do not rely on an email address supplied in the recovery request, a booking link, or a username alone.
-4. If identity cannot be verified, do not reset the password. Escalate to the named pilot owner and pause access for that account until resolved.
-5. Confirm the exact username and that its role is `owner` or `barber`. Do not disclose whether an arbitrary username exists to an unverified requester.
+Pause and refuse recovery when identity remains ambiguous, ownership is disputed, verification repeatedly fails, the requester pressures the operator to bypass the process, or the account may be compromised. Escalate to the named pilot owner/incident decision maker and do not disclose whether the account exists. Treat a suspicious, rushed, or conflicting request as a security incident until resolved.
 
-## Operator recovery procedure
+## Staging recovery procedure
 
-1. Generate a unique temporary password in the approved password manager. Never place it in source control, a ticket body, browser storage, logs, screenshots, or chat history.
-2. In the approved, audited staging operator path, replace the `password_hash` for exactly that user with a bcrypt hash using the application's current cost factor (10). For the hosted Postgres adapter this is the matching `users.password_hash` row; do not change shop, membership, bookings, services, availability, or email records. Do not use a broad data reset or snapshot rewrite.
-3. Independently verify that exactly one account was changed, then perform one login with the temporary password in a private browser context. Confirm the expected owner/barber landing page only; do not create or alter customer bookings during this check.
-4. Deliver the generated password only through the pre-verified out-of-band contact method and instruct the owner to store it in an approved password manager. The current app has no owner password-change screen, so any later rotation uses this same verified, operator-mediated process. Do not ask an owner to send a chosen password to an operator.
-5. Record completion, verifier, environment, username, and the fact that login was checked. Never record any password, hash, JWT, email body, or token.
+1. Confirm the request is for the dedicated staging environment and that the requester is an owner or barber. Stop on any environment or account ambiguity.
+2. Complete identity verification and record only the redacted result. Do not reveal account details before this step.
+3. Use the approved, audited operator path to rotate the password for exactly the verified account. It must make a targeted credential change only, bcrypt-hash the replacement password, and invalidate that account's sessions by incrementing `auth_version` and updating the invalid-after time. Do not use broad snapshot writes, staging resets, secret rotation, or changes to shops, memberships, bookings, services, availability, or customer data.
+4. Verify the outcome with the smallest safe check: the old session is no longer accepted and the account can sign in through the intended owner/barber flow. Do not create or inspect customer bookings as part of this check.
+5. Tell the verified user, through the pre-established private channel, to sign in and immediately choose a new password in **Settings → Account and profile → Account security**. The password-change UI keeps that browser signed in with a fresh token and revokes older sessions through `auth_version`.
+6. Avoid sending a password in plain text. The preferred future replacement is verified self-service recovery. If a temporary password must be delivered during staging, use the pre-verified out-of-band channel, minimize its lifetime and exposure, never record it, and require an immediate user-selected password change. This is an accepted staging risk, not a production-safe mechanism.
+7. Close the restricted record only after the verified user confirms access, the operator records the redacted outcome, and any incident follow-up is assigned.
 
-## Session limitation and escalation
+If the approved targeted operator path is unavailable or cannot prove session invalidation, do not improvise with manual database edits. Pause the request and escalate.
 
-Existing owner JWTs remain valid for up to seven days because the current authentication model has no per-user token/session revocation. A password rotation does not invalidate a previously issued JWT.
+## Incident and stop conditions
 
-If account compromise is suspected, do not treat the normal recovery procedure as sufficient. Immediately pause the affected account's pilot access and escalate to the pilot owner. The only currently available broad invalidation is controlled JWT-secret rotation, which signs out every owner and requires a coordinated staging redeploy; use it only under an approved incident decision. Do not rotate secrets casually and do not change them through this runbook.
+Stop the recovery and escalate immediately for:
 
-## Closure and future replacement
+- possible impersonation, disputed ownership, or wrong-account recovery;
+- repeated failed or contradictory verification;
+- suspected account compromise or unexpected password-change request;
+- a request that would disclose whether an account exists;
+- any possible exposure of customer data, private links, tokens, hashes, or passwords; or
+- uncertainty about the environment, target account, or session-revocation outcome.
 
-Close the incident only after the owner confirms access through the verified channel and the pilot owner accepts any session-revocation limitation. Repeated recovery requests, failed identity verification, suspected compromise, or an unverified contact record are no-go conditions for expanding the pilot.
+For a suspected compromise, pause the affected account workflow, preserve only redacted evidence, notify the incident decision maker, and follow the privacy/support incident runbook. Do not treat ordinary recovery as sufficient containment.
 
-Replace this temporary process before a broader pilot with a designed account-recovery feature: verified owner email enrollment, generic anti-enumeration responses, high-entropy single-use hashed reset tokens with expiry, rate limits, audited delivery, password-policy validation, tests, and per-user session revocation.
+## Future self-service recovery requirements
+
+Self-service recovery remains future work and is required before production or app-store readiness. Its design must include:
+
+- verified recovery-contact enrollment and change controls;
+- generic, non-enumerating request and completion responses;
+- high-entropy, single-use reset tokens or one-time codes;
+- hashed reset-token storage only, with short expiry and single-use enforcement;
+- rate limits, abuse detection, retry rules, and safe lockout handling;
+- privacy-safe audit events for request, delivery, verification, reset, and revocation outcomes;
+- password policy validation and recovery/compromise regression tests; and
+- per-user session revocation after a successful reset.
+
+## Readiness boundary
+
+Operator-assisted recovery is acceptable only for solo-founder staging QA. It does not make Slotzy production-ready. Production readiness still requires self-service recovery or an approved equivalent, privacy and retention controls, monitoring and alerting, rate limiting and abuse prevention, backup/restore validation, and tested launch and rollback gates.

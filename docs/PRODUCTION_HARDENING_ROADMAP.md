@@ -17,7 +17,7 @@
 
 **Why it matters:** Account recovery must verify ownership without exposing account existence or granting access to the wrong person.
 
-**Current status:** Recovery is operator-assisted and documented for staging. Owner and barber users can change their passwords in Settings → Account and profile → Account security. Self-service forgot-password/reset and verified recovery enrollment are not implemented.
+**Current status:** Recovery is operator-assisted and documented for staging in [the closed-pilot recovery runbook](CLOSED_PILOT_OWNER_RECOVERY_RUNBOOK.md). Owner and barber users can change their passwords in Settings → Account and profile → Account security. Self-service forgot-password/reset and verified recovery enrollment are not implemented.
 
 **Required work:** Define verified recovery factors, implement a secure reset and recovery enrollment flow, prevent enumeration, audit recovery actions, and test compromised-account handling.
 
