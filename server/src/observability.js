@@ -5,6 +5,7 @@ const EVENT_FIELDS = new Set([
   "event", "environment", "service", "storageMode", "requestId", "route", "method",
   "status", "errorCode", "errorClass", "durationMs", "durationBucket", "release",
   "outcome", "operation", "dependencyStatus", "notificationMode",
+  "category", "keyType",
 ]);
 
 function safeText(value, max = 120) {
@@ -61,6 +62,8 @@ export function buildSafeEvent(input = {}) {
     operation: safeEnum(input.operation, /^[a-z][a-z0-9_.-]{0,79}$/),
     dependencyStatus: safeEnum(input.dependencyStatus, /^[a-z][a-z0-9_.-]{0,79}$/),
     notificationMode: safeEnum(input.notificationMode, /^[a-z][a-z0-9_.-]{0,31}$/),
+    category: safeEnum(input.category, /^[a-z][a-z0-9_.-]{0,79}$/),
+    keyType: safeEnum(input.keyType, /^(account|coarse_source|shop|manage|contact)$/),
   };
   if (values.durationMs !== undefined) values.durationBucket = durationBucket(values.durationMs);
   for (const [key, value] of Object.entries(values)) {

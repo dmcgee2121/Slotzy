@@ -37,8 +37,12 @@ test("health and mutation events retain safe outcome context without secrets", (
   const lines = [];
   emitSafeEvent({ event: "api.health_checked", environment: "staging", service: "slotzy-api", storageMode: "postgres", requestId: "health-check-123", route: "/api/health", method: "GET", status: 200, dependencyStatus: "available", authorization: "Bearer private", supabaseKey: "secret" }, (line) => lines.push(line));
   emitSafeEvent({ event: "booking.cancel", environment: "staging", service: "slotzy-api", storageMode: "postgres", requestId: "booking-cancel-123", route: "/api/public/manage/cancel", method: "PATCH", status: 200, outcome: "persisted", password: "private", manageToken: "private", clientContact: "customer@example.test" }, (line) => lines.push(line));
-  assert.equal(lines.length, 2);
+  emitSafeEvent({ event: "abuse.rate_limited", environment: "staging", service: "slotzy-api", storageMode: "postgres", requestId: "rate-limit-123", route: "/api/auth/login", method: "POST", status: 429, category: "login", outcome: "rate_limited", errorCode: "auth_temporarily_limited", keyType: "account", rawIp: "127.0.0.1", password: "private" }, (line) => lines.push(line));
+  assert.equal(lines.length, 3);
   assert.match(lines[1], /"outcome":"persisted"/);
   assert.match(lines[1], /"requestId":"booking-cancel-123"/);
   assert.doesNotMatch(lines.join("\n"), /Bearer private|customer@example\.test|manageToken|password|supabaseKey/);
+  assert.match(lines[2], /"category":"login"/);
+  assert.match(lines[2], /"keyType":"account"/);
+  assert.doesNotMatch(lines[2], /127\.0\.0\.1|rawIp/);
 });

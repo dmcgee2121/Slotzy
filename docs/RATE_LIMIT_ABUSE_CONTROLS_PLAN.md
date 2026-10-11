@@ -1,12 +1,18 @@
 # Rate limits and abuse controls plan
 
-**Scope:** planning only. This document does not add a rate-limit library, shared store, external provider, migration, or runtime behavior.
+**Scope:** P0-B2a now implements the first staging-safe backend slice described by this plan. It does not add a shared store, external provider, migration, or production-complete distributed enforcement.
 
 **Current position:** Slotzy is staging-ready for solo-founder QA and **not production-ready**. The limits below are initial safety bounds to validate and tune; they are not production approval, an SLA, or evidence of external-tester validation.
 
 ## Current exposed surface
 
-The current Express surface includes public authentication, booking-context, booking creation, opaque manage-token lookup/cancellation, manage-link recovery, authenticated account and shop operations, restricted administration/development routes, and health. There is no backend endpoint for the static operator-assisted account-recovery help text, and no self-service password-reset endpoint. `/api/public/manage/recover` is booking manage-link recovery, not staff-account recovery. An in-process five-requests-per-15-minutes contact-derived guard already exists on that route; it is staging-local, instance-local, and not a production-complete shared control.
+The current Express surface includes public authentication, booking-context, booking creation, opaque manage-token lookup/cancellation, manage-link recovery, authenticated account and shop operations, restricted administration/development routes, and health. There is no backend endpoint for the static operator-assisted account-recovery help text, and no self-service password-reset endpoint. `/api/public/manage/recover` is booking manage-link recovery, not staff-account recovery. P0-B2a replaces the route's earlier isolated guard with the common bounded in-process limiter described below.
+
+## P0-B2a implementation status
+
+The reusable bounded in-process limiter, privacy-safe HMAC keys, generic `429` responses, bounded `Retry-After`, and allowlisted `abuse.rate_limited` events are implemented for login, anonymous booking creation, public manage lookup, public cancellation, and manage-link recovery. Focused tests cover legitimate requests, limit boundaries, expiry and cleanup, bounded counter storage, route isolation, response non-enumeration, and event redaction.
+
+This package is ready for a Render staging deploy and guarded validation; that deployment is not recorded as complete here. Source keys currently derive from the direct socket address and intentionally do not trust forwarded headers until Render proxy behavior is explicitly validated. Counters remain instance-local and reset on deploy, so P0-B2a reduces staging risk but is not a production control. No monitoring provider or external rate-limit store was added.
 
 ## Key and failure-mode rules
 
@@ -75,7 +81,7 @@ Never log passwords, password hashes, JWTs, `jti` values, authorization headers,
 
 ## Recommended first implementation package
 
-Implement **P0-B2a: in-process limits for login, anonymous booking creation, and public manage actions** (`GET /api/public/manage`, `PATCH /api/public/manage/cancel`, and `POST /api/public/manage/recover`). Include a reusable bounded-memory limiter, route-policy configuration, generic response helpers, safe observability events, and focused tests for redaction, non-enumeration, expiry, and legitimate requests below the threshold. Registration can reuse the helper immediately afterward; password change and authenticated staff routes should follow once the core behavior is stable.
+**P0-B2a is implemented locally and awaits Render staging deployment/validation.** It covers login, anonymous booking creation, and public manage actions (`GET /api/public/manage`, `PATCH /api/public/manage/cancel`, and `POST /api/public/manage/recover`) with the common limiter and safety contract. Registration can reuse the helper afterward; password change and authenticated staff routes should follow only after the staging thresholds and source derivation are validated.
 
 This is the smallest package covering the highest-risk combination: credential attacks, unauthenticated write spam, private manage-link probing, cancellation abuse, and recovery-message amplification. In-memory limits are acceptable for controlled single-instance staging because they reduce immediate abuse risk without new infrastructure. They are not production-complete: deploys reset counters, multiple instances do not share state, memory pressure requires bounds/cleanup, and a determined attacker can distribute requests. Production requires the Phase 2 shared-store/privacy decision and tested fallback behavior.
 

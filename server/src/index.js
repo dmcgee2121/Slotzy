@@ -13,6 +13,7 @@ import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
 import { attachRequestContext, emitSafeEvent } from "./observability.js";
+import { createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits, getRateLimitPolicies } from "./rateLimiter.js";
 
 dotenv.config();
 
@@ -24,6 +25,11 @@ const IS_PRODUCTION_LIKE = isProductionLikeEnvironment(RUNTIME_ENVIRONMENT);
 const DEV_JWT_FALLBACK = "dev-secret-change-me";
 const JWT_SECRET = resolveJwtSecret();
 const OBSERVABILITY_RELEASE = String(process.env.SLOTZY_RELEASE ?? process.env.RENDER_GIT_COMMIT ?? "").trim();
+const RATE_LIMIT_SECRET = String(process.env.RATE_LIMIT_KEY_SECRET || JWT_SECRET);
+const RATE_LIMIT_POLICIES = getRateLimitPolicies({
+  useTestProfile: RUNTIME_ENVIRONMENT === "test" && process.env.SLOTZY_RATE_LIMIT_TEST_PROFILE === "tight",
+});
+const RATE_LIMITER = createInMemoryRateLimiter({ maxKeys: 10_000 });
 
 const ROLE_OWNER = "owner";
 const ROLE_BARBER = "barber";
@@ -80,25 +86,51 @@ function createManageToken() {
   return randomBytes(32).toString("base64url");
 }
 
-const MANAGE_RECOVERY_WINDOW_MS = 15 * 60 * 1000;
-const MANAGE_RECOVERY_MAX_REQUESTS = 5;
-const manageRecoveryAttempts = new Map();
-
 function normalizeRecoveryContact(value) {
   return normalizeUsername(value).toLowerCase().replace(/[\s().-]/g, "");
 }
 
-function isRecoveryRequestAllowed(contact) {
-  const now = Date.now();
-  const key = hashManageToken(normalizeRecoveryContact(contact));
-  const attempts = (manageRecoveryAttempts.get(key) ?? []).filter((time) => now - time < MANAGE_RECOVERY_WINDOW_MS);
-  if (attempts.length >= MANAGE_RECOVERY_MAX_REQUESTS) {
-    manageRecoveryAttempts.set(key, attempts);
-    return false;
-  }
-  attempts.push(now);
-  manageRecoveryAttempts.set(key, attempts);
-  return true;
+function coarseRequestSource(req) {
+  // Staging intentionally uses the direct socket peer and does not trust
+  // X-Forwarded-For until Render proxy trust boundaries receive a dedicated
+  // review. The value is HMACed immediately and is never logged or retained.
+  return String(req.socket?.remoteAddress ?? "unknown-source");
+}
+
+function enforceRateLimit(req, res, { category, route, errorCode, errorMessage, keyInputs, responseBody = null }) {
+  const result = evaluateRateLimits({
+    limiter: RATE_LIMITER,
+    policies: RATE_LIMIT_POLICIES,
+    category,
+    keyInputs,
+    buildKey: (keyType, values) => createOpaqueLimiterKey({
+      secret: RATE_LIMIT_SECRET,
+      environment: RUNTIME_ENVIRONMENT,
+      route,
+      keyType,
+      values,
+    }),
+  });
+  if (result.allowed) return true;
+
+  res.setHeader("Retry-After", String(result.retryAfterSeconds));
+  emitSafeEvent({
+    event: "abuse.rate_limited",
+    environment: RUNTIME_ENVIRONMENT,
+    service: "slotzy-api",
+    storageMode: STORAGE_ADAPTER,
+    release: OBSERVABILITY_RELEASE,
+    requestId: req.observability?.requestId,
+    route,
+    method: req.method,
+    status: 429,
+    category,
+    outcome: "rate_limited",
+    errorCode,
+    keyType: result.keyType,
+  });
+  res.status(429).json(responseBody || { error: errorMessage, code: errorCode });
+  return false;
 }
 
 function getManageLinkOrigin(req) {
@@ -1420,6 +1452,16 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const username = normalizeUsername(req.body?.username);
     const password = String(req.body?.password ?? "");
+    if (!enforceRateLimit(req, res, {
+      category: "login",
+      route: "/api/auth/login",
+      errorCode: "auth_temporarily_limited",
+      errorMessage: "Sign-in is temporarily limited. Please try again later.",
+      keyInputs: [
+        { keyType: "account", values: [username || "missing-account"] },
+        { keyType: "coarse_source", values: [coarseRequestSource(req)] },
+      ],
+    })) return;
 
     if (!username || !password) {
       emitSafeEvent({ event: "auth.login", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/auth/login", method: "POST", status: 400, errorCode: "missing_credentials", outcome: "rejected" });
@@ -2355,6 +2397,16 @@ app.get("/api/bookings", requireAuth, async (req, res) => {
 app.get("/api/public/manage", async (req, res) => {
   try {
     const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
+    if (!enforceRateLimit(req, res, {
+      category: "manage_lookup",
+      route: "/api/public/manage",
+      errorCode: "manage_temporarily_limited",
+      errorMessage: "This appointment is temporarily unavailable. Please try again later.",
+      keyInputs: [
+        { keyType: "manage", values: [token || "missing-manage-token"] },
+        { keyType: "coarse_source", values: [coarseRequestSource(req)] },
+      ],
+    })) return;
     if (!token || token.length < 32) {
       return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
     }
@@ -2384,6 +2436,16 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
   try {
     const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
     tokenPresent = Boolean(token);
+    if (!enforceRateLimit(req, res, {
+      category: "manage_cancel",
+      route: "/api/public/manage/cancel",
+      errorCode: "manage_temporarily_limited",
+      errorMessage: "This appointment is temporarily unavailable. Please try again later.",
+      keyInputs: [
+        { keyType: "manage", values: [token || "missing-manage-token"] },
+        { keyType: "coarse_source", values: [coarseRequestSource(req)] },
+      ],
+    })) return;
     if (!token || token.length < 32) {
       return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
     }
@@ -2445,7 +2507,19 @@ app.post("/api/public/manage/recover", async (req, res) => {
     const contact = normalizeUsername(req.body?.contact);
     const shopReference = normalizeUsername(req.body?.shopId);
     const appointmentDate = normalizeUsername(req.body?.appointmentDate);
-    if (!contact || !shopReference || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate) || !isRecoveryRequestAllowed(contact)) return genericResponse();
+    const recoveryMessage = "If we find a matching booking, we'll send the manage link to the contact used for the booking.";
+    if (!enforceRateLimit(req, res, {
+      category: "manage_recovery",
+      route: "/api/public/manage/recover",
+      errorCode: "recovery_temporarily_limited",
+      errorMessage: recoveryMessage,
+      responseBody: { ok: true, message: recoveryMessage, code: "recovery_temporarily_limited" },
+      keyInputs: [
+        { keyType: "contact", values: [normalizeRecoveryContact(contact) || "missing-contact"] },
+        { keyType: "coarse_source", values: [coarseRequestSource(req)] },
+      ],
+    })) return;
+    if (!contact || !shopReference || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate)) return genericResponse();
     const db = await readStore();
     const requestedShop = db.shops.find((shop) => {
       const reference = shopReference.toLowerCase();
@@ -2495,6 +2569,13 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     const db = req.db;
     const user = req.user;
     const isAnonymous = !user;
+    if (isAnonymous && !enforceRateLimit(req, res, {
+      category: "booking_create",
+      route: "/api/bookings",
+      errorCode: "booking_temporarily_limited",
+      errorMessage: "Booking is temporarily limited. Please try again later.",
+      keyInputs: [{ keyType: "coarse_source", values: [coarseRequestSource(req)] }],
+    })) return;
 
     let targetBarberUsername = normalizeUsername(req.body?.barberUsername ?? req.body?.ownerUsername);
     if (user && isBarber(user)) {
@@ -2548,6 +2629,13 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     if (!shop) {
       return res.status(400).json({ error: "selected shop is unavailable", code: "invalid_shop" });
     }
+    if (isAnonymous && !enforceRateLimit(req, res, {
+      category: "booking_create",
+      route: "/api/bookings",
+      errorCode: "booking_temporarily_limited",
+      errorMessage: "Booking is temporarily limited. Please try again later.",
+      keyInputs: [{ keyType: "shop", values: [shopId] }],
+    })) return;
 
     const serviceId = normalizeUsername(req.body?.serviceId);
     const service = db.services.find((entry) => normalizeUsername(entry?.id) === serviceId) || null;
