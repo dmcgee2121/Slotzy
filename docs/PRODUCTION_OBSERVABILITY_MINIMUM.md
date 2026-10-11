@@ -1,6 +1,6 @@
 # Production observability minimum plan
 
-**Scope:** documentation and event taxonomy only. No logging, monitoring SDK, alert provider, database change, or production configuration is authorized by this plan.
+**Scope:** minimum safe observability baseline and rollout record. It does not authorize a monitoring SDK, external alert provider, database change, production dashboard, or production launch.
 
 **Current position:** Slotzy is staging-ready for solo-founder QA and **not production-ready**. This plan does not imply external-tester validation or approve payments.
 
@@ -8,9 +8,14 @@
 
 The backend structured safe-event foundation is implemented and deployed on staging. Render staging logs show safe structured health events with request IDs, storage mode, route, method, status, release, and dependency status. The guarded staging suite passed **3/3** after deployment.
 
-This validates the backend foundation in the controlled staging environment only. No monitoring SDK or external alert provider is configured, alert routing and production thresholds remain pending, and the newly implemented frontend deploy/runtime visibility still requires staging rollout validation. Slotzy remains staging-ready for solo-founder QA, not production-ready.
+The frontend deploy/runtime visibility foundation from commit `559a9f0` is also deployed to Netlify staging. A manual staging check confirmed that Settings → Support Tools shows these non-secret identifiers:
 
-**Frontend implementation status:** the P0-B1b frontend foundation is implemented locally. Settings now shows non-secret frontend version, build, expected PWA cache, and API-mode classification values. A browser-only allowlisted diagnostic helper captures safe runtime, rejected-promise, resource-load, service-worker-update, and cache-version-mismatch categories to the local console without sending events over the network. Staging deployment validation remains pending.
+- Frontend version: `0.1.0-beta`
+- Build: `2026.10.10-p0-b1b`
+- Expected PWA cache: `slotzy-shell-v6`
+- API mode: `staging configured`
+
+The guarded staging suite passed **3/3** after the frontend deployment. Allowlisted runtime, rejected-promise, resource-load, service-worker-update, and cache-version-mismatch diagnostics remain browser-local and send no events over the network. No monitoring SDK, external alert provider, production dashboard, alert routing, or production thresholds are configured yet. These results validate only the controlled staging rollout; Slotzy remains staging-ready for solo-founder QA, not production-ready.
 
 ## Minimum signal set
 
@@ -54,13 +59,13 @@ Trigger rollback or a write freeze when a new release is plausibly tied to an in
 
 1. **Phase 1 — docs and event taxonomy:** approve safe event names, allowlisted fields, error classes, correlation-ID handling, thresholds, and ownership. This document completes only this phase.
 2. **Phase 2 — backend structured safe events:** implemented, deployed, and validated on staging. The current server emits allowlisted API, auth, authoritative booking-mutation, notification-outcome, health, and storage-mode events with bounded request IDs; focused redaction tests pass, safe health events are visible in Render logs, and guarded staging passed 3/3. Alert routing and production configuration remain pending.
-3. **Phase 3 — frontend error and deploy visibility:** implemented locally with non-secret Settings version/build/cache visibility and redacted browser-console runtime/cache events. Staging deployment and stale-cache verification remain pending.
+3. **Phase 3 — frontend error and deploy visibility:** implemented and validated on staging. Settings exposes the confirmed non-secret version/build/cache/API-mode values, diagnostics remain browser-local and redacted, and guarded staging passed 3/3 after deployment. A controlled stale-cache symptom rehearsal remains useful operational follow-up.
 4. **Phase 4 — external alert provider or platform-native alerts:** choose configured platform-native alerts or a provider, set recipients/escalation, and rehearse at least one alert without customer data.
 5. **Phase 5 — production dashboards:** create role-limited dashboards for health, failures, integrity, auth, notifications, versions, and alert history; document retention and access review.
 
 ## Next implementation package
 
-The next observability rollout step is to deploy P0-B1b to staging, verify the displayed build/cache identifiers and safe diagnostics, and exercise a controlled stale-cache symptom. After that, configure and rehearse platform-native or separately approved alert routing. No customer analytics, raw-body capture, monitoring SDK, or external alert provider is configured.
+The next observability package should configure and rehearse platform-native or separately approved alert routing for the existing backend signals, while retaining the browser-local frontend diagnostics until an explicit provider decision is approved. A controlled stale-cache symptom rehearsal should accompany that work. Production dashboards, retention/access rules, and production thresholds remain later gates. No customer analytics, raw-body capture, monitoring SDK, or external alert provider is configured.
 
 ## Platform implications
 
