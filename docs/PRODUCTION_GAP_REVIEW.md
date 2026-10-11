@@ -39,6 +39,8 @@ Backup/restore validation should run in parallel as operational preparation wher
 
 **Privacy and retention update:** the [PRIVACY_DATA_RETENTION_INVENTORY.md](PRIVACY_DATA_RETENTION_INVENTORY.md) records known data categories and proposed privacy/retention controls. Implementation and legal/privacy review remain pending. Production remains no-go until retention, deletion, export, and verified support-request workflow decisions are approved; Slotzy remains staging-ready for solo-founder QA, not production-ready.
 
+**Notification reliability update:** the [NOTIFICATION_RELIABILITY_DECISION.md](NOTIFICATION_RELIABILITY_DECISION.md) now records the best-effort current framing, notification promises, delivery-failure behavior, privacy boundaries, and required reliability controls. Implementation remains pending. Production remains no-go until notification delivery behavior, provider separation, idempotency/retry, observability, privacy, and support handling are approved; Slotzy remains staging-ready for solo-founder QA, not production-ready, with no external-tester validation or payment-launch approval.
+
 ## Highest-risk deferral
 
 The highest immediate operational risk is **lack of monitoring, logging, and alerting**: a failed authoritative booking or authentication incident could remain unnoticed while users rely on the service. The highest irreversible-data risk is unvalidated restore capability.

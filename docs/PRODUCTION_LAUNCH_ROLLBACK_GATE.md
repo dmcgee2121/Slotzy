@@ -17,7 +17,7 @@ Production launch requires an explicit documented **go** decision by the assigne
 | Observability and alerts | Redacted backend/frontend signals, production deploy/runtime visibility, alert routing, dashboard/log access, and a tested alert response path are ready. |
 | Rate limits | The shared-store/provider and source-key decision is approved and tested before broader beta or production; P0-B2a in-process limits alone are insufficient. |
 | Privacy and retention | The [privacy and data retention inventory](PRIVACY_DATA_RETENTION_INVENTORY.md), retention/deletion posture, log redaction, provider retention/access, and support handling are approved. |
-| Notification reliability | Promised channels, sender/provider configuration, authoritative-write behavior, delivery failure handling, and observability are approved and tested. |
+| Notification reliability | The [notification reliability decision record](NOTIFICATION_RELIABILITY_DECISION.md), promised channels, sender/provider configuration, authoritative-write behavior, delivery failure handling, idempotency/retry, privacy/support handling, and observability are approved and tested. |
 | Payments | Payments remain disabled unless a separate explicit payment-launch decision approves them. |
 | Change record | Release revision, scope, known risks, owners, rollout window, stop conditions, rollback target, and communication plan are recorded. |
 
