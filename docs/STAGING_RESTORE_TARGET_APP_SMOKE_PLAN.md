@@ -1,6 +1,6 @@
 # Staging restore-target application smoke plan
 
-**Status:** Planning only; rehearsal pending.  
+**Status:** Planning only; rehearsal pending.
 **Boundary:** Staging-only, isolated restore target, synthetic/non-customer data only. This plan authorizes no restore, project/service creation, configuration change, or production access.
 
 ## Purpose and scope
