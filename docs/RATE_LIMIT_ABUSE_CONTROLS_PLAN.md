@@ -6,6 +6,8 @@ The [P0-F5 production shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DE
 
 The [P0-F5a provider/store options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md) recommends a managed Redis-compatible store category only for a future staging implementation package; the current limiter scope is unchanged.
 
+The [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) keeps the current in-process limiter as the staging fallback/current behavior; it does not authorize implementation.
+
 **Current position:** Slotzy is staging-ready for solo-founder QA and **not production-ready**. The limits below are initial safety bounds to validate and tune; they are not production approval, an SLA, or evidence of external-tester validation.
 
 ## Current exposed surface

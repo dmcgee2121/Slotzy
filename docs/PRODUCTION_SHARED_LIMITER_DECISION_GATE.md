@@ -19,6 +19,8 @@ No option is selected by this gate.
 
 The [P0-F5a options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md) recommends a managed Redis-compatible store category for a future staging implementation package only. It does not select a vendor or approve production use.
 
+The [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) defines a disabled-by-default staging adapter and rollback approach only; production approval remains blocked.
+
 | Category | Evaluation criteria |
 | --- | --- |
 | Managed Redis-compatible store | Reliability, latency, TTL support, atomic increment/expiry, observability, cost, operational ownership, privacy posture, rollback simplicity |
@@ -70,6 +72,7 @@ The production shared limiter is **not approved**. Implementation remains blocke
 
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
 - [P0-F5a provider/store options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md)
+- [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
 - [Accepted staging source-boundary evidence](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)

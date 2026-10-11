@@ -42,6 +42,8 @@ Keeping only process-local state is insufficient for production because restarts
 
 The managed Redis-compatible store category is the recommended direction for a future staging implementation package only. The production shared limiter remains **not approved**, and production launch remains **no-go** for this item. Provider selection, implementation, failure-mode confirmation, privacy/retention, ownership, rollback, and acceptance evidence remain blocked.
 
+The [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) documents the proposed adapter, key, flag, testing, and rollback boundaries without selecting a vendor or authorizing implementation.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -53,6 +55,7 @@ The managed Redis-compatible store category is the recommended direction for a f
 ## Related records
 
 - [Production shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
+- [P0-F5b staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)
