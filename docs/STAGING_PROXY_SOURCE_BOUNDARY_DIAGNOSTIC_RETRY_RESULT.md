@@ -28,6 +28,8 @@ The post-disable guarded suite passed the focused staging owner setup API chain,
 
 Treat the retry as successful reachability but incomplete evidence. Do not retry again until source/local review explains why the category fields printed blank. Keep direct-socket limiter behavior and keep forwarded headers untrusted. Production remains no-go, including the production shared limiter.
 
+The [P0-F4i blank-fields review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md) identifies a hosted output-field mismatch: the endpoint returned safe top-level categories under different names. This retry result remains incomplete evidence; it does not accept source-boundary proof.
+
 ## Remaining blocker
 
 The corrected hosted requests did not emit usable category-only values for every required source-boundary classification. Source/local review must explain the blank fields before any further retry can be considered. No inference about proxy trust, forwarded sources, or a shared limiter may be made from this result.
@@ -43,6 +45,7 @@ The corrected hosted requests did not emit usable category-only values for every
 ## Related records
 
 - [P0-F4e initial blocked attempt](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ATTEMPT_RESULT.md)
+- [P0-F4i blank-fields review](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_BLANK_FIELDS_REVIEW.md)
 - [P0-F4d execution plan](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_EXECUTION_PLAN.md)
 - [Source-boundary validation plan](STAGING_PROXY_SOURCE_BOUNDARY_VALIDATION.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)
