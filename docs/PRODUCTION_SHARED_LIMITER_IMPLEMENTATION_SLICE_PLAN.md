@@ -83,6 +83,8 @@ The implementation-slice plan is documented. The full shared limiter remains blo
 
 The [P0-F5g local adapter foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADAPTER_FOUNDATION_RESULT.md) records completion of that providerless, default-preserving local slice and its subsequent 3/3 guarded staging pass. Real shared-provider work remains blocked.
 
+The [P0-F5h policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md) is a prerequisite for any further policy-alignment implementation; its values require explicit approval first.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -98,3 +100,4 @@ The [P0-F5g local adapter foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADA
 - [Route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md)
 - [Failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [P0-F5g local adapter foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADAPTER_FOUNDATION_RESULT.md)
+- [P0-F5h policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md)

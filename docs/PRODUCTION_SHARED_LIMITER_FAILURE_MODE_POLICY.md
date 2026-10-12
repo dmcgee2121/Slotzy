@@ -58,6 +58,8 @@ Failure-mode direction is documented for a future staging implementation. Implem
 
 The [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md) records this policy's unresolved prerequisites before code.
 
+The [P0-F5h policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md) provides draft category names and response envelopes; unresolved failure decisions remain open.
+
 ## Infrastructure impact
 
 | Question | Answer |
@@ -71,5 +73,6 @@ The [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_C
 - [Staging implementation design spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
 - [P0-F5d route-to-category map](PRODUCTION_SHARED_LIMITER_ROUTE_CATEGORY_MAP.md)
 - [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
+- [P0-F5h policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
 - [Production rate limiter decision](PRODUCTION_RATE_LIMITER_DECISION.md)

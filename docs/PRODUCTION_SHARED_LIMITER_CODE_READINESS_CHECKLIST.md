@@ -45,6 +45,7 @@ The [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_
 
 ## Open decisions before code
 
+- [P0-F5h policy constants, TTL/window, and response-envelope draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md) is available for review; its values remain drafts and do not unblock provider implementation.
 - Provider/vendor selection or an approved placeholder strategy.
 - HMAC secret ownership and rotation.
 - TTL/window values by category.
@@ -84,3 +85,4 @@ Code readiness is **blocked for full implementation** and only narrowly ready fo
 - [Staging implementation spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md)
 - [Shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)
 - [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md)
+- [P0-F5h policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md)
