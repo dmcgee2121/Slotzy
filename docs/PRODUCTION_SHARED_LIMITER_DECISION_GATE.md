@@ -27,6 +27,8 @@ The [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_C
 
 The [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md) defines only providerless local groundwork; production approval remains blocked.
 
+The [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md) defines vendor-agnostic requirements, scorecard evidence, access/cost review, and decision levels. It selects no provider and keeps provider implementation blocked.
+
 | Category | Evaluation criteria |
 | --- | --- |
 | Managed Redis-compatible store | Reliability, latency, TTL support, atomic increment/expiry, observability, cost, operational ownership, privacy posture, rollback simplicity |
@@ -82,6 +84,7 @@ The production shared limiter is **not approved**. Implementation remains blocke
 - [P0-F5c endpoint failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [P0-F5e code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
 - [P0-F5f implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md)
+- [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md)
 - [Rate limits and abuse controls plan](RATE_LIMIT_ABUSE_CONTROLS_PLAN.md)
 - [Accepted staging source-boundary evidence](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md)
 - [Production gate status](PRODUCTION_GATE_STATUS.md)

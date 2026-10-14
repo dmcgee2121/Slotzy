@@ -4,6 +4,8 @@
 
 The [P0-F5i policy approval gate](PRODUCTION_SHARED_LIMITER_POLICY_APPROVAL_GATE.md) allows only a separately authorized, behavior-preserving constants-alignment slice for current categories. Real provider implementation remains blocked.
 
+The [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md) is a prerequisite for any real provider work; it does not itself authorize implementation.
+
 ## Why the slice is narrow
 
 The code-readiness checklist blocks a full Redis-compatible shared-limiter implementation: provider strategy, key ownership, policy constants, failure behavior, and staging validation remain unresolved. The first future code slice should reduce design risk locally without adding an external dependency, changing runtime behavior, or requiring hosted traffic.
@@ -103,3 +105,4 @@ The [P0-F5h policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_D
 - [Failure-mode policy](PRODUCTION_SHARED_LIMITER_FAILURE_MODE_POLICY.md)
 - [P0-F5g local adapter foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADAPTER_FOUNDATION_RESULT.md)
 - [P0-F5h policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md)
+- [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md)
