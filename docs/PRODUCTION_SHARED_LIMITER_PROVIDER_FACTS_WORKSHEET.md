@@ -2,6 +2,8 @@
 
 **Status:** Docs-only provider facts worksheet. No provider is selected, no implementation is approved, no runtime behavior changes, and no production approval is granted.
 
+**Decision update:** Render Key Value / Valkey is selected as the future **staging provider path only** in the [P0-F5m decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md). Unknowns remain open; this does not approve setup, implementation, or production.
+
 ## Candidate providers under review
 
 - Upstash Redis
@@ -54,7 +56,7 @@ Official sources used for the limited facts below: [Upstash Redis pricing](https
 
 | Field | Owner entry |
 | --- | --- |
-| Selected candidate | TBD |
+| Selected candidate | Render Key Value / Valkey for staging path only; setup/implementation TBD |
 | Monthly budget ceiling | TBD |
 | Credit/debit-card owner | TBD |
 | Account owner | TBD |
@@ -97,7 +99,7 @@ Upstash may be attractive for low-cost, serverless/pay-as-you-go evaluation if t
 
 ## Decision gate outcome now
 
-The candidate worksheet is created. No provider is selected, no provider implementation is approved, the production shared limiter remains **not approved**, and production launch remains **no-go**.
+The candidate worksheet is created. Render Key Value / Valkey is selected for the staging path only; provider setup and implementation are not approved. The production shared limiter remains **not approved**, and production launch remains **no-go**.
 
 ## Infrastructure impact
 

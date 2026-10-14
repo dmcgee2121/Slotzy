@@ -4,7 +4,9 @@
 
 The [P0-F5i policy approval gate](PRODUCTION_SHARED_LIMITER_POLICY_APPROVAL_GATE.md) permits consideration only of a tiny local constants-alignment slice for the five existing enforced categories. It does not unblock provider implementation or any runtime-policy change.
 
-The [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md) records the evidence required before vendor selection; provider/vendor selection remains blocked.
+The [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md) records the evidence required for provider selection and setup. Render Key Value / Valkey is now selected for the staging path only; setup and implementation remain blocked.
+
+The [P0-F5m provider decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md) selects Render Key Value / Valkey for the staging path only. Full code implementation remains blocked pending the required setup checklist and other prerequisites.
 
 ## Current completed prerequisites
 
@@ -22,7 +24,7 @@ The [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTIO
 | --- | --- | --- | --- |
 | Source-boundary evidence | Complete | [Accepted diagnostic result](STAGING_PROXY_SOURCE_BOUNDARY_DIAGNOSTIC_ACCEPTED_RESULT.md) | Direct-socket behavior only; forwarded headers remain untrusted. |
 | Provider/store category | Complete | [Options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md) | Redis-compatible category recommended for future staging only. |
-| Final provider/vendor selection | Blocked | [Provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md) | No vendor, account, cost, or access decision. |
+| Staging provider path | Complete, staging only | [Provider decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md) | Render Key Value / Valkey selected; no account, plan, access, setup, or implementation approval. |
 | Limiter-store abstraction design | Complete | [P0-F5g foundation result](PRODUCTION_SHARED_LIMITER_LOCAL_ADAPTER_FOUNDATION_RESULT.md) | Providerless local adapter foundation is complete; full shared-provider integration remains blocked. |
 | Privacy-safe key design | Open review | [Implementation spec](PRODUCTION_SHARED_LIMITER_STAGING_IMPLEMENTATION_SPEC.md) | Concept is defined; HMAC ownership/rotation remains unresolved. |
 | HMAC/key ownership and rotation plan | Blocked | [Decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md) | Needs owner, access boundary, and rotation procedure. |

@@ -8,6 +8,8 @@ This gate selects evaluation requirements for a future shared limiter store/prov
 
 The [P0-F5l candidate provider facts worksheet](PRODUCTION_SHARED_LIMITER_PROVIDER_FACTS_WORKSHEET.md) records limited official-source facts and owner follow-ups for initial candidates. It keeps the provider decision open.
 
+The [P0-F5m provider decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md) selects Render Key Value / Valkey for the staging path only. Provider setup and implementation remain blocked.
+
 ## Non-negotiable requirements
 
 - Ephemeral shared-counter support suitable for limiter windows.
@@ -79,7 +81,7 @@ Production approval always requires separate implementation, staging, rollback, 
 
 ## Provider implementation blockers
 
-- Vendor/provider is not selected.
+- Render Key Value / Valkey is selected for the staging path only; setup and implementation are not approved.
 - HMAC ownership and rotation are unresolved.
 - Provider environment-variable names and secrets are not approved.
 - Provider-outage behavior is not validated.
@@ -115,3 +117,4 @@ Provider requirements and scorecard are documented. No provider is selected, pro
 - [Code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
 - [Implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md)
 - [P0-F5l candidate provider facts worksheet](PRODUCTION_SHARED_LIMITER_PROVIDER_FACTS_WORKSHEET.md)
+- [P0-F5m staging provider decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md)
