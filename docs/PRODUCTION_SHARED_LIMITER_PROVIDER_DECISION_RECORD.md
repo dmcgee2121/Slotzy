@@ -41,7 +41,7 @@ Official facts should be rechecked before setup: [Render Key Value documentation
 
 ## Setup guardrails for later
 
-- Do not create an instance until a setup checklist is approved.
+- The [Render Key Value staging setup checklist](PRODUCTION_SHARED_LIMITER_RENDER_KEY_VALUE_SETUP_CHECKLIST.md) now documents the manual-only path. Do not create an instance until that checklist is approved.
 - Prefer a Free plan for staging if it is available and fits; if paid setup is required, stop and confirm cost before creation.
 - Use the staging API region where possible and prefer the internal/private URL where possible.
 - Keep external access disabled or restricted unless separately justified.
@@ -50,7 +50,7 @@ Official facts should be rechecked before setup: [Render Key Value documentation
 
 ## Implementation blockers remaining
 
-- Render Key Value setup checklist is not complete.
+- Setup checklist approval is still required; instance creation remains blocked.
 - Exact plan/cost is not confirmed.
 - Instance name, region, and access configuration are not selected.
 - Environment-variable names are not finalized.

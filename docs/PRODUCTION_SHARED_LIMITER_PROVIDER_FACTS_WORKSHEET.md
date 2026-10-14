@@ -4,6 +4,8 @@
 
 **Decision update:** Render Key Value / Valkey is selected as the future **staging provider path only** in the [P0-F5m decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md). Unknowns remain open; this does not approve setup, implementation, or production.
 
+The [P0-F5n Render Key Value staging setup checklist](PRODUCTION_SHARED_LIMITER_RENDER_KEY_VALUE_SETUP_CHECKLIST.md) documents a manual-only future setup path. Plan, cost, region, access, and instance facts remain unknown until separately approved setup is completed.
+
 ## Candidate providers under review
 
 - Upstash Redis
