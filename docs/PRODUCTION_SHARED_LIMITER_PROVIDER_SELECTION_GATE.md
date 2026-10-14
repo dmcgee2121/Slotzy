@@ -6,6 +6,8 @@
 
 This gate selects evaluation requirements for a future shared limiter store/provider only. It does not approve a provider client, credentials or environment variables, Render configuration, production enablement, trusted forwarded headers, TTL/window changes, or response changes.
 
+The [P0-F5l candidate provider facts worksheet](PRODUCTION_SHARED_LIMITER_PROVIDER_FACTS_WORKSHEET.md) records limited official-source facts and owner follow-ups for initial candidates. It keeps the provider decision open.
+
 ## Non-negotiable requirements
 
 - Ephemeral shared-counter support suitable for limiter windows.
@@ -112,3 +114,4 @@ Provider requirements and scorecard are documented. No provider is selected, pro
 - [Provider/store options review](PRODUCTION_SHARED_LIMITER_OPTIONS_REVIEW.md)
 - [Code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
 - [Implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md)
+- [P0-F5l candidate provider facts worksheet](PRODUCTION_SHARED_LIMITER_PROVIDER_FACTS_WORKSHEET.md)
