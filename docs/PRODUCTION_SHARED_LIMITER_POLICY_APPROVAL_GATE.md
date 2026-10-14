@@ -92,7 +92,7 @@ Approve only consideration of a separately authorized tiny constants-alignment c
 
 ## Decision outcome now
 
-The policy approval gate is documented. The allowed tiny alignment was completed in the [P0-F5j constants-alignment result](PRODUCTION_SHARED_LIMITER_CONSTANTS_ALIGNMENT_RESULT.md) without a behavior change. The full shared provider limiter remains blocked, the production shared limiter remains **not approved**, and production launch remains **no-go**.
+The policy approval gate is documented. The approved tiny alignment was completed and rollout-documented in the [P0-F5j constants-alignment result](PRODUCTION_SHARED_LIMITER_CONSTANTS_ALIGNMENT_RESULT.md) without a behavior change. It does not approve TTL/window changes, response changes, provider implementation, or production. The full shared provider limiter remains blocked, the production shared limiter remains **not approved**, and production launch remains **no-go**.
 
 ## Infrastructure impact
 

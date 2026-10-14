@@ -2,6 +2,8 @@
 
 **Status:** Docs-only policy-constants, TTL/window, and response-envelope draft. No backend implementation, provider/vendor selection, or production approval is authorized. See the [P0-F5i policy approval gate](PRODUCTION_SHARED_LIMITER_POLICY_APPROVAL_GATE.md): draft values are not final unless that gate explicitly approves them, and gate approval is limited to its stated scope.
 
+The [P0-F5j constants-alignment result](PRODUCTION_SHARED_LIMITER_CONSTANTS_ALIGNMENT_RESULT.md) aligned only the five already-live category mappings in code. All remaining draft constants, TTL/window values, and response envelopes remain non-final.
+
 ## Current enforced categories
 
 Only these categories are currently enforced by `server/src/rateLimiter.js` and covered by the existing limiter tests.
