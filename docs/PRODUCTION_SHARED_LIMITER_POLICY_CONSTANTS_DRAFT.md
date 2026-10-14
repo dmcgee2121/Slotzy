@@ -1,6 +1,6 @@
 # Shared limiter policy constants and TTL/window decision draft — P0-F5h
 
-**Status:** Docs-only policy-constants, TTL/window, and response-envelope draft. No backend implementation, provider/vendor selection, or production approval is authorized.
+**Status:** Docs-only policy-constants, TTL/window, and response-envelope draft. No backend implementation, provider/vendor selection, or production approval is authorized. See the [P0-F5i policy approval gate](PRODUCTION_SHARED_LIMITER_POLICY_APPROVAL_GATE.md): draft values are not final unless that gate explicitly approves them, and gate approval is limited to its stated scope.
 
 ## Current enforced categories
 

@@ -2,6 +2,8 @@
 
 **Status:** Docs-only readiness checklist. No implementation or production approval is authorized.
 
+The [P0-F5i policy approval gate](PRODUCTION_SHARED_LIMITER_POLICY_APPROVAL_GATE.md) permits consideration only of a tiny local constants-alignment slice for the five existing enforced categories. It does not unblock provider implementation or any runtime-policy change.
+
 ## Current completed prerequisites
 
 - Accepted staging source-boundary diagnostic evidence for `direct-socket-current` behavior.

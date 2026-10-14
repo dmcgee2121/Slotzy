@@ -2,6 +2,8 @@
 
 **Status:** Docs-only implementation-slice plan. No code, provider/vendor selection, configuration, or production approval is authorized.
 
+The [P0-F5i policy approval gate](PRODUCTION_SHARED_LIMITER_POLICY_APPROVAL_GATE.md) allows only a separately authorized, behavior-preserving constants-alignment slice for current categories. Real provider implementation remains blocked.
+
 ## Why the slice is narrow
 
 The code-readiness checklist blocks a full Redis-compatible shared-limiter implementation: provider strategy, key ownership, policy constants, failure behavior, and staging validation remain unresolved. The first future code slice should reduce design risk locally without adding an external dependency, changing runtime behavior, or requiring hosted traffic.
