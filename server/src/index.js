@@ -14,7 +14,7 @@ import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
 import { attachRequestContext, emitSafeEvent } from "./observability.js";
-import { createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits, getRateLimitPolicies } from "./rateLimiter.js";
+import { RATE_LIMIT_CATEGORIES, createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits, getRateLimitPolicies } from "./rateLimiter.js";
 
 dotenv.config();
 
@@ -1538,7 +1538,7 @@ app.post("/api/auth/login", async (req, res) => {
     const username = normalizeUsername(req.body?.username);
     const password = String(req.body?.password ?? "");
     if (!enforceRateLimit(req, res, {
-      category: "login",
+      category: RATE_LIMIT_CATEGORIES.AUTH_LOGIN,
       route: "/api/auth/login",
       errorCode: "auth_temporarily_limited",
       errorMessage: "Sign-in is temporarily limited. Please try again later.",
@@ -2483,7 +2483,7 @@ app.get("/api/public/manage", async (req, res) => {
   try {
     const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
     if (!enforceRateLimit(req, res, {
-      category: "manage_lookup",
+      category: RATE_LIMIT_CATEGORIES.MANAGE_LOOKUP,
       route: "/api/public/manage",
       errorCode: "manage_temporarily_limited",
       errorMessage: "This appointment is temporarily unavailable. Please try again later.",
@@ -2522,7 +2522,7 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
     const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
     tokenPresent = Boolean(token);
     if (!enforceRateLimit(req, res, {
-      category: "manage_cancel",
+      category: RATE_LIMIT_CATEGORIES.MANAGE_CANCEL,
       route: "/api/public/manage/cancel",
       errorCode: "manage_temporarily_limited",
       errorMessage: "This appointment is temporarily unavailable. Please try again later.",
@@ -2594,7 +2594,7 @@ app.post("/api/public/manage/recover", async (req, res) => {
     const appointmentDate = normalizeUsername(req.body?.appointmentDate);
     const recoveryMessage = "If we find a matching booking, we'll send the manage link to the contact used for the booking.";
     if (!enforceRateLimit(req, res, {
-      category: "manage_recovery",
+      category: RATE_LIMIT_CATEGORIES.MANAGE_RECOVERY,
       route: "/api/public/manage/recover",
       errorCode: "recovery_temporarily_limited",
       errorMessage: recoveryMessage,
@@ -2655,7 +2655,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     const user = req.user;
     const isAnonymous = !user;
     if (isAnonymous && !enforceRateLimit(req, res, {
-      category: "booking_create",
+      category: RATE_LIMIT_CATEGORIES.BOOKING_CREATE,
       route: "/api/bookings",
       errorCode: "booking_temporarily_limited",
       errorMessage: "Booking is temporarily limited. Please try again later.",
@@ -2715,7 +2715,7 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
       return res.status(400).json({ error: "selected shop is unavailable", code: "invalid_shop" });
     }
     if (isAnonymous && !enforceRateLimit(req, res, {
-      category: "booking_create",
+      category: RATE_LIMIT_CATEGORIES.BOOKING_CREATE,
       route: "/api/bookings",
       errorCode: "booking_temporarily_limited",
       errorMessage: "Booking is temporarily limited. Please try again later.",

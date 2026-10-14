@@ -92,7 +92,7 @@ Approve only consideration of a separately authorized tiny constants-alignment c
 
 ## Decision outcome now
 
-The policy approval gate is documented. A limited local constants-alignment path may be considered, but the full shared provider limiter remains blocked, the production shared limiter remains **not approved**, and production launch remains **no-go**.
+The policy approval gate is documented. The allowed tiny alignment was completed in the [P0-F5j constants-alignment result](PRODUCTION_SHARED_LIMITER_CONSTANTS_ALIGNMENT_RESULT.md) without a behavior change. The full shared provider limiter remains blocked, the production shared limiter remains **not approved**, and production launch remains **no-go**.
 
 ## Infrastructure impact
 
@@ -107,4 +107,5 @@ The policy approval gate is documented. A limited local constants-alignment path
 - [Policy constants draft](PRODUCTION_SHARED_LIMITER_POLICY_CONSTANTS_DRAFT.md)
 - [Code-readiness checklist](PRODUCTION_SHARED_LIMITER_CODE_READINESS_CHECKLIST.md)
 - [Implementation-slice plan](PRODUCTION_SHARED_LIMITER_IMPLEMENTATION_SLICE_PLAN.md)
+- [P0-F5j constants-alignment result](PRODUCTION_SHARED_LIMITER_CONSTANTS_ALIGNMENT_RESULT.md)
 - [Production shared limiter decision gate](PRODUCTION_SHARED_LIMITER_DECISION_GATE.md)

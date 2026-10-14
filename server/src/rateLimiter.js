@@ -5,7 +5,7 @@ const MINUTE = 60 * 1000;
 // These are the only categories enforced by the current in-process limiter.
 // Unresolved routes remain docs-only until a separately approved policy exists.
 export const RATE_LIMIT_CATEGORIES = Object.freeze({
-  LOGIN: "login",
+  AUTH_LOGIN: "login",
   BOOKING_CREATE: "booking_create",
   MANAGE_LOOKUP: "manage_lookup",
   MANAGE_CANCEL: "manage_cancel",
@@ -15,7 +15,7 @@ export const RATE_LIMIT_CATEGORIES = Object.freeze({
 export const LIMITER_STORE_FAILURE_CATEGORY = "store_unavailable";
 
 const STAGING_POLICIES = Object.freeze({
-  [RATE_LIMIT_CATEGORIES.LOGIN]: Object.freeze({ account: { limit: 30, windowMs: 15 * MINUTE }, coarse_source: { limit: 60, windowMs: 15 * MINUTE } }),
+  [RATE_LIMIT_CATEGORIES.AUTH_LOGIN]: Object.freeze({ account: { limit: 30, windowMs: 15 * MINUTE }, coarse_source: { limit: 60, windowMs: 15 * MINUTE } }),
   [RATE_LIMIT_CATEGORIES.BOOKING_CREATE]: Object.freeze({ coarse_source: { limit: 60, windowMs: 60 * MINUTE }, shop: { limit: 300, windowMs: 60 * MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_LOOKUP]: Object.freeze({ manage: { limit: 60, windowMs: 15 * MINUTE }, coarse_source: { limit: 120, windowMs: 15 * MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_CANCEL]: Object.freeze({ manage: { limit: 20, windowMs: 15 * MINUTE }, coarse_source: { limit: 60, windowMs: 15 * MINUTE } }),
@@ -23,7 +23,7 @@ const STAGING_POLICIES = Object.freeze({
 });
 
 const TEST_POLICIES = Object.freeze({
-  [RATE_LIMIT_CATEGORIES.LOGIN]: Object.freeze({ account: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),
+  [RATE_LIMIT_CATEGORIES.AUTH_LOGIN]: Object.freeze({ account: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),
   [RATE_LIMIT_CATEGORIES.BOOKING_CREATE]: Object.freeze({ coarse_source: { limit: 2, windowMs: MINUTE }, shop: { limit: 50, windowMs: MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_LOOKUP]: Object.freeze({ manage: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_CANCEL]: Object.freeze({ manage: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),

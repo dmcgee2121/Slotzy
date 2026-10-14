@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LIMITER_STORE_FAILURE_CATEGORY, RATE_LIMIT_CATEGORIES, createFakeSharedLimiterStore, createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits } from "../src/rateLimiter.js";
+import { LIMITER_STORE_FAILURE_CATEGORY, RATE_LIMIT_CATEGORIES, createFakeSharedLimiterStore, createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits, getRateLimitPolicies } from "../src/rateLimiter.js";
 
 test("fixed windows expire and cleanup removes stale counters", () => {
   let currentTime = 1_000;
@@ -70,8 +70,16 @@ test("fake shared-store failure is bounded and category-only", () => {
   assert.equal(JSON.stringify(result).includes("local-test-key"), false);
 });
 
-test("enforced rate-limit category constants remain a small fixed set", () => {
-  assert.deepEqual(Object.values(RATE_LIMIT_CATEGORIES).sort(), [
-    "booking_create", "login", "manage_cancel", "manage_lookup", "manage_recovery",
-  ]);
+test("enforced rate-limit category constants preserve current values and policy keys", () => {
+  assert.deepEqual(RATE_LIMIT_CATEGORIES, {
+    AUTH_LOGIN: "login",
+    BOOKING_CREATE: "booking_create",
+    MANAGE_LOOKUP: "manage_lookup",
+    MANAGE_CANCEL: "manage_cancel",
+    MANAGE_RECOVERY: "manage_recovery",
+  });
+
+  const expectedCategories = Object.values(RATE_LIMIT_CATEGORIES).sort();
+  assert.deepEqual(Object.keys(getRateLimitPolicies()).sort(), expectedCategories);
+  assert.deepEqual(Object.keys(getRateLimitPolicies({ useTestProfile: true })).sort(), expectedCategories);
 });
