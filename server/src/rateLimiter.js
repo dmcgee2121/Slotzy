@@ -14,6 +14,13 @@ export const RATE_LIMIT_CATEGORIES = Object.freeze({
 
 export const LIMITER_STORE_FAILURE_CATEGORY = "store_unavailable";
 export const SHARED_LIMITER_FEATURE_FLAG = "SLOTZY_STAGING_SHARED_LIMITER_ENABLED";
+export const SHARED_LIMITER_UNAVAILABLE_RESPONSE = Object.freeze({
+  status: 503,
+  body: Object.freeze({
+    error: "This action is temporarily unavailable. Please try again later.",
+    code: "limiter_temporarily_unavailable",
+  }),
+});
 
 // This script deliberately combines increment and first-write expiry in one
 // server-side operation. The adapter accepts an injected Redis-compatible
@@ -63,6 +70,13 @@ export function isStagingSharedLimiterEnabled({ environment, value } = {}) {
   // reads this flag at runtime yet; a later approved integration may do so.
   return String(environment ?? "").trim().toLowerCase() === "staging"
     && String(value ?? "").trim().toLowerCase() === "true";
+}
+
+export function getSharedLimiterUnavailableResponse(category) {
+  if (!Object.values(RATE_LIMIT_CATEGORIES).includes(category)) {
+    throw new Error("unknown rate-limit category");
+  }
+  return SHARED_LIMITER_UNAVAILABLE_RESPONSE;
 }
 
 export function createStagingSharedLimiterStore({ environment, value, createClient, keyPrefix } = {}) {
@@ -214,6 +228,18 @@ export function evaluateRateLimits({ limiter, policies, category, buildKey, keyI
     const policy = categoryPolicies[keyType];
     if (!policy) throw new Error("unknown rate-limit key type");
     const result = limiter.consume({ key: buildKey(keyType, values), ...policy });
+    if (!result.allowed) return { ...result, keyType };
+  }
+  return { allowed: true, retryAfterSeconds: 0 };
+}
+
+export async function evaluateRateLimitsAsync({ limiter, policies, category, buildKey, keyInputs }) {
+  const categoryPolicies = policies?.[category];
+  if (!categoryPolicies) throw new Error("unknown rate-limit category");
+  for (const { keyType, values } of keyInputs) {
+    const policy = categoryPolicies[keyType];
+    if (!policy) throw new Error("unknown rate-limit key type");
+    const result = await limiter.consume({ key: buildKey(keyType, values), ...policy });
     if (!result.allowed) return { ...result, keyType };
   }
   return { allowed: true, retryAfterSeconds: 0 };

@@ -3,6 +3,7 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { createClient } from "redis";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { isIP } from "node:net";
 import { lookup } from "node:dns/promises";
@@ -14,7 +15,7 @@ import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
 import { attachRequestContext, emitSafeEvent } from "./observability.js";
-import { RATE_LIMIT_CATEGORIES, createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits, getRateLimitPolicies } from "./rateLimiter.js";
+import { RATE_LIMIT_CATEGORIES, createInMemoryRateLimiter, createOpaqueLimiterKey, createRedisCompatibleLimiterStore, evaluateRateLimits, evaluateRateLimitsAsync, getRateLimitPolicies, getSharedLimiterUnavailableResponse, isStagingSharedLimiterEnabled } from "./rateLimiter.js";
 
 dotenv.config();
 
@@ -30,7 +31,22 @@ const RATE_LIMIT_SECRET = String(process.env.RATE_LIMIT_KEY_SECRET || JWT_SECRET
 const RATE_LIMIT_POLICIES = getRateLimitPolicies({
   useTestProfile: RUNTIME_ENVIRONMENT === "test" && process.env.SLOTZY_RATE_LIMIT_TEST_PROFILE === "tight",
 });
-const RATE_LIMITER = createInMemoryRateLimiter({ maxKeys: 10_000 });
+let RATE_LIMITER = createInMemoryRateLimiter({ maxKeys: 10_000 });
+let RATE_LIMIT_SECRET_IN_USE = RATE_LIMIT_SECRET;
+let SHARED_LIMITER_ACTIVE = false;
+let sharedLimiterClient = null;
+// This is deliberately test-runtime-only. It lets API tests exercise the
+// Redis-compatible adapter failure envelope without opening a network socket.
+const TEST_REDIS_COMPATIBLE_FAILURE = RUNTIME_ENVIRONMENT === "test"
+  && String(process.env.SLOTZY_TEST_REDIS_COMPATIBLE_FAILURE ?? "").trim().toLowerCase() === "true";
+const SHARED_LIMITER_REQUESTED = String(process.env.SLOTZY_STAGING_SHARED_LIMITER_ENABLED ?? "").trim().toLowerCase() === "true";
+if (SHARED_LIMITER_REQUESTED && RUNTIME_ENVIRONMENT === "production") {
+  throw new Error("shared limiter cannot be enabled in production");
+}
+const SHARED_LIMITER_ENABLED = isStagingSharedLimiterEnabled({
+  environment: RUNTIME_ENVIRONMENT,
+  value: process.env.SLOTZY_STAGING_SHARED_LIMITER_ENABLED,
+});
 const SOURCE_BOUNDARY_DIAGNOSTIC_ENABLED = (
   (RUNTIME_ENVIRONMENT === "staging" || RUNTIME_ENVIRONMENT === "test")
   && String(process.env.SLOTZY_SOURCE_BOUNDARY_DIAGNOSTIC_ENABLED ?? "").trim().toLowerCase() === "true"
@@ -154,20 +170,42 @@ async function requireSourceBoundaryDiagnosticOwner(req, res, next) {
   }
 }
 
-function enforceRateLimit(req, res, { category, route, errorCode, errorMessage, keyInputs, responseBody = null }) {
-  const result = evaluateRateLimits({
+async function enforceRateLimit(req, res, { category, route, errorCode, errorMessage, keyInputs, responseBody = null }) {
+  const evaluation = {
     limiter: RATE_LIMITER,
     policies: RATE_LIMIT_POLICIES,
     category,
     keyInputs,
     buildKey: (keyType, values) => createOpaqueLimiterKey({
-      secret: RATE_LIMIT_SECRET,
+      secret: RATE_LIMIT_SECRET_IN_USE,
       environment: RUNTIME_ENVIRONMENT,
       route,
       keyType,
       values,
     }),
-  });
+  };
+  const result = SHARED_LIMITER_ACTIVE
+    ? await evaluateRateLimitsAsync(evaluation)
+    : evaluateRateLimits(evaluation);
+  if (result.failureCategory) {
+    emitSafeEvent({
+      event: "abuse.limiter_unavailable",
+      environment: RUNTIME_ENVIRONMENT,
+      service: "slotzy-api",
+      storageMode: STORAGE_ADAPTER,
+      release: OBSERVABILITY_RELEASE,
+      requestId: req.observability?.requestId,
+      route,
+      method: req.method,
+      status: 503,
+      category,
+      outcome: "store_unavailable",
+      failureCategory: result.failureCategory,
+    });
+    const unavailable = getSharedLimiterUnavailableResponse(category);
+    res.status(unavailable.status).json(unavailable.body);
+    return false;
+  }
   if (result.allowed) return true;
 
   res.setHeader("Retry-After", String(result.retryAfterSeconds));
@@ -1537,7 +1575,7 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const username = normalizeUsername(req.body?.username);
     const password = String(req.body?.password ?? "");
-    if (!enforceRateLimit(req, res, {
+    if (!(await enforceRateLimit(req, res, {
       category: RATE_LIMIT_CATEGORIES.AUTH_LOGIN,
       route: "/api/auth/login",
       errorCode: "auth_temporarily_limited",
@@ -1546,7 +1584,7 @@ app.post("/api/auth/login", async (req, res) => {
         { keyType: "account", values: [username || "missing-account"] },
         { keyType: "coarse_source", values: [coarseRequestSource(req)] },
       ],
-    })) return;
+    }))) return;
 
     if (!username || !password) {
       emitSafeEvent({ event: "auth.login", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/auth/login", method: "POST", status: 400, errorCode: "missing_credentials", outcome: "rejected" });
@@ -2482,7 +2520,7 @@ app.get("/api/bookings", requireAuth, async (req, res) => {
 app.get("/api/public/manage", async (req, res) => {
   try {
     const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
-    if (!enforceRateLimit(req, res, {
+    if (!(await enforceRateLimit(req, res, {
       category: RATE_LIMIT_CATEGORIES.MANAGE_LOOKUP,
       route: "/api/public/manage",
       errorCode: "manage_temporarily_limited",
@@ -2491,7 +2529,7 @@ app.get("/api/public/manage", async (req, res) => {
         { keyType: "manage", values: [token || "missing-manage-token"] },
         { keyType: "coarse_source", values: [coarseRequestSource(req)] },
       ],
-    })) return;
+    }))) return;
     if (!token || token.length < 32) {
       return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
     }
@@ -2521,7 +2559,7 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
   try {
     const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
     tokenPresent = Boolean(token);
-    if (!enforceRateLimit(req, res, {
+    if (!(await enforceRateLimit(req, res, {
       category: RATE_LIMIT_CATEGORIES.MANAGE_CANCEL,
       route: "/api/public/manage/cancel",
       errorCode: "manage_temporarily_limited",
@@ -2530,7 +2568,7 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
         { keyType: "manage", values: [token || "missing-manage-token"] },
         { keyType: "coarse_source", values: [coarseRequestSource(req)] },
       ],
-    })) return;
+    }))) return;
     if (!token || token.length < 32) {
       return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
     }
@@ -2593,7 +2631,7 @@ app.post("/api/public/manage/recover", async (req, res) => {
     const shopReference = normalizeUsername(req.body?.shopId);
     const appointmentDate = normalizeUsername(req.body?.appointmentDate);
     const recoveryMessage = "If we find a matching booking, we'll send the manage link to the contact used for the booking.";
-    if (!enforceRateLimit(req, res, {
+    if (!(await enforceRateLimit(req, res, {
       category: RATE_LIMIT_CATEGORIES.MANAGE_RECOVERY,
       route: "/api/public/manage/recover",
       errorCode: "recovery_temporarily_limited",
@@ -2603,7 +2641,7 @@ app.post("/api/public/manage/recover", async (req, res) => {
         { keyType: "contact", values: [normalizeRecoveryContact(contact) || "missing-contact"] },
         { keyType: "coarse_source", values: [coarseRequestSource(req)] },
       ],
-    })) return;
+    }))) return;
     if (!contact || !shopReference || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate)) return genericResponse();
     const db = await readStore();
     const requestedShop = db.shops.find((shop) => {
@@ -2654,13 +2692,13 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     const db = req.db;
     const user = req.user;
     const isAnonymous = !user;
-    if (isAnonymous && !enforceRateLimit(req, res, {
+    if (isAnonymous && !(await enforceRateLimit(req, res, {
       category: RATE_LIMIT_CATEGORIES.BOOKING_CREATE,
       route: "/api/bookings",
       errorCode: "booking_temporarily_limited",
       errorMessage: "Booking is temporarily limited. Please try again later.",
       keyInputs: [{ keyType: "coarse_source", values: [coarseRequestSource(req)] }],
-    })) return;
+    }))) return;
 
     let targetBarberUsername = normalizeUsername(req.body?.barberUsername ?? req.body?.ownerUsername);
     if (user && isBarber(user)) {
@@ -2714,13 +2752,13 @@ app.post("/api/bookings", optionalAuth, async (req, res) => {
     if (!shop) {
       return res.status(400).json({ error: "selected shop is unavailable", code: "invalid_shop" });
     }
-    if (isAnonymous && !enforceRateLimit(req, res, {
+    if (isAnonymous && !(await enforceRateLimit(req, res, {
       category: RATE_LIMIT_CATEGORIES.BOOKING_CREATE,
       route: "/api/bookings",
       errorCode: "booking_temporarily_limited",
       errorMessage: "Booking is temporarily limited. Please try again later.",
       keyInputs: [{ keyType: "shop", values: [shopId] }],
-    })) return;
+    }))) return;
 
     const serviceId = normalizeUsername(req.body?.serviceId);
     const service = db.services.find((entry) => normalizeUsername(entry?.id) === serviceId) || null;
@@ -3183,7 +3221,64 @@ app.post("/api/admin/clear-all", requireAdmin, async (_req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Slotzy API server listening on http://localhost:${PORT}`);
-  void logStagingSupabaseDnsProbe();
-});
+async function initializeSharedLimiter() {
+  if (TEST_REDIS_COMPATIBLE_FAILURE) {
+    RATE_LIMITER = createRedisCompatibleLimiterStore({
+      client: { eval: async () => { throw new Error("test Redis-compatible provider unavailable"); } },
+    });
+    SHARED_LIMITER_ACTIVE = true;
+    return;
+  }
+  if (!SHARED_LIMITER_ENABLED) return;
+  const connectionUrl = String(process.env.SLOTZY_STAGING_LIMITER_REDIS_URL ?? "").trim();
+  const dedicatedSecret = String(process.env.RATE_LIMIT_STORE_HMAC_SECRET ?? "");
+  const prohibitedSecrets = new Set([
+    JWT_SECRET,
+    String(process.env.SUPABASE_ANON_KEY ?? ""),
+    String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""),
+  ].filter(Boolean));
+  if (!connectionUrl || Buffer.byteLength(dedicatedSecret, "utf8") < 32 || prohibitedSecrets.has(dedicatedSecret)) {
+    throw new Error("shared limiter staging configuration is incomplete or invalid");
+  }
+  const configuredTimeout = Number(process.env.SLOTZY_STAGING_LIMITER_CONNECT_TIMEOUT_MS ?? 1_000);
+  if (!Number.isInteger(configuredTimeout) || configuredTimeout < 100 || configuredTimeout > 10_000) {
+    throw new Error("shared limiter staging timeout is invalid");
+  }
+  const client = createClient({
+    url: connectionUrl,
+    socket: { connectTimeout: configuredTimeout, reconnectStrategy: false },
+  });
+  client.on("error", () => {});
+  sharedLimiterClient = client;
+  try {
+    await client.connect();
+    RATE_LIMITER = createRedisCompatibleLimiterStore({ client });
+    RATE_LIMIT_SECRET_IN_USE = dedicatedSecret;
+    SHARED_LIMITER_ACTIVE = true;
+  } catch (error) {
+    // A failed connect can still leave node-redis open. Close only this local
+    // client and never include its URL or error details in output.
+    if (client.isOpen) await client.quit();
+    if (sharedLimiterClient === client) sharedLimiterClient = null;
+    throw error;
+  }
+}
+
+async function startServer() {
+  try {
+    await initializeSharedLimiter();
+    app.listen(PORT, () => {
+      console.log(`Slotzy API server listening on http://localhost:${PORT}`);
+      void logStagingSupabaseDnsProbe();
+    });
+  } catch {
+    console.error("[Slotzy:rate-limit] shared limiter initialization failed", {
+      environment: RUNTIME_ENVIRONMENT,
+      category: "store_unavailable",
+    });
+    process.exitCode = 1;
+    if (sharedLimiterClient?.isOpen) await sharedLimiterClient.quit();
+  }
+}
+
+void startServer();

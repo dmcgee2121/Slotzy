@@ -1,6 +1,6 @@
 # Shared limiter staging activation decision — P0-F5p
 
-**Status:** Docs-only owner/PM decision package. It proposes a controlled staging activation contract; it does not approve implementation, provider connection, configuration, activation, production shared limiting, or production launch.
+**Status:** Owner-approved for P0-F5q local implementation and testing only. It does not approve provider configuration, hosted activation, production shared limiting, or production launch. See the [P0-F5q wiring result](PRODUCTION_SHARED_LIMITER_STAGING_WIRING_RESULT.md).
 
 ## 1. Current status
 

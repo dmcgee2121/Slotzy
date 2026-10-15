@@ -8,6 +8,7 @@ import path from "node:path";
 import bcrypt from "bcryptjs";
 
 let temporaryDirectory = "";
+const temporaryDirectories = [];
 let serverProcess = null;
 let serverOutput = "";
 
@@ -16,7 +17,7 @@ after(async () => {
     serverProcess.kill();
     await once(serverProcess, "exit");
   }
-  if (temporaryDirectory) await rm(temporaryDirectory, { recursive: true, force: true });
+  await Promise.all(temporaryDirectories.map((directory) => rm(directory, { recursive: true, force: true })));
 });
 
 function futureSlot(daysAhead, hourOffset = 0) {
@@ -26,8 +27,18 @@ function futureSlot(daysAhead, hourOffset = 0) {
   return date;
 }
 
-async function startServer() {
+async function stopServer() {
+  if (serverProcess && serverProcess.exitCode === null) {
+    serverProcess.kill();
+    await once(serverProcess, "exit");
+  }
+  serverProcess = null;
+}
+
+async function startServer({ redisCompatibleFailure = false } = {}) {
+  await stopServer();
   temporaryDirectory = await mkdtemp(path.join(process.cwd(), ".slotzy-rate-limit-"));
+  temporaryDirectories.push(temporaryDirectory);
   const sourceDirectory = path.join(temporaryDirectory, "src");
   await cp(path.join(process.cwd(), "src"), sourceDirectory, { recursive: true });
 
@@ -60,6 +71,7 @@ async function startServer() {
       RATE_LIMIT_KEY_SECRET: "test-only-rate-limit-key-secret",
       SLOTZY_RATE_LIMIT_TEST_PROFILE: "tight",
       SLOTZY_APP_ORIGIN: "https://staging.example.test",
+      ...(redisCompatibleFailure ? { SLOTZY_TEST_REDIS_COMPATIBLE_FAILURE: "true" } : {}),
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -174,4 +186,44 @@ test("exposed route limits preserve allowed requests and return generic safe 429
     assert.equal(event.outcome, "rate_limited");
   }
   assert.doesNotMatch(abuseEvents.join("\n"), /127\.0\.0\.1|rate-limit-password-private|different-private-password|private-manage-token|invalid-manage-token|private-customer|booking-customer|example\.test|authorization|token=|https?:\/\//i);
+});
+
+test("a local fake Redis-compatible provider failure returns the same safe 503 for every limited endpoint", async () => {
+  const { baseUrl, password, manageToken, managedStart } = await startServer({ redisCompatibleFailure: true });
+  const invalidManageToken = "invalid-manage-token-abcdefghijklmnopqrstuvwxyz";
+  const unavailable = {
+    error: "This action is temporarily unavailable. Please try again later.",
+    code: "limiter_temporarily_unavailable",
+  };
+  const cases = [
+    { name: "login", pathname: "/api/auth/login", options: { method: "POST", body: { username: "rate-owner", password } } },
+    { name: "booking_create", pathname: "/api/bookings", options: { method: "POST", body: { shopId: "rate-shop", serviceId: "rate-service", barberUsername: "rate-owner", clientName: "Private Booking Customer", clientContact: "booking-customer@example.test", startISO: futureSlot(7).toISOString(), endISO: futureSlot(7, 1).toISOString() } } },
+    { name: "manage_lookup", pathname: "/api/public/manage", options: { manageToken } },
+    { name: "manage_cancel", pathname: "/api/public/manage/cancel", options: { method: "PATCH", manageToken } },
+    { name: "manage_recovery", pathname: "/api/public/manage/recover", options: { method: "POST", body: { contact: "private-customer@example.test", shopId: "rate-shop", appointmentDate: managedStart.toISOString().slice(0, 10) } } },
+  ];
+
+  for (const entry of cases) {
+    const response = await request(baseUrl, entry.pathname, entry.options);
+    assert.equal(response.status, 503, entry.name);
+    assert.deepEqual(response.body, unavailable, entry.name);
+    assert.doesNotMatch(JSON.stringify(response.body), /rate-owner|password|private|booking|manage-token|redis|provider|127\.0\.0\.1/i, entry.name);
+  }
+
+  // Health is intentionally a local process signal, not a shared-store probe.
+  const health = await request(baseUrl, "/api/health");
+  assert.equal(health.status, 200);
+  assert.equal(health.body.ok, true);
+
+  // Valid and invalid manage credentials are deliberately indistinguishable
+  // while the store is unavailable, preventing manage-token enumeration.
+  const validManage = await request(baseUrl, "/api/public/manage", { manageToken });
+  const invalidManage = await request(baseUrl, "/api/public/manage", { manageToken: invalidManageToken });
+  assert.deepEqual(invalidManage, validManage);
+
+  // Existing login credentials likewise cannot distinguish an account while
+  // shared limiting is unavailable.
+  const validLogin = await request(baseUrl, "/api/auth/login", { method: "POST", body: { username: "rate-owner", password } });
+  const missingLogin = await request(baseUrl, "/api/auth/login", { method: "POST", body: { username: "missing-rate-owner", password: "not-the-real-password" } });
+  assert.deepEqual(missingLogin, validLogin);
 });

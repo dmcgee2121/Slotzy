@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LIMITER_STORE_FAILURE_CATEGORY, RATE_LIMIT_CATEGORIES, SHARED_LIMITER_FEATURE_FLAG, createFakeSharedLimiterStore, createInMemoryRateLimiter, createOpaqueLimiterKey, createRedisCompatibleLimiterStore, createStagingSharedLimiterStore, evaluateRateLimits, getRateLimitPolicies, isStagingSharedLimiterEnabled } from "../src/rateLimiter.js";
+import { LIMITER_STORE_FAILURE_CATEGORY, RATE_LIMIT_CATEGORIES, SHARED_LIMITER_FEATURE_FLAG, createFakeSharedLimiterStore, createInMemoryRateLimiter, createOpaqueLimiterKey, createRedisCompatibleLimiterStore, createStagingSharedLimiterStore, evaluateRateLimits, getRateLimitPolicies, getSharedLimiterUnavailableResponse, isStagingSharedLimiterEnabled } from "../src/rateLimiter.js";
 
 test("fixed windows expire and cleanup removes stale counters", () => {
   let currentTime = 1_000;
@@ -130,6 +130,38 @@ test("Redis-compatible adapter reports provider outage without a key or provider
     failureCategory: LIMITER_STORE_FAILURE_CATEGORY,
   });
   assert.doesNotMatch(JSON.stringify(result), /private-url|connection/i);
+});
+
+test("fake-store local atomic-counter coverage is not hosted multi-worker verification", async () => {
+  const counts = new Map();
+  const client = {
+    async eval(_script, { keys }) {
+      const next = (counts.get(keys[0]) ?? 0) + 1;
+      counts.set(keys[0], next);
+      return [next, 1_000];
+    },
+  };
+  const key = createOpaqueLimiterKey({ secret: "test-only-limiter-secret", environment: "staging", route: "/api/auth/login", keyType: "account", values: ["shared"] });
+  const first = createRedisCompatibleLimiterStore({ client });
+  const second = createRedisCompatibleLimiterStore({ client });
+  const results = await Promise.all(Array.from({ length: 4 }, (_, index) => (index % 2 ? first : second).consume({ key, limit: 2, windowMs: 1_000 })));
+  assert.equal(results.filter((result) => result.allowed).length, 2);
+  assert.equal(results.filter((result) => !result.allowed).length, 2);
+
+  const malformed = createRedisCompatibleLimiterStore({ client: { async eval() { return ["not-a-number", -1]; } } });
+  assert.equal((await malformed.consume({ key, limit: 1, windowMs: 1_000 })).failureCategory, LIMITER_STORE_FAILURE_CATEGORY);
+});
+
+test("shared limiter outage envelope is stable and fail-closed for every live category", () => {
+  for (const category of Object.values(RATE_LIMIT_CATEGORIES)) {
+    assert.deepEqual(getSharedLimiterUnavailableResponse(category), {
+      status: 503,
+      body: {
+        error: "This action is temporarily unavailable. Please try again later.",
+        code: "limiter_temporarily_unavailable",
+      },
+    });
+  }
 });
 
 test("Redis-compatible adapter rejects non-opaque keys before client evaluation", async () => {
