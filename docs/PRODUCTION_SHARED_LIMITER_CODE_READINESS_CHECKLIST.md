@@ -10,6 +10,8 @@ The [P0-F5m provider decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISIO
 
 The [P0-F5o Render adapter foundation result](PRODUCTION_SHARED_LIMITER_RENDER_ADAPTER_FOUNDATION_RESULT.md) records disabled-by-default local adapter groundwork. It does not approve a connection, activation, outage behavior, or production use.
 
+The [P0-F5p staging activation decision](PRODUCTION_SHARED_LIMITER_STAGING_ACTIVATION_DECISION.md) consolidates the proposed HMAC, outage, configuration, validation, rollback, and ownership decisions for owner review. It does not unblock wiring or activation.
+
 ## Current completed prerequisites
 
 - Accepted staging source-boundary diagnostic evidence for `direct-socket-current` behavior.
