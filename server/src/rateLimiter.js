@@ -13,6 +13,21 @@ export const RATE_LIMIT_CATEGORIES = Object.freeze({
 });
 
 export const LIMITER_STORE_FAILURE_CATEGORY = "store_unavailable";
+export const SHARED_LIMITER_FEATURE_FLAG = "SLOTZY_STAGING_SHARED_LIMITER_ENABLED";
+
+// This script deliberately combines increment and first-write expiry in one
+// server-side operation. The adapter accepts an injected Redis-compatible
+// client so this module does not select, connect to, or configure a provider.
+const REDIS_FIXED_WINDOW_CONSUME_SCRIPT = `
+local count = redis.call("INCR", KEYS[1])
+if count == 1 then
+  redis.call("PEXPIRE", KEYS[1], ARGV[1])
+end
+local ttl = redis.call("PTTL", KEYS[1])
+return { count, ttl }
+`;
+const OPAQUE_LIMITER_KEY_PATTERN = /^[a-f0-9]{64}$/;
+const REDIS_KEY_PREFIX_PATTERN = /^[a-z][a-z0-9_-]*(?::[a-z0-9_-]+)*$/;
 
 const STAGING_POLICIES = Object.freeze({
   [RATE_LIMIT_CATEGORIES.AUTH_LOGIN]: Object.freeze({ account: { limit: 30, windowMs: 15 * MINUTE }, coarse_source: { limit: 60, windowMs: 15 * MINUTE } }),
@@ -41,6 +56,79 @@ export function createOpaqueLimiterKey({ secret, environment, route, keyType, va
     .map((value) => String(value ?? "").trim().toLowerCase())
     .join("\u001f");
   return createHmac("sha256", normalizedSecret).update(material).digest("hex");
+}
+
+export function isStagingSharedLimiterEnabled({ environment, value } = {}) {
+  // Production is an explicit hard stop for this groundwork package. Nothing
+  // reads this flag at runtime yet; a later approved integration may do so.
+  return String(environment ?? "").trim().toLowerCase() === "staging"
+    && String(value ?? "").trim().toLowerCase() === "true";
+}
+
+export function createStagingSharedLimiterStore({ environment, value, createClient, keyPrefix } = {}) {
+  if (!isStagingSharedLimiterEnabled({ environment, value })) return null;
+  if (typeof createClient !== "function") throw new Error("a Redis-compatible client factory is required");
+  return createRedisCompatibleLimiterStore({ client: createClient(), keyPrefix });
+}
+
+export function createRedisCompatibleLimiterStore({ client, keyPrefix = "slotzy:rl:v1" } = {}) {
+  if (!client || typeof client.eval !== "function") {
+    throw new Error("a Redis-compatible client with eval is required");
+  }
+  const safePrefix = String(keyPrefix ?? "").trim();
+  if (!REDIS_KEY_PREFIX_PATTERN.test(safePrefix) || safePrefix.length > 128) {
+    throw new Error("invalid rate-limit key prefix");
+  }
+
+  return {
+    // The input key must already be an opaque HMAC digest. This adapter never
+    // derives, logs, or returns it, preserving the privacy boundary.
+    async consume({ key, limit, windowMs }) {
+      const safeKey = String(key ?? "");
+      const safeLimit = Number(limit);
+      const safeWindow = Number(windowMs);
+      if (!OPAQUE_LIMITER_KEY_PATTERN.test(safeKey)) {
+        throw new Error("invalid opaque limiter key");
+      }
+      if (!Number.isInteger(safeLimit) || safeLimit < 1 || !Number.isFinite(safeWindow) || safeWindow < 1) {
+        throw new Error("invalid rate-limit policy");
+      }
+      try {
+        const response = await client.eval(REDIS_FIXED_WINDOW_CONSUME_SCRIPT, {
+          keys: [`${safePrefix}:${safeKey}`],
+          arguments: [String(Math.ceil(safeWindow))],
+        });
+        const [count, ttlMs] = Array.isArray(response) ? response : [];
+        const safeCount = Number(count);
+        const safeTtlMs = Number(ttlMs);
+        if (!Number.isFinite(safeCount) || !Number.isFinite(safeTtlMs) || safeTtlMs < 0) {
+          throw new Error("invalid Redis-compatible limiter response");
+        }
+        if (safeCount > safeLimit) {
+          return {
+            allowed: false,
+            remaining: 0,
+            retryAfterSeconds: Math.max(1, Math.min(3600, Math.ceil(safeTtlMs / 1000))),
+          };
+        }
+        return {
+          allowed: true,
+          remaining: Math.max(0, safeLimit - safeCount),
+          retryAfterSeconds: 0,
+        };
+      } catch {
+        // Callers must make the route-specific outage decision; this category
+        // is intentionally not translated into a fail-open or fail-closed API
+        // response by the foundation.
+        return {
+          allowed: false,
+          remaining: 0,
+          retryAfterSeconds: 0,
+          failureCategory: LIMITER_STORE_FAILURE_CATEGORY,
+        };
+      }
+    },
+  };
 }
 
 export function createInMemoryRateLimiter({ maxKeys = 10_000, now = () => Date.now() } = {}) {

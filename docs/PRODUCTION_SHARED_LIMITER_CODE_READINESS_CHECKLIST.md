@@ -6,7 +6,9 @@ The [P0-F5i policy approval gate](PRODUCTION_SHARED_LIMITER_POLICY_APPROVAL_GATE
 
 The [P0-F5k provider selection gate](PRODUCTION_SHARED_LIMITER_PROVIDER_SELECTION_GATE.md) records the evidence required for provider selection and setup. Render Key Value / Valkey is now selected for the staging path only; setup and implementation remain blocked.
 
-The [P0-F5m provider decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md) selects Render Key Value / Valkey for the staging path only. The [P0-F5n setup checklist](PRODUCTION_SHARED_LIMITER_RENDER_KEY_VALUE_SETUP_CHECKLIST.md) now exists, but setup approval and full code implementation remain blocked pending its approval and other prerequisites.
+The [P0-F5m provider decision record](PRODUCTION_SHARED_LIMITER_PROVIDER_DECISION_RECORD.md) selects Render Key Value / Valkey for the staging path only. The owner-created staging instance remains unconnected; the [P0-F5n setup checklist](PRODUCTION_SHARED_LIMITER_RENDER_KEY_VALUE_SETUP_CHECKLIST.md), activation approval, and full code implementation remain blocked pending their prerequisites.
+
+The [P0-F5o Render adapter foundation result](PRODUCTION_SHARED_LIMITER_RENDER_ADAPTER_FOUNDATION_RESULT.md) records disabled-by-default local adapter groundwork. It does not approve a connection, activation, outage behavior, or production use.
 
 ## Current completed prerequisites
 

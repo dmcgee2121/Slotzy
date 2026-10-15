@@ -2,7 +2,7 @@
 
 ## Status
 
-This is a **docs-only setup checklist** for a possible future staging instance. No instance has been created, no Render configuration has changed, no environment variables have been added, no provider implementation is approved, and no runtime behavior has changed. Production approval has not been granted.
+This is a **docs-only setup checklist** for the staging setup path. The owner has manually created the approved staging-only instance; no API connection or environment variables have been configured, the provider adapter remains disabled, runtime behavior has not changed, and production approval has not been granted.
 
 ## Setup scope
 
@@ -31,13 +31,12 @@ The owner must stop before creating anything if any of the following is true:
 
 ## Manual setup checklist — not yet authorized
 
-These are future manual steps only. They are **not authorized** until the owner explicitly approves instance creation.
+The owner has completed only the manually confirmed, non-secret setup facts below. The remaining actions, including API wiring, remain unapproved.
 
-- [ ] Confirm current Render pricing and plan terms.
-- [ ] Confirm a Free or explicitly approved low-cost plan.
-- [ ] Choose a staging-only instance name.
-- [ ] Choose the same region as the staging API where possible.
-- [ ] Create a Render Key Value instance only after explicit approval.
+- [x] Confirm the selected plan is Free.
+- [x] Choose the staging-only instance name `slotzy-staging-limiter`.
+- [x] Create the Render Key Value instance after owner approval.
+- [ ] Verify the selected region is the same as, or acceptably aligned with, `slotzy-staging-api`.
 - [ ] Prefer the internal/private URL.
 - [ ] Keep external access disabled unless explicitly justified and restricted.
 - [ ] Record only sanitized facts after creation.
@@ -87,14 +86,16 @@ Only after instance creation is explicitly approved and completed, record the fo
 
 | Fact | Value |
 | --- | --- |
-| Instance name | TBD |
-| Plan type | TBD |
-| Region | TBD |
-| Internal URL available? | yes / no |
-| External access disabled/restricted? | yes / no |
-| Created for staging only? | yes / no |
-| Credentials stored in Render environment secrets later? | pending / yes / no |
-| No secrets captured in docs? | yes / no |
+| Instance name | `slotzy-staging-limiter` |
+| Plan type | Free |
+| Region | Virginia (US East) |
+| Internal URL available? | yes |
+| External access disabled/restricted? | TBD (must be verified before activation) |
+| Created for staging only? | yes |
+| Credentials stored in Render environment secrets later? | pending |
+| No secrets captured in docs? | yes |
+
+The instance is available with persistence off. No connection URL, credential, account ID, or private endpoint is recorded here.
 
 Do not record connection strings, passwords, tokens, private URLs if considered sensitive, screenshots containing secrets, raw IPs, or customer data.
 

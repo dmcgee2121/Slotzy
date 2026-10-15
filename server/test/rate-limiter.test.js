@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LIMITER_STORE_FAILURE_CATEGORY, RATE_LIMIT_CATEGORIES, createFakeSharedLimiterStore, createInMemoryRateLimiter, createOpaqueLimiterKey, evaluateRateLimits, getRateLimitPolicies } from "../src/rateLimiter.js";
+import { LIMITER_STORE_FAILURE_CATEGORY, RATE_LIMIT_CATEGORIES, SHARED_LIMITER_FEATURE_FLAG, createFakeSharedLimiterStore, createInMemoryRateLimiter, createOpaqueLimiterKey, createRedisCompatibleLimiterStore, createStagingSharedLimiterStore, evaluateRateLimits, getRateLimitPolicies, isStagingSharedLimiterEnabled } from "../src/rateLimiter.js";
 
 test("fixed windows expire and cleanup removes stale counters", () => {
   let currentTime = 1_000;
@@ -68,6 +68,109 @@ test("fake shared-store failure is bounded and category-only", () => {
     failureCategory: LIMITER_STORE_FAILURE_CATEGORY,
   });
   assert.equal(JSON.stringify(result).includes("local-test-key"), false);
+});
+
+test("Redis-compatible adapter uses one atomic increment/expiry operation without exposing opaque keys", async () => {
+  let currentTime = 1_000;
+  const entries = new Map();
+  const calls = [];
+  const client = {
+    async eval(script, { keys, arguments: args }) {
+      calls.push({ script, keys, args });
+      const key = keys[0];
+      const windowMs = Number(args[0]);
+      const existing = entries.get(key);
+      const entry = !existing || existing.expiresAt <= currentTime
+        ? { count: 0, expiresAt: currentTime + windowMs }
+        : existing;
+      entry.count += 1;
+      entries.set(key, entry);
+      return [entry.count, entry.expiresAt - currentTime];
+    },
+  };
+  const sensitive = "customer@example.test 127.0.0.1 private-token";
+  const opaqueKey = createOpaqueLimiterKey({
+    secret: "test-only-limiter-secret",
+    environment: "staging",
+    route: "/api/auth/login",
+    keyType: "account",
+    values: [sensitive],
+  });
+  const store = createRedisCompatibleLimiterStore({ client });
+  assert.equal((await store.consume({ key: opaqueKey, limit: 2, windowMs: 1_000 })).allowed, true);
+  assert.equal((await store.consume({ key: opaqueKey, limit: 2, windowMs: 1_000 })).remaining, 0);
+  const denied = await store.consume({ key: opaqueKey, limit: 2, windowMs: 1_000 });
+  assert.equal(denied.allowed, false);
+  assert.equal(denied.retryAfterSeconds, 1);
+  assert.equal(calls.length, 3);
+  assert.match(calls[0].keys[0], /^slotzy:rl:v1:[a-f0-9]{64}$/);
+  assert.match(calls[0].script, /redis\.call\("PEXPIRE", KEYS\[1\], ARGV\[1\]\)/);
+  assert.doesNotMatch(JSON.stringify(calls), /customer|127\.0\.0\.1|private-token/);
+
+  currentTime = 2_001;
+  assert.equal((await store.consume({ key: opaqueKey, limit: 2, windowMs: 1_000 })).allowed, true);
+});
+
+test("Redis-compatible adapter reports provider outage without a key or provider detail", async () => {
+  const store = createRedisCompatibleLimiterStore({
+    client: { async eval() { throw new Error("connection refused private-url"); } },
+  });
+  const opaqueKey = createOpaqueLimiterKey({
+    secret: "test-only-limiter-secret",
+    environment: "staging",
+    route: "/api/auth/login",
+    keyType: "account",
+    values: ["outage-test"],
+  });
+  const result = await store.consume({ key: opaqueKey, limit: 1, windowMs: 1_000 });
+  assert.deepEqual(result, {
+    allowed: false,
+    remaining: 0,
+    retryAfterSeconds: 0,
+    failureCategory: LIMITER_STORE_FAILURE_CATEGORY,
+  });
+  assert.doesNotMatch(JSON.stringify(result), /private-url|connection/i);
+});
+
+test("Redis-compatible adapter rejects non-opaque keys before client evaluation", async () => {
+  let evalCalls = 0;
+  const store = createRedisCompatibleLimiterStore({
+    client: { async eval() { evalCalls += 1; return [1, 1_000]; } },
+  });
+  const rejectedKeys = ["customer@example.test", "127.0.0.1", "", "not-a-sha256-digest", "A".repeat(64), "a".repeat(63)];
+  for (const key of rejectedKeys) {
+    await assert.rejects(
+      store.consume({ key, limit: 1, windowMs: 1_000 }),
+      /invalid opaque limiter key/
+    );
+  }
+  assert.equal(evalCalls, 0);
+});
+
+test("Redis-compatible adapter validates its non-secret namespace prefix", () => {
+  const client = { async eval() { return [1, 1_000]; } };
+  assert.doesNotThrow(() => createRedisCompatibleLimiterStore({ client, keyPrefix: "slotzy:rl:v1" }));
+  assert.throws(() => createRedisCompatibleLimiterStore({ client, keyPrefix: "customer@example.test" }), /invalid rate-limit key prefix/);
+  assert.throws(() => createRedisCompatibleLimiterStore({ client, keyPrefix: "slotzy:private url" }), /invalid rate-limit key prefix/);
+});
+
+test("future shared limiter flag is staging-only and disabled by default", () => {
+  assert.equal(SHARED_LIMITER_FEATURE_FLAG, "SLOTZY_STAGING_SHARED_LIMITER_ENABLED");
+  assert.equal(isStagingSharedLimiterEnabled(), false);
+  assert.equal(isStagingSharedLimiterEnabled({ environment: "staging", value: "false" }), false);
+  assert.equal(isStagingSharedLimiterEnabled({ environment: "production", value: "true" }), false);
+  assert.equal(isStagingSharedLimiterEnabled({ environment: "staging", value: "true" }), true);
+
+  let clientFactoryCalls = 0;
+  const createClient = () => {
+    clientFactoryCalls += 1;
+    return { async eval() { return [1, 1_000]; } };
+  };
+  assert.equal(createStagingSharedLimiterStore({ environment: "staging", value: "false", createClient }), null);
+  assert.equal(createStagingSharedLimiterStore({ environment: "production", value: "true", createClient }), null);
+  assert.equal(clientFactoryCalls, 0);
+  assert.ok(createStagingSharedLimiterStore({ environment: "staging", value: "true", createClient }));
+  assert.equal(clientFactoryCalls, 1);
 });
 
 test("enforced rate-limit category constants preserve current values and policy keys", () => {

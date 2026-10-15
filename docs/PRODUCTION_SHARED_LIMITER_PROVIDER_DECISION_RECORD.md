@@ -1,6 +1,6 @@
 # Shared limiter staging provider decision record — P0-F5m
 
-**Status:** Docs-only provider decision record. Render Key Value / Valkey is selected for the future staging provider path; no instance exists, implementation is not approved, runtime behavior is unchanged, and production approval is not granted.
+**Status:** Render Key Value / Valkey is selected for the staging provider path. The owner-created staging instance is documented only through sanitized facts in the [P0-F5o adapter foundation result](PRODUCTION_SHARED_LIMITER_RENDER_ADAPTER_FOUNDATION_RESULT.md); it is not connected to the API, implementation is not approved, runtime behavior is unchanged, and production approval is not granted.
 
 ## Decision
 
@@ -72,7 +72,7 @@ Official facts should be rechecked before setup: [Render Key Value documentation
 
 ## Decision outcome now
 
-Render Key Value / Valkey is selected for the staging provider path. Provider setup remains blocked pending a setup checklist, provider implementation remains blocked, the production shared limiter remains **not approved**, and production launch remains **no-go**.
+Render Key Value / Valkey is selected for the staging provider path. The staging instance exists but remains unconnected; provider activation and implementation remain blocked pending the [adapter foundation's](PRODUCTION_SHARED_LIMITER_RENDER_ADAPTER_FOUNDATION_RESULT.md) unresolved security, failure-mode, and validation decisions. The production shared limiter remains **not approved**, and production launch remains **no-go**.
 
 ## Infrastructure impact
 
