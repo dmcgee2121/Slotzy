@@ -152,6 +152,14 @@ Missing evidence: disposable-Postgres integration execution; concurrent anonymou
 - The first final `cd server; npm run test:api` attempt had one `auth-change-password-api` child-server startup timeout (**41 passed, 1 failed**). It passed in isolation (**1/1**), no listener remained in the test port ranges, and the immediate aggregate rerun passed **42/42** (12.0s). This was not reproducible after the existing serialized test-file correction; no application assertion failed.
 - `cd server; npm run test:storage` completed **32 passed, 0 failed**. No hosted request, deployment, database change, or external environment was used during this validation.
 
+### P0-B3 PostgreSQL integration safety preflight (2026-10-17)
+
+- The optional integration command requires exact `NODE_ENV=test`, `SUPABASE_TEST_URL`, `SUPABASE_TEST_SERVICE_ROLE_KEY`, `SLOTZY_EXPECTED_DISPOSABLE_PROJECT_REF`, and `SLOTZY_ALLOW_DISPOSABLE_TEST_RESET=true`. It intentionally does not use runtime credentials as its test credentials.
+- Before each test and at suite setup/teardown, the integration harness verifies `public.slotzy_test_control.is_disposable = true` and invokes the reset RPC only with its fixed confirmation value. That RPC **truncates** all Slotzy operational tables, so it must only exist on a separately provisioned test project. The schema defaults the marker to `false`.
+- P0-B3 final hardening runs the process-level preflight before constructing a client or storage adapter. It rejects every environment other than exact `NODE_ENV=test`, missing/malformed expected project identity, ambiguous/non-project URLs, normalized runtime/test project identity matches, runtime service-role credential reuse, and a missing reset confirmation. Mock-only tests cover each refusal path. These guards supplement, rather than replace, the database-resident disposable marker.
+- The unconfigured local preflight passed: **6 safety tests passed; 21 real Postgres integration tests skipped** because no test credentials were present, and the output confirmed no database client was created. No hosted database connection was attempted. `npm run test:storage` passed **32/32** and `npm run test:api` passed **42/42**.
+- Current database-level coverage includes snapshot owner/shop/service/availability writes, atomic booking persistence and sequential overlap rejection, owner-scoped booking visibility, manage-token hashing/lookup, and token cancellation with an event. It does not yet prove the complete HTTP lifecycle against Postgres: owner setup through API routes, anonymous route booking, two truly concurrent booking requests, owner appointment API visibility, recovery contact matching/token rotation, or invalid-token/recovery response envelopes.
+
 | Command | Result |
 |---|---|
 | `git branch --show-current`; `git rev-parse HEAD`; `git status --short`; `git diff --check` | Correct branch/HEAD, clean tree before this report, no whitespace errors. |

@@ -3,22 +3,23 @@ import { createHash, randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import { createPostgresStore } from "../src/storage/postgresStore.js";
+import { createPostgresIntegrationResources } from "./postgres-integration-safety.js";
 
 const testUrl = String(process.env.SUPABASE_TEST_URL ?? "").trim();
 const testServiceRoleKey = String(process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ?? "").trim();
 const hasTestCredentials = Boolean(testUrl && testServiceRoleKey);
-const skipReason = hasTestCredentials ? false : "Set SUPABASE_TEST_URL and SUPABASE_TEST_SERVICE_ROLE_KEY for an isolated disposable test project; production credentials are intentionally not accepted.";
+const skipReason = hasTestCredentials ? false : "Set SUPABASE_TEST_URL and SUPABASE_TEST_SERVICE_ROLE_KEY for an isolated disposable test project; no database client was created.";
 
-// Test-only names are mapped at this seam; normal runtime configuration is untouched.
-const testEnv = { SUPABASE_URL: testUrl, SUPABASE_SERVICE_ROLE_KEY: testServiceRoleKey };
-const client = hasTestCredentials ? createClient(testUrl, testServiceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } }) : null;
-const store = hasTestCredentials ? createPostgresStore(testEnv) : null;
+// The test-only credentials are mapped to the server adapter only after the
+// entire process-level preflight passes.
+const resources = hasTestCredentials ? createPostgresIntegrationResources({ createClient, createStore: createPostgresStore }) : null;
+const client = resources?.client ?? null;
+const store = resources?.store ?? null;
 const fixtureFailure = (message) => new Error(`Postgres integration fixture setup failed: ${message}`);
 
 async function resetDisposableDatabase() {
-  if (process.env.SLOTZY_ALLOW_DISPOSABLE_TEST_RESET !== "true") {
-    throw fixtureFailure('SLOTZY_ALLOW_DISPOSABLE_TEST_RESET must equal "true"; no reset was attempted.');
-  }
+  // The process-level preflight ran before client construction. The database
+  // marker below remains the authorization for truncation.
   const { data: control, error: controlError } = await client.from("slotzy_test_control").select("is_disposable").eq("id", true).maybeSingle();
   if (controlError) throw fixtureFailure(`could not verify public.slotzy_test_control: ${controlError.message}`);
   if (control?.is_disposable !== true) throw fixtureFailure("public.slotzy_test_control.is_disposable must be true; no reset was attempted.");
