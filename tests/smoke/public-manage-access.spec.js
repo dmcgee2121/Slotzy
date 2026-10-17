@@ -188,7 +188,7 @@ test("public booking receipt exposes a manage link and contact-based manage page
   expect(firstSlotValue).toBeTruthy();
   await page.selectOption("#time-slot-select", String(firstSlotValue));
 
-  await page.getByRole("button", { name: "Book Appointment" }).click();
+  await page.getByRole("button", { name: "Confirm Appointment" }).click();
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
   await expect(page.locator("#bookingReceiptManageLink")).toBeVisible();
   const manageLink = String(await page.locator("#bookingReceiptManageLink").getAttribute("href") || "");
@@ -318,7 +318,7 @@ test("public manage page can reschedule with booking rules, overlap protection, 
   expect(firstSlotValue).toBeTruthy();
   await page.selectOption("#time-slot-select", String(firstSlotValue));
 
-  await page.getByRole("button", { name: "Book Appointment" }).click();
+  await page.getByRole("button", { name: "Confirm Appointment" }).click();
   await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
   const manageLink = String(await page.locator("#bookingReceiptManageLink").getAttribute("href") || "");
   expect(manageLink).toContain("/pages/manage.html?");

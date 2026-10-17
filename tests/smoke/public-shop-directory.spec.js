@@ -31,7 +31,7 @@ function buildAvailability(username) {
         thu: { enabled: true, start: "09:00", end: "17:00" },
         fri: { enabled: true, start: "09:00", end: "17:00" },
         sat: { enabled: true, start: "09:00", end: "17:00" },
-        sun: { enabled: false, start: "09:00", end: "17:00" },
+        sun: { enabled: true, start: "09:00", end: "17:00" },
       },
       timeOff: [],
     },
@@ -163,6 +163,9 @@ async function seedStorage(page, seed) {
   await page.addInitScript((seedPayload) => {
     localStorage.clear();
     sessionStorage.clear();
+
+    // Keep this public-flow fixture local; the checked-in public config has a hosted API base.
+    localStorage.setItem("Slotzy_api_mode", "0");
 
     Object.entries(seedPayload.local || {}).forEach(([key, value]) => {
       localStorage.setItem(key, JSON.stringify(value));

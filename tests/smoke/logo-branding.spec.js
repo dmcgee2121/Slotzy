@@ -181,5 +181,5 @@ test("shop logo upload persists to settings, public booking, and QR print", asyn
     mimeType: "image/png",
     buffer: Buffer.alloc(MAX_LOGO_BYTES, 0),
   });
-  await expect(page.locator("#shopLogoInputStatus")).toContainText("1 MB or smaller");
+  await expect(page.locator("#shopLogoInputStatus")).toContainText("512 KB or smaller");
 });

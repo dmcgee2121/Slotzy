@@ -257,25 +257,45 @@ test.describe("Slotzy critical smoke flows", () => {
   });
 
   test("auth uses server mode when backend health is online", async ({ page }) => {
-    await page.route("http://localhost:3001/api/health", async (route) => {
+    const serverUser = {
+      username: "server_smoke",
+      role: "owner",
+      displayName: "server_smoke",
+      shopId: null,
+    };
+    await page.route("**/api/health", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
+        headers: { "access-control-allow-origin": "http://127.0.0.1:5173" },
         body: JSON.stringify({ ok: true, service: "slotzy-api" }),
       });
     });
-    await page.route("http://localhost:3001/api/auth/register", async (route) => {
+    await page.route("**/api/auth/register", async (route) => {
       const payload = route.request().postDataJSON();
       await route.fulfill({
         status: 200,
         contentType: "application/json",
+        headers: { "access-control-allow-origin": "http://127.0.0.1:5173" },
         body: JSON.stringify({
           token: "server-smoke-token",
           user: {
+            ...serverUser,
             username: payload.username,
             role: payload.role,
           },
         }),
+      });
+    });
+    // The dashboard setup guard verifies a just-created server session via
+    // auth/me. Keep this server-mode test authoritative instead of allowing
+    // an unhandled request to look like an expired session.
+    await page.route("**/api/auth/me", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "http://127.0.0.1:5173" },
+        body: JSON.stringify({ user: serverUser }),
       });
     });
 
@@ -290,8 +310,10 @@ test.describe("Slotzy critical smoke flows", () => {
     await page.selectOption("#auth-role", "owner");
     await page.getByRole("button", { name: "Continue" }).click();
 
-    await expect(page).toHaveURL(/\/pages\/business-owner\.html$/);
-    await expect(page.getByRole("heading", { name: "Today at a Glance" })).toBeVisible();
+    // Registration returns an owner with no shop. The authenticated setup
+    // guard must preserve that server session and send the owner to setup.
+    await expect(page).toHaveURL(/\/pages\/owner-setup\.html$/);
+    await expect(page.getByRole("heading", { name: "Get ready for online booking" })).toBeVisible();
 
     const sessionUser = await page.evaluate(() => {
       const raw = sessionStorage.getItem("Slotzy_user");
@@ -338,9 +360,25 @@ test.describe("Slotzy critical smoke flows", () => {
   });
 
   test("owner can add a service from dashboard quick add", async ({ page }) => {
+    const existingService = {
+      id: SERVICE_ID,
+      name: SERVICE_NAME,
+      title: SERVICE_NAME,
+      price: 30,
+      duration: 30,
+      durationMinutes: 30,
+      active: true,
+      createdAtISO: new Date().toISOString(),
+      shopId: SHOP_ID,
+      barberUsername: OWNER_USERNAME,
+      ownerUsername: OWNER_USERNAME,
+    };
     const seed = buildSeed({
       sessionUser: { username: OWNER_USERNAME, role: "owner" },
-      services: [],
+      // A service-less owner is correctly redirected into required setup.
+      // Seed a completed owner state so this test reaches the dashboard
+      // control it is intended to cover.
+      services: [existingService],
       bookings: [],
     });
     await seedStorage(page, seed);
@@ -399,7 +437,7 @@ test.describe("Slotzy critical smoke flows", () => {
     await page.fill(`input[data-day="${bookingDayKey}"][data-field="end"]`, "13:00");
     await page.click("#availability-save-weekly");
 
-    await page.waitForFunction((username, dayKey) => {
+    await page.waitForFunction(({ username, dayKey }) => {
       const raw = localStorage.getItem("Slotzy_availability");
       if (!raw) return false;
       try {
@@ -409,7 +447,7 @@ test.describe("Slotzy critical smoke flows", () => {
       } catch {
         return false;
       }
-    }, OWNER_USERNAME, bookingDayKey);
+    }, { username: OWNER_USERNAME, dayKey: bookingDayKey });
 
     const availability = await readLocalJson(page, "Slotzy_availability");
     expect(availability?.[OWNER_USERNAME]?.weekly?.[bookingDayKey]).toMatchObject({
@@ -453,9 +491,22 @@ test.describe("Slotzy critical smoke flows", () => {
   });
 
   test("owner logo persists and appears on public booking and QR print", async ({ page }) => {
+    const service = {
+      id: SERVICE_ID,
+      name: SERVICE_NAME,
+      title: SERVICE_NAME,
+      price: 30,
+      duration: 30,
+      durationMinutes: 30,
+      active: true,
+      createdAtISO: new Date().toISOString(),
+      shopId: SHOP_ID,
+      barberUsername: OWNER_USERNAME,
+      ownerUsername: OWNER_USERNAME,
+    };
     const seed = buildSeed({
       sessionUser: { username: OWNER_USERNAME, role: "owner" },
-      services: [],
+      services: [service],
       bookings: [],
     });
     await seedStorage(page, seed);
@@ -562,24 +613,10 @@ test.describe("Slotzy critical smoke flows", () => {
       services: [service],
       bookings: [],
     });
+    // Seed before navigation so the public page stays in intentional local
+    // fixture mode and never starts with the checked-in hosted API config.
+    await seedStorage(page, seed);
     await page.goto("/pages/book.html?shop=smoke-shop");
-
-    // Set localStorage after page load
-    await page.evaluate((seed) => {
-      localStorage.clear();
-      sessionStorage.clear();
-      localStorage.setItem("Slotzy_api_mode", "0");
-      Object.entries(seed.local || {}).forEach(([key, value]) => {
-        localStorage.setItem(key, JSON.stringify(value));
-      });
-      Object.entries(seed.session || {}).forEach(([key, value]) => {
-        if (value === null || value === undefined) return;
-        sessionStorage.setItem(key, JSON.stringify(value));
-      });
-    }, seed);
-
-    // Reload the page to pick up the localStorage
-    await page.reload();
 
     await page.selectOption("#barberSelect", OWNER_USERNAME);
     await page.selectOption("#serviceSelect", SERVICE_ID);
@@ -596,7 +633,7 @@ test.describe("Slotzy critical smoke flows", () => {
     expect(firstSlotValue).toBeTruthy();
     await page.selectOption("#time-slot-select", String(firstSlotValue));
 
-    await page.getByRole("button", { name: "Book Appointment" }).click();
+    await page.getByRole("button", { name: "Confirm Appointment" }).click();
     await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
     await expect(page.locator("#booking-receipt-section")).toContainText("Smoke Haircut");
     await expect(page.locator("#bookingReceiptShop")).toContainText("Smoke Shop");
@@ -831,7 +868,7 @@ test.describe("Slotzy critical smoke flows", () => {
     expect(firstSlotValue).toBeTruthy();
     await page.selectOption("#time-slot-select", String(firstSlotValue));
 
-    await page.getByRole("button", { name: "Book Appointment" }).click();
+    await page.getByRole("button", { name: "Confirm Appointment" }).click();
     await expect(page.getByRole("heading", { name: "Booked!" })).toBeVisible();
     const publicBookings = await readLocalJson(page, "Slotzy_bookings");
     expect(Array.isArray(publicBookings)).toBeTruthy();
@@ -1048,7 +1085,7 @@ test.describe("Slotzy critical smoke flows", () => {
     const specificBarberDownload = await specificBarberDownloadPromise;
     expect(await specificBarberDownload.suggestedFilename()).toMatch(/^slotzy-appointments-\d{4}-\d{2}-\d{2}\.csv$/);
     const specificBarberCsv = await readDownloadText(specificBarberDownload);
-    expect(specificBarberCsv).toContain("\"id\",\"status\",\"date\",\"startTime\"");
+    expect(specificBarberCsv).toContain("\"id\",\"source\",\"status\",\"date\",\"startTime\"");
     expect(specificBarberCsv).toContain("Casey Example");
     expect(specificBarberCsv).not.toContain("Alice Example");
 
@@ -1063,7 +1100,7 @@ test.describe("Slotzy critical smoke flows", () => {
     const appointmentsDownload = await appointmentsDownloadPromise;
     expect(await appointmentsDownload.suggestedFilename()).toMatch(/^slotzy-appointments-\d{4}-\d{2}-\d{2}\.csv$/);
     const appointmentsCsv = await readDownloadText(appointmentsDownload);
-    expect(appointmentsCsv).toContain("\"id\",\"status\",\"date\",\"startTime\",\"endTime\",\"serviceName\",\"price\",\"durationMinutes\",\"barberUsername\",\"clientName\",\"clientContact\",\"createdAt\"");
+    expect(appointmentsCsv).toContain("\"id\",\"source\",\"status\",\"date\",\"startTime\",\"endTime\",\"serviceName\",\"price\",\"durationMinutes\",\"barberUsername\",\"clientName\",\"clientContact\",\"createdAt\"");
     expect(appointmentsCsv).toContain("Alice Example");
     expect(appointmentsCsv).not.toContain("Bob Example");
     expect(appointmentsCsv).not.toContain("Casey Example");

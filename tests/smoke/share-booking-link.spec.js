@@ -46,7 +46,34 @@ function buildSeed() {
           },
         },
       ],
-      Slotzy_services: [],
+      Slotzy_services: [
+        {
+          id: "svc_share_cut",
+          name: "Share Cut",
+          title: "Share Cut",
+          price: 30,
+          duration: 30,
+          durationMinutes: 30,
+          active: true,
+          createdAtISO: new Date().toISOString(),
+          shopId: "shop_share_1",
+          barberUsername: "owner_share",
+          ownerUsername: "owner_share",
+        },
+        {
+          id: "svc_share_style",
+          name: "Share Style",
+          title: "Share Style",
+          price: 45,
+          duration: 45,
+          durationMinutes: 45,
+          active: true,
+          createdAtISO: new Date().toISOString(),
+          shopId: "shop_share_1",
+          barberUsername: "owner_share",
+          ownerUsername: "owner_share",
+        },
+      ],
       Slotzy_staff: [],
       Slotzy_bookings: [],
       Slotzy_availability: {},
@@ -68,6 +95,9 @@ async function seedStorage(page, seed) {
 
     localStorage.clear();
     sessionStorage.clear();
+
+    // Settings initialization must use this local fixture rather than the configured hosted API.
+    localStorage.setItem("Slotzy_api_mode", "0");
 
     Object.entries(seedPayload.local || {}).forEach(([key, value]) => {
       localStorage.setItem(key, JSON.stringify(value));
@@ -98,7 +128,7 @@ test("share booking link shows toast, helper text, and open action on desktop an
   await page.goto("/pages/settings.html");
 
   const bookingUrl = await page.locator("#publicBookingLinkInput").inputValue();
-  await expect(page.locator(".public-booking-link-tip")).toContainText("Tip: add this link to your Instagram bio, Google Business Profile, and text it to clients.");
+  await expect(page.locator(".public-booking-link-tip")).toContainText("Tip: add this to your Instagram bio, Google Business Profile, text messages, and printed QR handouts.");
   await expect(page.locator("#openPublicBookingLinkBtn")).toBeEnabled();
 
   await page.evaluate(() => {
@@ -112,7 +142,7 @@ test("share booking link shows toast, helper text, and open action on desktop an
     };
   });
 
-  await page.getByRole("button", { name: "Open Link" }).click();
+  await page.getByRole("button", { name: "Open Booking Page" }).click();
   await expect.poll(async () => page.evaluate(() => window.__openedBookingUrl)).toBe(bookingUrl);
 
   const toast = page.locator("#toast");

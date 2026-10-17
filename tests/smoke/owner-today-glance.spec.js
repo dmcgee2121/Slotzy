@@ -239,8 +239,8 @@ test("owner dashboard Today card shows next appointment, quick actions, and refr
   await expect(page.locator("#public-booking-link-section")).toBeVisible();
 
   await page.goto("/pages/business-owner.html");
-  await page.getByRole("button", { name: "View Today" }).click();
-  await expect(page).toHaveURL(/\/pages\/owner-today\.html$/);
+  await page.getByRole("button", { name: "Open Appointments" }).click();
+  await expect(page).toHaveURL(/\/pages\/manage-appointments\.html$/);
 });
 
 test("barber dashboard Today card shows only that barber's appointments", async ({ page }) => {
