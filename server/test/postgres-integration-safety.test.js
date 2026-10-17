@@ -79,3 +79,22 @@ test("Postgres integration resources are constructed only after a safe matching 
   assert.equal(result.client.url, `https://${disposableRef}.supabase.co`);
   assert.equal(result.store.env.SUPABASE_URL, `https://${disposableRef}.supabase.co`);
 });
+
+test("Postgres integration preflight permits only the pinned loopback local stack", () => {
+  const env = {
+    NODE_ENV: "test",
+    SLOTZY_ALLOW_DISPOSABLE_TEST_RESET: "true",
+    SLOTZY_LOCAL_DISPOSABLE_POSTGRES: "true",
+    SLOTZY_EXPECTED_LOCAL_DATABASE: "postgres",
+    SLOTZY_EXPECTED_LOCAL_POSTGRES_PORT: "54322",
+    SUPABASE_TEST_URL: "http://127.0.0.1:54321/",
+    SUPABASE_TEST_SERVICE_ROLE_KEY: "local-service-role-key",
+  };
+  assert.deepEqual(assertPostgresIntegrationPreflight(env), { projectRef: "local-slotzy", local: true });
+
+  env.SUPABASE_TEST_URL = "https://abcdefghijklmnopqrst.supabase.co";
+  assert.throws(() => assertPostgresIntegrationPreflight(env), /127\.0\.0\.1:54321/i);
+  env.SUPABASE_TEST_URL = "http://127.0.0.1:54321/";
+  env.SLOTZY_EXPECTED_LOCAL_DATABASE = "other";
+  assert.throws(() => assertPostgresIntegrationPreflight(env), /EXPECTED_LOCAL_DATABASE/i);
+});

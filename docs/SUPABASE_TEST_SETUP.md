@@ -1,5 +1,40 @@
 # Disposable Supabase test-project setup
 
+## Preferred local Docker workflow
+
+The checked-in `supabase/config.toml` defines the only supported local test
+identity: PostgREST at `http://127.0.0.1:54321` and PostgreSQL `postgres` at
+`127.0.0.1:54322`. It is a Docker-managed local Supabase stack, rather than a
+hosted Supabase project. Standalone PostgreSQL is not sufficient because the
+existing adapter and integration suite exercise Supabase PostgREST and RPCs.
+
+From the repository root, start the disposable stack and apply the reviewed
+schema only to its local `supabase_db_Slotzy` container:
+
+```powershell
+npx --yes supabase start
+Get-Content -Raw docs/SUPABASE_SCHEMA.sql | docker exec -i supabase_db_Slotzy psql -U postgres -d postgres -v ON_ERROR_STOP=1
+Get-Content -Raw docs/SUPABASE_AUTH_REVOCATION_MIGRATION.sql | docker exec -i supabase_db_Slotzy psql -U postgres -d postgres -v ON_ERROR_STOP=1
+docker exec supabase_db_Slotzy psql -U postgres -d postgres -c "update public.slotzy_test_control set is_disposable = true where id = true"
+cd server
+npm run test:storage:postgres:local
+```
+
+`test:storage:postgres:local` obtains the transient local service-role key
+directly from `supabase status`; it never writes a key to a file, Git, or the
+runtime `SUPABASE_*` variables. Before Node constructs a client it verifies
+the API URL, PostgreSQL host, port, database name, and the presence of a local
+service-role key. It then clears runtime Supabase credentials for the child
+process and pins only the local test endpoint. Any identity mismatch aborts
+before test execution or reset RPC construction.
+
+The schema creates the marker with `is_disposable = false`; the explicit local
+marker command above is still required before reset-capable tests. When done,
+stop and remove the local Docker stack with `npx --yes supabase stop`. This
+does not affect hosted Supabase projects.
+
+## Hosted disposable-project workflow
+
 This procedure is only for an empty, disposable Supabase project. It must never use staging, production, pilot, or personal-data credentials.
 
 1. Create a new Supabase project clearly named as disposable test infrastructure, for example `slotzy-storage-test`. Do not reuse staging or production.
@@ -22,7 +57,7 @@ This procedure is only for an empty, disposable Supabase project. It must never 
    npm run test:storage:postgres
    ```
 
-6. Expected result: all **9** Postgres integration cases execute instead of showing their missing-credentials skip reason. The fixture preflight and every test reset first verify `SLOTZY_ALLOW_DISPOSABLE_TEST_RESET=true`, then read `public.slotzy_test_control.is_disposable`; only after both pass does it call `slotzy_reset_disposable_test_data('DISPOSABLE_SLOTZY_TEST_RESET')`. A fixture failure means no destructive reset was attempted. Do not treat a skipped suite as database validation.
+6. Expected result: all current Postgres integration cases execute instead of showing their missing-credentials skip reason. The fixture preflight and every test reset first verify `SLOTZY_ALLOW_DISPOSABLE_TEST_RESET=true`, then read `public.slotzy_test_control.is_disposable`; only after both pass does it call `slotzy_reset_disposable_test_data('DISPOSABLE_SLOTZY_TEST_RESET')`. A fixture failure means no destructive reset was attempted. Do not treat a skipped suite as database validation.
 7. After testing, delete the disposable Supabase project from its dashboard. This is preferred over retaining test data. Do not run the reset RPC against any project that was not intentionally marked disposable.
 
 ## Reset safety
@@ -35,4 +70,4 @@ This server-only phase grants the `service_role` explicitly because the disposab
 
 ## Current test status
 
-`server/test/postgres-store.integration.test.js` implements the disposable fixture lifecycle and contains all nine integration cases. It maps `SUPABASE_TEST_URL` and `SUPABASE_TEST_SERVICE_ROLE_KEY` directly into an explicitly constructed test store; it does not set runtime `SUPABASE_*` variables or select Postgres globally. Without the two test credentials, the cases skip clearly and make no network call. JSON tests remain the required local regression suite: `npm run test:storage`.
+`server/test/postgres-store.integration.test.js` implements the disposable fixture lifecycle. It maps `SUPABASE_TEST_URL` and `SUPABASE_TEST_SERVICE_ROLE_KEY` directly into an explicitly constructed test store; it does not set runtime `SUPABASE_*` variables or select Postgres globally. Without the two test credentials, the cases skip clearly and make no network call. JSON tests remain the required local regression suite: `npm run test:storage`.
