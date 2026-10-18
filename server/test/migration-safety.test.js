@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const migrationUrl = new URL("../../docs/SUPABASE_RECURRING_BLOCKS_MIGRATION.sql", import.meta.url);
 const manageCancelMigrationUrl = new URL("../../docs/SUPABASE_MANAGE_CANCEL_MIGRATION.sql", import.meta.url);
+const manageRescheduleMigrationUrl = new URL("../../docs/SUPABASE_MANAGE_RESCHEDULE_MIGRATION.sql", import.meta.url);
 const authRevocationMigrationUrl = new URL("../../docs/SUPABASE_AUTH_REVOCATION_MIGRATION.sql", import.meta.url);
 const schemaUrl = new URL("../../docs/SUPABASE_SCHEMA.sql", import.meta.url);
 
@@ -63,4 +64,22 @@ test("manage cancellation RPC locks token and booking and records the cancellati
   assert.match(migration, /update public\.bookings[\s\S]*?status = 'cancelled'[\s\S]*?where id = v_before\.id and status in \('booked', 'confirmed'\)/i);
   assert.match(migration, /insert into public\.booking_events[\s\S]*?'cancelled', 'public_client'/i);
   assert.doesNotMatch(migration, /['"]manageTokenHash['"]|['"]manage_token_hash['"]/i);
+});
+
+test("manage reschedule migration is additive, private, and validates token-bound scheduling", async () => {
+  const migration = await readFile(manageRescheduleMigrationUrl, "utf8");
+  assert.doesNotMatch(migration, /\b(truncate|drop\s+table|delete\s+from)\b/i);
+  assert.match(migration, /security definer\s+set search_path = public/i);
+  assert.match(migration, /token\.token_hash = p_token_hash[\s\S]*?token\.revoked_at is null[\s\S]*?token\.expires_at > now\(\)[\s\S]*?for update;/i);
+  assert.match(migration, /where booking\.id = v_token\.booking_id[\s\S]*?for update;/i);
+  assert.match(migration, /v_before\.status not in \('booked', 'confirmed'\)/i);
+  assert.match(migration, /v_before\.start_at - make_interval\(hours => v_cancel_hours\)/i);
+  assert.match(migration, /public\.availability[\s\S]*?public\.time_off[\s\S]*?public\.recurring_time_blocks/i);
+  assert.match(migration, /other_booking\.id <> v_before\.id[\s\S]*?other_booking\.status in \('booked', 'confirmed'\)/i);
+  assert.match(migration, /rescheduled_at = now\(\)[\s\S]*?reschedule_count = reschedule_count \+ 1/i);
+  assert.match(migration, /insert into public\.booking_events[\s\S]*?'rescheduled', 'public_client'/i);
+  assert.match(migration, /revoke all on function public\.slotzy_reschedule_booking_by_manage_token_hash\(text, timestamptz\) from public;/i);
+  assert.match(migration, /revoke all on function public\.slotzy_reschedule_booking_by_manage_token_hash\(text, timestamptz\) from anon, authenticated;/i);
+  assert.match(migration, /grant execute on function public\.slotzy_reschedule_booking_by_manage_token_hash\(text, timestamptz\) to service_role;/i);
+  assert.doesNotMatch(migration, /\bgrant\b[^;]*\bto\s+(anon|authenticated)\b/i);
 });
