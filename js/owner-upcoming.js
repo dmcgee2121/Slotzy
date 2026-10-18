@@ -113,7 +113,7 @@ import * as dataStore from "./dataStore.js";
     setStatus("Cancelling appointment…", true);
     try {
       const runtime = dataStore.getApiRuntimeState();
-      await dataStore.updateBookingAsync(id, { ...booking, status: "cancelled" }, {
+      await dataStore.updateBookingAsync(id, { status: "cancelled" }, {
         fallbackOnError: false,
         requireApi: runtime.apiEnabled,
       });

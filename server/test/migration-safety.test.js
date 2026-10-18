@@ -6,6 +6,7 @@ const migrationUrl = new URL("../../docs/SUPABASE_RECURRING_BLOCKS_MIGRATION.sql
 const manageCancelMigrationUrl = new URL("../../docs/SUPABASE_MANAGE_CANCEL_MIGRATION.sql", import.meta.url);
 const manageRescheduleMigrationUrl = new URL("../../docs/SUPABASE_MANAGE_RESCHEDULE_MIGRATION.sql", import.meta.url);
 const authRevocationMigrationUrl = new URL("../../docs/SUPABASE_AUTH_REVOCATION_MIGRATION.sql", import.meta.url);
+const staffCancelMigrationUrl = new URL("../../supabase/migrations/20261018210000_staff_booking_cancellation.sql", import.meta.url);
 const schemaUrl = new URL("../../docs/SUPABASE_SCHEMA.sql", import.meta.url);
 
 function functionDefinition(sql, name) {
@@ -46,6 +47,19 @@ test("manage cancellation migration is additive and service-role-only", async ()
   assert.match(migration, /revoke all on function public\.slotzy_cancel_booking_by_manage_token_hash\(text\) from public;/i);
   assert.match(migration, /grant execute on function public\.slotzy_cancel_booking_by_manage_token_hash\(text\) to service_role;/i);
   assert.doesNotMatch(migration, /\bgrant\b[^;]*\bto\s+(anon|authenticated)\b/i);
+});
+
+test("staff cancellation migration is atomic, additive, and service-role-only", async () => {
+  const migration = await readFile(staffCancelMigrationUrl, "utf8");
+  assert.doesNotMatch(migration, /\b(truncate|drop\s+table|delete\s+from)\b/i);
+  assert.match(migration, /security definer\s+set search_path = public/i);
+  assert.match(migration, /where booking\.id = p_booking_id\s+for update;/i);
+  assert.match(migration, /member\.user_id = p_actor_user_id[\s\S]*?member\.shop_id = v_before\.shop_id[\s\S]*?member\.role in \('owner', 'barber'\)[\s\S]*?for update;/i);
+  assert.match(migration, /status = 'cancelled',[\s\S]*?cancelled_at = now\(\),[\s\S]*?cancelled_by_member_id = v_actor\.id/i);
+  assert.match(migration, /insert into public\.booking_events[\s\S]*?'cancelled',[\s\S]*?v_actor\.role::text,[\s\S]*?v_actor\.id/i);
+  assert.match(migration, /revoke all on function public\.slotzy_cancel_booking_by_staff\(uuid, uuid\) from public;/i);
+  assert.match(migration, /revoke all on function public\.slotzy_cancel_booking_by_staff\(uuid, uuid\) from anon, authenticated;/i);
+  assert.match(migration, /grant execute on function public\.slotzy_cancel_booking_by_staff\(uuid, uuid\) to service_role;/i);
 });
 
 test("auth revocation migration is additive and preserves existing users", async () => {

@@ -983,6 +983,46 @@ export function createPostgresStore(env = process.env) {
     fail(error, "update booking status", networkFailures);
     return data ? { id: sourceBookingId, status: data.status, updatedAtISO: iso(data.updated_at) } : null;
   }
+  async function cancelBookingByStaff(bookingId, actor) {
+    beginOperation();
+    const sourceBookingId = safeText(bookingId);
+    const actorUserId = safeText(actor?.id);
+    if (!sourceBookingId || !isUuid(actorUserId)) {
+      return { outcome: "invalid_request", bookingFound: false, eventCreated: false, booking: null };
+    }
+    let targetBookingId = sourceBookingId;
+    const { data: mapping, error: mappingError } = await client.from("legacy_source_ids")
+      .select("target_id")
+      .eq("entity_type", "booking")
+      .eq("source_id", sourceBookingId)
+      .eq("is_canonical", true)
+      .maybeSingle();
+    fail(mappingError, "resolve staff cancellation booking identity", networkFailures);
+    if (mapping?.target_id) targetBookingId = mapping.target_id;
+    if (!isUuid(targetBookingId)) {
+      return { outcome: "booking_not_found", bookingFound: false, eventCreated: false, booking: null };
+    }
+    const { data, error } = await client.rpc("slotzy_cancel_booking_by_staff", {
+      p_booking_id: targetBookingId,
+      p_actor_user_id: actorUserId,
+    });
+    fail(error, "cancel booking by staff", networkFailures);
+    const result = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+    const booking = result.booking && typeof result.booking === "object" ? result.booking : null;
+    return {
+      outcome: String(result.outcome ?? "invalid_request"),
+      bookingFound: result.booking_found === true,
+      statusBefore: String(result.status_before ?? ""),
+      statusAfter: String(result.status_after ?? ""),
+      eventCreated: result.event_created === true,
+      booking: booking ? {
+        id: sourceBookingId,
+        status: String(booking.status ?? ""),
+        cancelledAtISO: iso(booking.cancelledAtISO),
+        updatedAtISO: iso(booking.updatedAtISO),
+      } : null,
+    };
+  }
   async function updateBookingSchedule(bookingId, startISO, endISO, updatedAtISO) {
     beginOperation();
     const sourceBookingId = safeText(bookingId);
@@ -1058,7 +1098,7 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, readUserById, incrementUserAuthVersion, changeUserPassword, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, updateBookingSchedule, cancelBookingByManageTokenHash, rescheduleBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, readUserById, incrementUserAuthVersion, changeUserPassword, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, cancelBookingByStaff, updateBookingSchedule, cancelBookingByManageTokenHash, rescheduleBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
@@ -1079,6 +1119,7 @@ export const writeService = async (service, store) => createPostgresStore().writ
 export const writeAvailability = async (username, availability, store) => createPostgresStore().writeAvailability(username, availability, store);
 export const writeBooking = async (booking) => createPostgresStore().writeBooking(booking);
 export const updateBookingStatus = async (bookingId, status, updatedAtISO) => createPostgresStore().updateBookingStatus(bookingId, status, updatedAtISO);
+export const cancelBookingByStaff = async (bookingId, actor) => createPostgresStore().cancelBookingByStaff(bookingId, actor);
 export const updateBookingSchedule = async (bookingId, startISO, endISO, updatedAtISO) => createPostgresStore().updateBookingSchedule(bookingId, startISO, endISO, updatedAtISO);
 export const cancelBookingByManageTokenHash = async (tokenHash) => createPostgresStore().cancelBookingByManageTokenHash(tokenHash);
 export const appendOutboxEmail = async (email) => createPostgresStore().appendOutboxEmail(email);

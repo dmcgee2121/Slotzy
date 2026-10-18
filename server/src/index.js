@@ -8,7 +8,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { isIP } from "node:net";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, rescheduleBookingByManageTokenHash, changeUserPassword, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, cancelBookingByStaff, rescheduleBookingByManageTokenHash, changeUserPassword, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { isCurrentStaffSession, issueStaffToken, verifyStaffToken } from "./authTokens.js";
 import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
@@ -3121,10 +3121,27 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
       }
     }
 
+    const currentStatus = normalizeBookingStatus(current?.status);
+    const nextStatus = normalizeBookingStatus(next?.status);
     updateStage = isStatusOnlyUpdate ? "persist status" : isScheduleOnlyUpdate ? "persist schedule" : "persist booking";
     if (isStatusOnlyUpdate) {
-      const persisted = await updateBookingStatus(current.id, next.status, next.updatedAtISO);
-      if (!persisted) return res.status(404).json({ error: "booking not found" });
+      if (STORAGE_ADAPTER === "postgres" && nextStatus === "cancelled") {
+        const cancelled = await cancelBookingByStaff(current.id, user);
+        if (cancelled.outcome === "not_allowed") {
+          return res.status(403).json({ error: "not allowed to update this booking" });
+        }
+        if (cancelled.outcome === "booking_not_found") {
+          return res.status(404).json({ error: "booking not found" });
+        }
+        if (cancelled.outcome !== "cancelled" || !cancelled.eventCreated || !cancelled.booking) {
+          return res.status(409).json({ error: "appointment cannot be cancelled", code: "cancellation_unavailable" });
+        }
+        next.status = cancelled.booking.status;
+        next.updatedAtISO = cancelled.booking.updatedAtISO || next.updatedAtISO;
+      } else {
+        const persisted = await updateBookingStatus(current.id, next.status, next.updatedAtISO);
+        if (!persisted) return res.status(404).json({ error: "booking not found" });
+      }
     } else if (isScheduleOnlyUpdate) {
       const persisted = await updateBookingSchedule(current.id, next.startISO, next.endISO, next.updatedAtISO);
       if (!persisted) return res.status(404).json({ error: "booking not found" });
@@ -3133,8 +3150,6 @@ app.patch("/api/bookings/:bookingId", requireAuth, requireRouteStore, async (req
       await writeStore(db);
     }
 
-    const currentStatus = normalizeBookingStatus(current?.status);
-    const nextStatus = normalizeBookingStatus(next?.status);
     if (currentStatus !== "cancelled" && nextStatus === "cancelled") {
       await sendBookingNotifications(db, {
         type: "booking_cancelled",
