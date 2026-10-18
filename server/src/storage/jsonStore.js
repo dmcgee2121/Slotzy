@@ -419,6 +419,11 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
       booking: safeBooking, previousBooking: safePreviousBooking, shop, barber, owner,
     };
   }
+  async function rescheduleBookingByManageTokenHash() {
+    const error = new Error("Customer rescheduling requires PostgreSQL storage");
+    error.code = "manage_reschedule_unsupported";
+    throw error;
+  }
 
   return {
     readStore,
@@ -441,6 +446,7 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     updateBookingStatus,
     updateBookingSchedule,
     cancelBookingByManageTokenHash,
+    rescheduleBookingByManageTokenHash,
     appendOutboxEmail,
     listOutboxEmails,
     clearOutboxEmails,
@@ -470,6 +476,7 @@ export const writeBooking = defaultJsonStore.writeBooking;
 export const updateBookingStatus = defaultJsonStore.updateBookingStatus;
 export const updateBookingSchedule = defaultJsonStore.updateBookingSchedule;
 export const cancelBookingByManageTokenHash = defaultJsonStore.cancelBookingByManageTokenHash;
+export const rescheduleBookingByManageTokenHash = defaultJsonStore.rescheduleBookingByManageTokenHash;
 export const appendOutboxEmail = defaultJsonStore.appendOutboxEmail;
 export const listOutboxEmails = defaultJsonStore.listOutboxEmails;
 export const clearOutboxEmails = defaultJsonStore.clearOutboxEmails;

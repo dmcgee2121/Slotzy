@@ -211,6 +211,7 @@ test("enforced rate-limit category constants preserve current values and policy 
     BOOKING_CREATE: "booking_create",
     MANAGE_LOOKUP: "manage_lookup",
     MANAGE_CANCEL: "manage_cancel",
+    MANAGE_RESCHEDULE: "manage_reschedule",
     MANAGE_RECOVERY: "manage_recovery",
   });
 

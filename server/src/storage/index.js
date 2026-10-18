@@ -36,6 +36,7 @@ export const writeBooking = activeStore.writeBooking;
 export const updateBookingStatus = activeStore.updateBookingStatus;
 export const updateBookingSchedule = activeStore.updateBookingSchedule;
 export const cancelBookingByManageTokenHash = activeStore.cancelBookingByManageTokenHash;
+export const rescheduleBookingByManageTokenHash = activeStore.rescheduleBookingByManageTokenHash;
 export const appendOutboxEmail = activeStore.appendOutboxEmail;
 export const listOutboxEmails = activeStore.listOutboxEmails;
 export const clearOutboxEmails = activeStore.clearOutboxEmails;

@@ -412,6 +412,12 @@ export async function cancelPublicManageBookingAsync(manageToken) {
   return apiRequest("/public/manage/cancel", { method: "PATCH", requireAuth: false, headers: { "X-Slotzy-Manage-Token": token } });
 }
 
+export async function reschedulePublicManageBookingAsync(manageToken, startISO) {
+  const token = String(manageToken ?? "").trim();
+  if (!token) throw createApiRequestError("This manage link is invalid or has expired.", { code: "invalid_manage_token" });
+  return apiRequest("/public/manage/reschedule", { method: "PATCH", requireAuth: false, headers: { "X-Slotzy-Manage-Token": token }, body: { startISO: String(startISO ?? "").trim() } });
+}
+
 export async function requestPublicManageLinkRecoveryAsync({ contact, shopId, appointmentDate } = {}) {
   return apiRequest("/public/manage/recover", {
     method: "POST",

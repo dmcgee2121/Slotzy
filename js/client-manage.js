@@ -45,6 +45,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     token: "",
   };
   let currentShop = null;
+  let currentPublicBooking = null;
   let userMapByUsername = new Map();
   let rescheduleBookingId = "";
   let rescheduleLoadToken = 0;
@@ -118,23 +119,13 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         const shop = payload?.shop;
         if (!booking || !shop) throw new Error("invalid_manage_response");
         currentShop = normalizeShop(shop);
+        currentPublicBooking = booking;
         userMapByUsername = new Map();
         setHeaderShopName(currentShop.name);
         manageIdentitySummary.textContent = "Showing the appointment linked to this private manage link.";
         storeCurrentManageLink();
-        // Token scope currently authorizes read/cancel only. Do not route a
-        // token-holder through the staff-authenticated reschedule workflow.
-        // Keep the pilot path explicit instead of rendering a disabled control
-        // that appears broken on mobile.
         const row = {
           ...decorateBooking(booking, currentShop),
-          canReschedule: false,
-          showRescheduleControl: false,
-          showRescheduleHint: true,
-          reschedule: {
-            canReschedule: false,
-            message: "Rescheduling is not available yet. Please cancel and rebook.",
-          },
         };
         const upcoming = row.start.getTime() >= Date.now() && isScheduledStatus(row.status) ? [row] : [];
         const past = upcoming.length ? [] : [row];
@@ -144,6 +135,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
         clearStatus();
       } catch (error) {
         currentShop = null;
+        currentPublicBooking = null;
         hideAppointmentSections();
         setHeaderShopName("Slotzy");
         manageIdentitySummary.textContent = "";
@@ -534,7 +526,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     resetRescheduleSlotState();
 
     try {
-      const bookings = await dataStore.getBookingsAsync();
+      const bookings = await getManageBookingsSource();
       const booking = findAccessibleBooking(bookings, bookingId);
       if (!booking) {
         setStatus("Appointment not found.", false);
@@ -646,7 +638,7 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     clientRescheduleDate.setAttribute("aria-invalid", "false");
 
     try {
-      const bookings = await dataStore.getBookingsAsync();
+      const bookings = await getManageBookingsSource();
       if (loadToken !== rescheduleLoadToken) return;
 
       const booking = findAccessibleBooking(bookings, rescheduleBookingId);
@@ -733,8 +725,23 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       return;
     }
 
+    if (currentQuery.token && dataStore.shouldUsePublicBookingApi()) {
+      try {
+        const payload = await dataStore.reschedulePublicManageBookingAsync(currentQuery.token, requestedStartISO);
+        if (!payload?.booking) throw new Error("invalid_reschedule_response");
+        closeRescheduleModal();
+        await renderClientManagePage();
+        setStatus("Appointment rescheduled.", true);
+        showToast?.("Appointment rescheduled", "success", 2000);
+      } catch (error) {
+        const code = String(error?.code ?? "");
+        setRescheduleStatus(code === "slot_unavailable" ? "That time is no longer available. Please choose another time." : (error?.message || "Could not reschedule this appointment. Please try again."), false);
+        if (code === "slot_unavailable") await populateRescheduleSlots();
+      }
+      return;
+    }
     try {
-      const bookings = await dataStore.getBookingsAsync();
+      const bookings = await getManageBookingsSource();
       const booking = findAccessibleBooking(bookings, rescheduleBookingId);
       if (!booking) {
         setRescheduleStatus("Appointment not found. Please refresh and try again.", false);
@@ -819,7 +826,19 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
     return getAccessibleBookings(bookings).find((booking) => String(booking?.id ?? "").trim() === targetId) || null;
   }
 
+  async function getManageBookingsSource() {
+    if (currentQuery.token && dataStore.shouldUsePublicBookingApi()) return currentPublicBooking ? [currentPublicBooking] : [];
+    return dataStore.getBookingsAsync();
+  }
+
   function isBookingAccessibleToCurrentClient(booking) {
+    // A private management link is a distinct authority model from the legacy
+    // shop/contact query path. The API has already resolved this one booking
+    // from the opaque token; do not apply the contact-query filter (the token
+    // URL intentionally contains no customer contact).
+    if (currentQuery.token && dataStore.shouldUsePublicBookingApi()) {
+      return String(booking?.id ?? "").trim() === String(currentPublicBooking?.id ?? "").trim();
+    }
     if (!currentShop) return false;
     const shopId = String(booking?.shopId ?? "").trim();
     if (shopId !== currentShop.id) return false;
@@ -959,6 +978,22 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   async function buildRescheduleSlotOptions({ booking, dateYmd, ignoreBookingId, bookingsSource }) {
     const targetBooking = booking && typeof booking === "object" ? booking : null;
     if (!targetBooking) return [];
+
+    // Public manage links deliberately cannot read the provider's protected
+    // schedule. Offer a bounded set of candidate times; the token-scoped API
+    // remains authoritative and atomically revalidates every selection.
+    if (currentQuery.token && dataStore.shouldUsePublicBookingApi()) {
+      const date = parseYmd(dateYmd);
+      const durationMinutes = getDurationMinutes(targetBooking);
+      if (!date || durationMinutes <= 0) return [];
+      const options = [];
+      for (let minute = 9 * 60; minute + durationMinutes <= 17 * 60; minute += SLOT_INCREMENT_MINUTES) {
+        const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, minute, 0, 0);
+        if (start.getTime() <= Date.now()) continue;
+        options.push({ startISO: start.toISOString(), label: `${formatTimeLabel(start)} - ${formatTimeLabel(new Date(start.getTime() + durationMinutes * 60 * 1000))}` });
+      }
+      return options;
+    }
 
     const date = parseYmd(dateYmd);
     const durationMinutes = getDurationMinutes(targetBooking);

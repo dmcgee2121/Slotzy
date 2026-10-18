@@ -8,10 +8,11 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { isIP } from "node:net";
 import { lookup } from "node:dns/promises";
 import { flattenSafeNetworkDiagnostic } from "./storage/postgresStore.js";
-import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, changeUserPassword, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
+import { STORAGE_ADAPTER, cancelBookingByManageTokenHash, rescheduleBookingByManageTokenHash, changeUserPassword, incrementUserAuthVersion, listBookingsForAuthenticatedUser, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, readLoginCredentialByUsername, readPublicBookingStore, readStore, readUserById, readUserByUsername, storeManageToken, updateBookingSchedule, updateBookingStatus, writeAvailability, writeBooking, writeService, writeShop, writeStore, writeUser } from "./storage/index.js";
 import { clearEmails, getEmailMode, getRecentEmails, sendEmail } from "./emailService.js";
 import { isCurrentStaffSession, issueStaffToken, verifyStaffToken } from "./authTokens.js";
 import { buildPublicManageCancelHttpResult } from "./publicManageCancel.js";
+import { buildPublicManageRescheduleHttpResult } from "./publicManageReschedule.js";
 import { areDevelopmentEndpointsEnabled, isProductionLikeEnvironment, normalizeRuntimeEnvironment } from "./runtimePolicy.js";
 import { isBookingAllowedByAvailability } from "./schedulePolicy.js";
 import { attachRequestContext, emitSafeEvent } from "./observability.js";
@@ -2620,6 +2621,35 @@ app.patch("/api/public/manage/cancel", async (req, res) => {
     });
     emitSafeEvent({ event: "booking.cancel", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/public/manage/cancel", method: "PATCH", status: 500, errorClass: String(error?.name ?? "CancellationError"), errorCode: "manage_cancel_failed", outcome: "failed", operation });
     return res.status(500).json({ error: "Could not cancel this appointment. Please try again.", code: "manage_cancel_failed" });
+  }
+});
+
+// Possession of the opaque manage token is the sole public authority. This
+// route deliberately accepts no booking, shop, provider, or service id.
+app.patch("/api/public/manage/reschedule", async (req, res) => {
+  let operation = "token_validation";
+  try {
+    const token = String(req.get("X-Slotzy-Manage-Token") ?? "").trim();
+    const startISO = toIsoOrNull(req.body?.startISO);
+    if (!(await enforceRateLimit(req, res, {
+      category: RATE_LIMIT_CATEGORIES.MANAGE_RESCHEDULE,
+      route: "/api/public/manage/reschedule",
+      errorCode: "manage_temporarily_limited",
+      errorMessage: "This appointment is temporarily unavailable. Please try again later.",
+      keyInputs: [{ keyType: "manage", values: [token || "missing-manage-token"] }, { keyType: "coarse_source", values: [coarseRequestSource(req)] }],
+    }))) return;
+    if (!token || token.length < 32) return res.status(404).json({ error: "This manage link is invalid or has expired.", code: "invalid_manage_token" });
+    if (!startISO) return res.status(400).json({ error: "startISO must be a valid date", code: "invalid_start" });
+    if (STORAGE_ADAPTER !== "postgres") return res.status(503).json({ error: "Customer rescheduling is temporarily unavailable.", code: "manage_reschedule_unavailable" });
+    operation = "atomic_manage_reschedule";
+    const result = await rescheduleBookingByManageTokenHash(hashManageToken(token), startISO);
+    const httpResult = buildPublicManageRescheduleHttpResult(result);
+    emitSafeEvent({ event: "booking.reschedule", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/public/manage/reschedule", method: "PATCH", status: httpResult.status, outcome: httpResult.status === 200 ? "persisted" : "rejected", errorCode: httpResult.status === 200 ? undefined : httpResult.body.code, operation });
+    return res.status(httpResult.status).json(httpResult.body);
+  } catch (error) {
+    console.error("[Slotzy:manage] PATCH /api/public/manage/reschedule failed", { storage: STORAGE_ADAPTER, operation, storageErrorCode: String(error?.code ?? ""), storageOperation: String(error?.storageDiagnostic?.operation ?? "") });
+    emitSafeEvent({ event: "booking.reschedule", environment: RUNTIME_ENVIRONMENT, service: "slotzy-api", storageMode: STORAGE_ADAPTER, release: OBSERVABILITY_RELEASE, requestId: req.observability?.requestId, route: "/api/public/manage/reschedule", method: "PATCH", status: 500, errorCode: "manage_reschedule_failed", outcome: "failed", operation });
+    return res.status(500).json({ error: "Could not reschedule this appointment. Please try again.", code: "manage_reschedule_failed" });
   }
 });
 

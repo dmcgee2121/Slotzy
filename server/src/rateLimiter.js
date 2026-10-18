@@ -9,6 +9,7 @@ export const RATE_LIMIT_CATEGORIES = Object.freeze({
   BOOKING_CREATE: "booking_create",
   MANAGE_LOOKUP: "manage_lookup",
   MANAGE_CANCEL: "manage_cancel",
+  MANAGE_RESCHEDULE: "manage_reschedule",
   MANAGE_RECOVERY: "manage_recovery",
 });
 
@@ -41,6 +42,7 @@ const STAGING_POLICIES = Object.freeze({
   [RATE_LIMIT_CATEGORIES.BOOKING_CREATE]: Object.freeze({ coarse_source: { limit: 60, windowMs: 60 * MINUTE }, shop: { limit: 300, windowMs: 60 * MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_LOOKUP]: Object.freeze({ manage: { limit: 60, windowMs: 15 * MINUTE }, coarse_source: { limit: 120, windowMs: 15 * MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_CANCEL]: Object.freeze({ manage: { limit: 20, windowMs: 15 * MINUTE }, coarse_source: { limit: 60, windowMs: 15 * MINUTE } }),
+  [RATE_LIMIT_CATEGORIES.MANAGE_RESCHEDULE]: Object.freeze({ manage: { limit: 20, windowMs: 15 * MINUTE }, coarse_source: { limit: 60, windowMs: 15 * MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_RECOVERY]: Object.freeze({ contact: { limit: 10, windowMs: 15 * MINUTE }, coarse_source: { limit: 30, windowMs: 15 * MINUTE } }),
 });
 
@@ -49,6 +51,7 @@ const TEST_POLICIES = Object.freeze({
   [RATE_LIMIT_CATEGORIES.BOOKING_CREATE]: Object.freeze({ coarse_source: { limit: 2, windowMs: MINUTE }, shop: { limit: 50, windowMs: MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_LOOKUP]: Object.freeze({ manage: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_CANCEL]: Object.freeze({ manage: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),
+  [RATE_LIMIT_CATEGORIES.MANAGE_RESCHEDULE]: Object.freeze({ manage: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),
   [RATE_LIMIT_CATEGORIES.MANAGE_RECOVERY]: Object.freeze({ contact: { limit: 2, windowMs: MINUTE }, coarse_source: { limit: 50, windowMs: MINUTE } }),
 });
 

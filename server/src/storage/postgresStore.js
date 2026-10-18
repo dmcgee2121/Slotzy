@@ -1023,6 +1023,13 @@ export function createPostgresStore(env = process.env) {
       owner: result.owner && typeof result.owner === "object" ? result.owner : null,
     };
   }
+  async function rescheduleBookingByManageTokenHash(tokenHash, startISO) {
+    beginOperation();
+    const { data, error } = await client.rpc("slotzy_reschedule_booking_by_manage_token_hash", { p_token_hash: String(tokenHash ?? "").trim(), p_start_at: safeText(startISO) });
+    fail(error, "reschedule booking by manage token", networkFailures);
+    const result = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+    return { outcome: String(result.outcome ?? "invalid_token"), bookingFound: result.booking_found === true, statusBefore: String(result.status_before ?? ""), statusAfter: String(result.status_after ?? ""), cancelHours: Number(result.cancel_hours ?? 0), eventCreated: result.event_created === true, booking: result.booking && typeof result.booking === "object" ? result.booking : null, previousBooking: result.previous_booking && typeof result.previous_booking === "object" ? result.previous_booking : null };
+  }
   async function storeManageToken(bookingSourceId, tokenHash, expiresAt) {
     beginOperation();
     const { data: mapping, error: mapError } = await client.from("legacy_source_ids").select("target_id").eq("entity_type", "booking").eq("source_id", bookingSourceId).eq("is_canonical", true).maybeSingle();
@@ -1038,7 +1045,7 @@ export function createPostgresStore(env = process.env) {
     const { error } = await client.from("booking_manage_tokens").insert({ booking_id: bookingId, token_hash: tokenHash, expires_at: expiresAt });
     fail(error, "store manage token", networkFailures);
   }
-  return { readStore, readUserByUsername, readUserById, incrementUserAuthVersion, changeUserPassword, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, updateBookingSchedule, cancelBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
+  return { readStore, readUserByUsername, readUserById, incrementUserAuthVersion, changeUserPassword, readLoginCredentialByUsername, readPublicBookingStore, listServicesForAuthenticatedUser, listShopsForAuthenticatedUser, readAvailabilityForAuthenticatedUser, listBookingsForAuthenticatedUser, writeStore, writeUser, writeShop, writeService, writeAvailability, writeBooking, updateBookingStatus, updateBookingSchedule, cancelBookingByManageTokenHash, rescheduleBookingByManageTokenHash, appendOutboxEmail, listOutboxEmails, clearOutboxEmails, createBookingAtomically, storeManageToken, cents };
 }
 
 export const readStore = async () => createPostgresStore().readStore();
