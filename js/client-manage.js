@@ -862,7 +862,9 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
       clientName: String(booking?.clientName ?? "").trim(),
       serviceName: String(booking?.serviceName ?? "Service").trim() || "Service",
       durationMinutes: getDurationMinutes(booking),
-      price: Number(booking?.price ?? 0),
+      // Preserve an explicit $0.00 but do not render a missing historical
+      // booking price as if it were free.
+      price: booking?.price ?? null,
       start,
       end,
       status,
@@ -1533,13 +1535,15 @@ import { buildBookingNotificationPayload, postBookingNotification } from "./book
   }
 
   function formatCurrency(value) {
-    const amount = Number(value ?? 0);
+    if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) return "Price unavailable";
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return "Price unavailable";
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: "USD",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(Number.isFinite(amount) ? amount : 0);
+    }).format(amount);
   }
 
   function formatDuration(value) {

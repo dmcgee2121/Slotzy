@@ -512,7 +512,7 @@ export function initBookingEngine(options = {}) {
           ? `
             <section class="booking-receipt-manage-link-panel" aria-label="Manage your appointment">
               <h2>Manage your appointment</h2>
-              <p class="small muted"><strong>Save this private link. You will need it to cancel your appointment.</strong> Rescheduling is not available from token links yet; cancel and rebook if you need a different time.</p>
+              <p class="small muted"><strong>Save this private link. Use it to view, cancel, or reschedule your appointment.</strong> Rescheduling is available for eligible future appointments and is subject to the shop's change policy.</p>
               <div class="booking-receipt-manage-link-row">
                 <a id="bookingReceiptManageLink" class="booking-receipt-manage-link" href="${escapeHtml(manageLinkUrl)}" aria-label="Manage this appointment">${escapeHtml(manageLinkUrl)}</a>
                 <a id="btn-receipt-open-manage-link" class="btn btn-primary" href="${escapeHtml(manageLinkUrl)}">Open Manage Page</a>

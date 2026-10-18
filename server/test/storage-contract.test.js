@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createJsonStore } from "../src/storage/jsonStore.js";
-import { buildAtomicBookingPayload, buildPostgresAvailabilitySnapshot, buildPostgresServiceSnapshot, buildPostgresShopSnapshot, buildPostgresUserSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
+import { bookingPriceFromServiceSnapshot, buildAtomicBookingPayload, buildPostgresAvailabilitySnapshot, buildPostgresServiceSnapshot, buildPostgresShopSnapshot, buildPostgresUserSnapshot, normalizePostgresSnapshot } from "../src/storage/postgresStore.js";
 
 const temporaryDirectories = [];
 
@@ -374,6 +374,14 @@ test("Postgres availability writes include only the target provider schedule", (
 
 test("Postgres availability snapshots require a target provider", () => {
   assert.throws(() => buildPostgresAvailabilitySnapshot("", {}), /provider username/);
+});
+
+test("Postgres booking snapshots preserve explicit prices and leave missing historical prices unavailable", () => {
+  assert.equal(bookingPriceFromServiceSnapshot({ price: 30 }), 30);
+  assert.equal(bookingPriceFromServiceSnapshot({ price: 0 }), 0);
+  assert.equal(bookingPriceFromServiceSnapshot({ price: "30.5" }), 30.5);
+  assert.equal(bookingPriceFromServiceSnapshot({ name: "Legacy cut" }), null);
+  assert.equal(bookingPriceFromServiceSnapshot({ price: "" }), null);
 });
 
 test("atomic booking payload keeps security and policy fields while excluding unrelated state", () => {

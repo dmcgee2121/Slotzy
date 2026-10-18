@@ -72,6 +72,18 @@ const PUBLIC_PROVIDER_ROLES = new Set(["owner", "barber"]);
 const PUBLIC_BOOKING_STATUSES = ["booked", "confirmed"];
 const PUBLIC_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+// A booking snapshot is the historical service record. Do not substitute the
+// current service price when a legacy snapshot has no price: that would invent
+// a historical amount. `null` deliberately lets the customer UI distinguish
+// an unavailable price from a genuine $0.00 service.
+export function bookingPriceFromServiceSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object" || !Object.prototype.hasOwnProperty.call(snapshot, "price")) return null;
+  const raw = snapshot.price;
+  if (raw === null || raw === undefined || (typeof raw === "string" && raw.trim() === "")) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Number(value.toFixed(2)) : null;
+}
+
 function safeText(value) {
   return String(value ?? "").trim();
 }
@@ -293,7 +305,7 @@ export function createPostgresStore(env = process.env) {
       shops: shops.map((row) => ({ id: sourceId("shop", row.id), name: row.name, businessName: row.name, slug: row.slug, ownerUsername: usersById.get(row.owner_user_id)?.username ?? "", shopPhone: row.phone ?? "", shopEmail: row.email ?? "", logo: row.logo_url ?? "", cover: row.cover_url ?? "", createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at), bookingPolicy: legacyPolicy(settingsByShop.get(row.id)) })),
       services: services.map((row) => { const provider = providerByService.get(row.id) ?? ""; return { id: sourceId("service", row.id), name: row.name, title: row.name, price: dollars(row.price_cents), durationMinutes: row.duration_minutes, duration: row.duration_minutes, shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, active: row.is_active, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at) }; }),
       availability,
-      bookings: bookings.map((row) => { const provider = usersById.get(membersById.get(row.provider_member_id)?.user_id)?.username ?? ""; return { id: sourceId("booking", row.id), shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, serviceName: row.service_snapshot?.name ?? "Service", serviceTitle: row.service_snapshot?.name ?? "Service", clientName: row.client_name, clientContact: row.client_contact, clientEmail: row.client_email, clientPhone: row.client_phone, startISO: iso(row.start_at), endISO: iso(row.end_at), durationMinutes: row.duration_minutes, status: row.status, confirmationCode: row.confirmation_code, depositRequired: row.deposit_required, depositAmount: dollars(row.deposit_amount_cents), depositStatus: row.deposit_status, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at), ...(tokenHashByBookingId.get(row.id) ? { manageTokenHash: tokenHashByBookingId.get(row.id) } : {}) }; }),
+      bookings: bookings.map((row) => { const provider = usersById.get(membersById.get(row.provider_member_id)?.user_id)?.username ?? ""; return { id: sourceId("booking", row.id), shopId: sourceId("shop", row.shop_id), barberUsername: provider, ownerUsername: provider, serviceName: row.service_snapshot?.name ?? "Service", serviceTitle: row.service_snapshot?.name ?? "Service", price: bookingPriceFromServiceSnapshot(row.service_snapshot), clientName: row.client_name, clientContact: row.client_contact, clientEmail: row.client_email, clientPhone: row.client_phone, startISO: iso(row.start_at), endISO: iso(row.end_at), durationMinutes: row.duration_minutes, status: row.status, confirmationCode: row.confirmation_code, depositRequired: row.deposit_required, depositAmount: dollars(row.deposit_amount_cents), depositStatus: row.deposit_status, createdAtISO: iso(row.created_at), updatedAtISO: iso(row.updated_at), ...(tokenHashByBookingId.get(row.id) ? { manageTokenHash: tokenHashByBookingId.get(row.id) } : {}) }; }),
       emails: emails.map((row) => ({ id: row.id, createdAtISO: iso(row.created_at), to: row.recipient_email, subject: row.subject, html: row.payload?.html ?? "", text: row.payload?.text ?? "", tags: row.payload?.tags ?? [], meta: row.payload?.meta ?? {} })),
     });
   }
@@ -533,6 +545,7 @@ export function createPostgresStore(env = process.env) {
         ownerUsername: provider,
         serviceName: row.service_snapshot?.name ?? "Service",
         serviceTitle: row.service_snapshot?.name ?? "Service",
+        price: bookingPriceFromServiceSnapshot(row.service_snapshot),
         clientName: row.client_name,
         clientContact: row.client_contact,
         clientEmail: row.client_email,
