@@ -285,6 +285,14 @@ export function createJsonStore({ filePath = DB_PATH } = {}) {
     const requested = normalizedText(barberUsername);
     if (role === "owner") {
       const shopId = normalizedText(user?.shopId);
+      // Match the Postgres contract during first-run setup: an owner without a
+      // shop may read only their own empty/default availability, never another
+      // provider's schedule.
+      if (!shopId) {
+        if (requested && requested.toLowerCase() !== normalizedText(user?.username).toLowerCase()) return { outcome: "not_allowed" };
+        if (requested) return { outcome: "single", barberUsername: user.username, availability: store.availability?.[user.username] ?? {} };
+        return { outcome: "list", availability: {} };
+      }
       const providers = store.users.filter((entry) => isProviderRole(entry?.role) && normalizedText(entry?.shopId) === shopId);
       if (requested) {
         const provider = providers.find((entry) => normalizedText(entry?.username).toLowerCase() === requested.toLowerCase());

@@ -31,6 +31,10 @@ function isSmtpConfigured() {
   return Boolean(host && user && pass && from && Number.isFinite(port) && port > 0);
 }
 
+function isDevOutboxForced() {
+  return String(process.env.SLOTZY_FORCE_DEV_OUTBOX ?? "").trim().toLowerCase() === "true";
+}
+
 function getTransportOptions() {
   const host = normalizeString(process.env.SMTP_HOST);
   const port = Number(process.env.SMTP_PORT ?? 0);
@@ -75,7 +79,7 @@ async function saveToOutbox(payload) {
 }
 
 export function getEmailMode() {
-  return isSmtpConfigured() ? "smtp" : "outbox";
+  return !isDevOutboxForced() && isSmtpConfigured() ? "smtp" : "outbox";
 }
 
 export async function sendEmail({ to, subject, html, text, tags = [], meta = {} } = {}) {

@@ -783,7 +783,16 @@ export function createPostgresStore(env = process.env) {
       return { outcome: "single", barberUsername: user.username, availability: availability[user.username] ?? {} };
     }
     const shopId = await resolveShopSourceId(user?.shopId, "resolve owner availability shop");
-    if (!shopId) return requestedUsername ? { outcome: "not_allowed" } : { outcome: "list", availability: {} };
+    // A newly registered owner has no shop membership until setup creates the
+    // shop. Setup still needs an authoritative empty schedule for that owner;
+    // do not grant access to any other provider before membership exists.
+    if (!shopId) {
+      if (requestedUsername && requestedUsername.toLowerCase() !== safeText(user?.username).toLowerCase()) {
+        return { outcome: "not_allowed" };
+      }
+      if (requestedUsername) return { outcome: "single", barberUsername: user.username, availability: {} };
+      return { outcome: "list", availability: {} };
+    }
     const members = await readAllRows("read owner availability members", () => client.from("shop_members")
       .select("id,shop_id,user_id").eq("shop_id", shopId).eq("is_active", true).is("deleted_at", null).order("id"));
     const userIds = [...new Set(members.map((member) => member.user_id).filter(Boolean))];

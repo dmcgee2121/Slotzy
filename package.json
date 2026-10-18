@@ -4,6 +4,8 @@
   "scripts": {
     "serve": "node scripts/serve.cjs",
     "dev:all": "powershell -ExecutionPolicy Bypass -File scripts/dev-all.ps1",
+    "local:e2e": "node scripts/start-local-e2e.cjs",
+    "test:local-e2e-config": "node --test scripts/local-e2e-config.test.cjs",
     "make:demo-zip": "node scripts/make-demo-zip.js",
     "test:smoke": "playwright test",
     "test:smoke:headed": "playwright test --headed",

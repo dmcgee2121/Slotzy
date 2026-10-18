@@ -37,7 +37,8 @@ const DEMO_IDS = {
 
 function readInitialApiEnabled() {
   try {
-    return String(localStorage.getItem(API_MODE_KEY) ?? "").trim() === "1";
+    return globalThis?.SLOTZY_CONFIG?.forceApiMode === true
+      || String(localStorage.getItem(API_MODE_KEY) ?? "").trim() === "1";
   } catch {
     return false;
   }
@@ -1747,7 +1748,10 @@ export function saveAvailabilityForBarber(username, availability) {
 export function getAvailabilityForBarberAsync(username) {
   return runAsync(
     () => getAvailabilityForBarber(username),
-    { apiFn: () => apiGetAvailabilityForBarber(username), label: "availability barber read" }
+    // In an API-backed owner session, a failed availability read must remain a
+    // visible failure. Falling back here can make later setup writes appear to
+    // be database-backed when they are only browser-local.
+    { apiFn: () => apiGetAvailabilityForBarber(username), label: "availability barber read", fallbackOnError: false }
   );
 }
 

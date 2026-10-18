@@ -21,6 +21,7 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
+const BIND_HOST = String(process.env.SLOTZY_BIND_HOST ?? "").trim();
 const ADMIN_SECRET = String(process.env.ADMIN_SECRET || "").trim();
 const RUNTIME_ENVIRONMENT = normalizeRuntimeEnvironment(process.env.NODE_ENV);
 const IS_PRODUCTION_LIKE = isProductionLikeEnvironment(RUNTIME_ENVIRONMENT);
@@ -3267,9 +3268,14 @@ async function initializeSharedLimiter() {
 async function startServer() {
   try {
     await initializeSharedLimiter();
-    app.listen(PORT, () => {
-      console.log(`Slotzy API server listening on http://localhost:${PORT}`);
+    const listener = BIND_HOST ? app.listen(PORT, BIND_HOST, onListening) : app.listen(PORT, onListening);
+    function onListening() {
+      console.log(`Slotzy API server listening on http://${BIND_HOST || "localhost"}:${PORT}`);
       void logStagingSupabaseDnsProbe();
+    }
+    listener.on("error", (error) => {
+      console.error("[Slotzy:server] listener failed", { code: String(error?.code ?? "listen_failed") });
+      process.exitCode = 1;
     });
   } catch {
     console.error("[Slotzy:rate-limit] shared limiter initialization failed", {

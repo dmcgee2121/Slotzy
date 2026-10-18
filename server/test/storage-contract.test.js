@@ -180,6 +180,18 @@ test("JSON protected shop, availability, and booking projections preserve owner 
   assert.equal(await store.listBookingsForAuthenticatedUser({ role: "customer" }), null);
 });
 
+test("new owner may read only their own default availability before shop setup", async () => {
+  const store = await createTestStore();
+  await store.writeStore({
+    users: [{ id: "new-owner", username: "new-owner", role: "owner", shopId: null }],
+    shops: [], services: [], bookings: [], emails: [], availability: {},
+  });
+  const owner = { id: "new-owner", username: "new-owner", role: "owner", shopId: null };
+  const own = await store.readAvailabilityForAuthenticatedUser(owner, { barberUsername: "new-owner" });
+  assert.deepEqual(own, { outcome: "single", barberUsername: "new-owner", availability: {} });
+  assert.equal((await store.readAvailabilityForAuthenticatedUser(owner, { barberUsername: "other-owner" })).outcome, "not_allowed");
+});
+
 test("JSON booking status updates persist narrowly without replacing booking data", async () => {
   const store = await createTestStore();
   await store.writeStore({
