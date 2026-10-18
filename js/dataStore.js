@@ -1337,6 +1337,24 @@ async function apiCreateService(serviceInput) {
   return service;
 }
 
+async function apiDeactivateService(serviceId) {
+  const id = toRecordId(serviceId);
+  if (!id) throw new Error("Service id is required for deactivation");
+  const payload = await apiRequest(`/services/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+  const service = isObjectRecord(payload?.service) ? payload.service : null;
+  if (!service || toRecordId(service.id) !== id || service.active !== false) {
+    throw new Error("Invalid service deactivation response");
+  }
+  const current = getServices();
+  const next = current.some((entry) => toRecordId(entry?.id) === id)
+    ? current.map((entry) => (toRecordId(entry?.id) === id ? service : entry))
+    : [...current, service];
+  saveServices(next);
+  return service;
+}
+
 async function apiUpdateBooking(bookingId, bookingPatch, options = {}) {
   const id = toRecordId(bookingId);
   if (!id) throw new Error("Booking id is required for an API update");
@@ -1627,6 +1645,21 @@ export function createServiceAsync(service, options = {}) {
       return localService;
     },
     { apiFn: () => apiCreateService(service), label: "service create", operation: "write", fallbackOnError: false }
+  );
+}
+
+export function deactivateServiceAsync(serviceId, options = {}) {
+  const id = toRecordId(serviceId);
+  return runAsync(
+    () => {
+      if (!id) throw new Error("Service id is required for deactivation");
+      const next = getServices().map((service) => (
+        toRecordId(service?.id) === id ? { ...service, active: false } : service
+      ));
+      saveServices(next);
+      return next.find((service) => toRecordId(service?.id) === id) ?? null;
+    },
+    { apiFn: () => apiDeactivateService(id), label: "service deactivation", operation: "write", fallbackOnError: options.fallbackOnError !== false }
   );
 }
 

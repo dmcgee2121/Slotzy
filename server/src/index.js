@@ -2305,9 +2305,17 @@ app.delete("/api/services/:serviceId", requireAuth, requireRouteStore, async (re
       return res.status(403).json({ error: "not allowed to delete this service" });
     }
 
-    db.services.splice(index, 1);
-    await writeStore(db);
-    return res.status(204).send();
+    // Services can be referenced by historical booking snapshots and relational
+    // booking/provider rows. Keep that history intact and use the narrow
+    // service snapshot writer rather than replaying the whole store. The
+    // public booking projection already excludes inactive services.
+    const deactivated = {
+      ...service,
+      active: false,
+      updatedAtISO: new Date().toISOString(),
+    };
+    await writeService(deactivated, db);
+    return res.json({ service: deactivated });
   } catch {
     return res.status(500).json({ error: "internal server error" });
   }

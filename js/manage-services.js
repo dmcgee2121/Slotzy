@@ -155,16 +155,15 @@ import * as dataStore from "./dataStore.js";
     const service = allServices.find((item) => item.id === serviceId && isScopedService(item));
     if (!service) return;
 
-    const confirmed = window.confirm(`Delete "${service.name}" from your public booking menu? Clients will no longer be able to select it. This cannot be undone.`);
+    const confirmed = window.confirm(`Deactivate "${service.name}" from your public booking menu? Clients will no longer be able to select it. Historical appointments are preserved.`);
     if (!confirmed) return;
 
-    const remaining = allServices.filter((item) => item.id !== serviceId);
     try {
-      await saveAllServices(remaining);
+      await dataStore.deactivateServiceAsync(serviceId, { fallbackOnError: false });
       if (editingServiceId === serviceId) clearEditState();
       renderOwnerServices();
-      setFormStatus(`Saved. ${service.name} was removed from your booking menu.`, "success");
-      showToast?.(`Service removed: ${service.name}`, "success");
+      setFormStatus(`Saved. ${service.name} was deactivated and removed from your public booking menu.`, "success");
+      showToast?.(`Service deactivated: ${service.name}`, "success");
     } catch (error) {
       console.error("[Slotzy:services] Could not remove service.", error);
       setFormStatus("We couldn’t remove this service. Please try again.", "error");
@@ -326,7 +325,7 @@ import * as dataStore from "./dataStore.js";
         <span class="badge ${statusClass}" aria-label="Service status: ${statusLabel}">${statusLabel}</span>
         <div class="owner-service-actions cta-row">
           <button class="btn btn-ghost" type="button" data-action="edit" data-id="${escapeHtml(service.id)}">Edit</button>
-          <button class="btn btn-danger" type="button" data-action="delete" data-id="${escapeHtml(service.id)}">Delete</button>
+          <button class="btn btn-danger" type="button" data-action="delete" data-id="${escapeHtml(service.id)}">Deactivate</button>
         </div>
       </article>
     `;
