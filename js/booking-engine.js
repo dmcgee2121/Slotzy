@@ -26,6 +26,7 @@ export function initBookingEngine(options = {}) {
   const shopSelect = findElementById("shopSelect");
   const barberSelect = findElementById("barberSelect");
   const barberField = findElementById("barberField");
+  const soloBarberNotice = findElementById("soloBarberNotice");
   const serviceSelect = findElementById("serviceSelect");
   const bookingPolicyCard = findElementById("bookingPolicyCard");
   const bookingPolicySameDay = findElementById("bookingPolicySameDay");
@@ -1671,6 +1672,12 @@ export function initBookingEngine(options = {}) {
     const shouldHide = Boolean(selectedShopId) && count === 1;
     barberField.classList.toggle("hidden", shouldHide);
     barberField.setAttribute("aria-hidden", shouldHide ? "true" : "false");
+    if (!soloBarberNotice) return;
+    const soleBarber = shouldHide ? barbers[0] : null;
+    soloBarberNotice.textContent = soleBarber
+      ? `Your appointment will be with ${soleBarber.displayName}.`
+      : "";
+    soloBarberNotice.classList.toggle("hidden", !soleBarber);
   }
 
   function updateChangeBarberHelp() {
